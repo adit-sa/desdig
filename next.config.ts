@@ -62,6 +62,19 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    const r2PublicDomain = process.env.R2_PUBLIC_DOMAIN || process.env.R2_PUBLIC_URL;
+    if (r2PublicDomain) {
+      const cleanR2 = r2PublicDomain.replace(/\/$/, "");
+      return [
+        {
+          source: "/uploads/:path*",
+          destination: `${cleanR2}/:path*`,
+        },
+      ];
+    }
+    return [];
+  },
 };
 
 export default nextConfig;

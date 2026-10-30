@@ -9,6 +9,9 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 ## [Unreleased]
 
 ### Added
+- **Sinkronisasi Massal Media ke Cloudflare R2 & Transparent Media Proxy (`scripts/sync-uploads-to-r2.ts` & `next.config.ts`)**:
+  - Script batch upload otomatis `scripts/sync-uploads-to-r2.ts` untuk memigrasikan seluruh aset lokal `public/uploads` (foto artikel, aparat, galeri, logo) ke bucket Cloudflare R2 secara paralel.
+  - Aturan rewrite transparan pada `next.config.ts` (`/uploads/:path*` -> `${R2_PUBLIC_DOMAIN}/:path*`) sehingga seluruh gambar di database langsung tampil di Vercel tanpa broken image.
 - **Dukungan Cloudflare R2 / S3 Object Storage (`lib/storage.ts`)**:
   - Adapter penyimpanan cloud berkas media dan foto (`lib/storage.ts`) menggunakan `@aws-sdk/client-s3`.
   - Otomatis mengunggah ke Cloudflare R2 saat kredensial R2 dikonfigurasi pada env (arsitektur Vercel Serverless), dengan fallback mulus ke penyimpanan disk lokal (`public/uploads`) pada mode development.
