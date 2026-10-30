@@ -68,10 +68,10 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Menambahkan aturan wajib pembaruan `CHANGELOG.md` pada `AGENTS.md`.
 
 ### Fixed
-- **Resolusi Konflik Peer Dependency CI/CD GitHub Actions**:
-  - Menambahkan konfigurasi `.npmrc` dengan `legacy-peer-deps=true` untuk mencegah error `ERESOLVE` saat eksekusi `npm ci`.
-  - Memperbarui workflow `.github/workflows/ci.yml` ke Node.js 22 LTS dan menambahkan flag `--legacy-peer-deps`.
-  - Memperbarui `@types/node` ke versi `^22.13.0` pada `package.json` agar selaras dengan peer requirement Vitest v5.
+- **Resolusi Sinkronisasi Package Lock & CI/CD GitHub Actions**:
+  - Mengembalikan keselarasan versi `@types/node` antara `package.json` dan `package-lock.json` untuk mencegah kegagalan *lockfile mismatch*.
+  - Mengganti eksekusi pada workflow `.github/workflows/ci.yml` menjadi `npm install --legacy-peer-deps` dengan Node.js 20 LTS agar instalasi dependensi di CI berjalan fleksibel dan stabil tanpa hambatan ERESOLVE.
+  - Mempertahankan `.npmrc` dengan `legacy-peer-deps=true` untuk kelancaran build otomatis di Vercel.
 - **Pembersihan Fallback Kode Hardcode di Tema Publik**:
   - Menghapus fallback kode desa statis (`'32.04.11.2001'` dan `'76.01.03.2005'`) pada komponen `ModernEditorialTheme` dan `TraditionalVillageTheme`, digantikan dengan pemanggilan formatter dinamis `formatKodeKemendagri(tenant.kodeDesa)` guna menjaga kepatuhan isolasi multi-tenant.
 - **Hydration Mismatch (React 19 / Next.js 16)**:
