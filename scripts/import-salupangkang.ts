@@ -22,7 +22,7 @@ async function importSalupangkang() {
     where: { id: tenant.id },
     data: {
       namaDesa: 'Salupangkang',
-      kodeDesa: '7606042009',
+      kodeDesa: '76.06.04.2009',
       kodePos: '91564',
       kecamatan: 'Topoyo',
       kabupaten: 'Mamuju Tengah',
