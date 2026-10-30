@@ -68,6 +68,11 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Menambahkan aturan wajib pembaruan `CHANGELOG.md` pada `AGENTS.md`.
 
 ### Fixed
+- **Standardisasi Output Prisma Client ke `@prisma/client`**:
+  - Menghapus konfigurasi custom output `lib/prisma-client-v4` pada `prisma/schema.prisma` dan mengembalikan generator ke lokasi standar `node_modules/@prisma/client`.
+  - Memperbarui `lib/prisma.ts` dan script terkait agar mengimpor langsung dari `@prisma/client`.
+  - Menghapus berkas bundle usang `lib/prisma-client-v4` dari tracking Git, merampingkan ukuran repositori dan menghilangkan peringatan tracing filesystem Turbopack.
+  - Memperbaiki kegagalan Prisma Client initialization pada saat runner CI GitHub Actions menjalankan `npx tsx prisma/seed.ts` (`@prisma/client did not initialize yet`).
 - **Pengecualian Berkas `.env.example` dari Aturan `.gitignore`**:
   - Menambahkan aturan un-ignore `!.env.example` setelah `.env*` pada `.gitignore` agar template environment terunggah ke Git.
   - Memperbaiki kegagalan runner CI GitHub Actions pada langkah `cp .env.example .env` (`cp: cannot stat '.env.example': No such file or directory`).
