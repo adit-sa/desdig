@@ -169,14 +169,14 @@ async function main() {
 
   // Update path di database ke /uploads/pembangunan/<filename> jika file ada secara lokal
   console.log('\n🔄 Memperbarui path foto di database ke penyimpanan lokal...');
-  
+
   for (const p of projects) {
     const fn = extractFilename(p.foto);
     if (!fn) continue;
     const localFile = path.join(outputDir, fn);
-    const localUrl = fs.existsSync(localFile) 
-      ? `/uploads/salupangkang/pembangunan/${fn}` 
-      : `/images/desa_irigasi_pertanian.jpg`; // Fallback lokal berkualitas
+    const localUrl = fs.existsSync(localFile)
+        ? `/uploads/salupangkang/pembangunan/${fn}`
+        : `/images/desa_irigasi_pertanian.jpg`; // Fallback lokal berkualitas
 
     await prisma.$executeRawUnsafe(
       `UPDATE "DevelopmentProject" SET foto = $1 WHERE id = $2`,
@@ -189,9 +189,9 @@ async function main() {
     const fn = extractFilename(d.gambar);
     if (!fn) continue;
     const localFile = path.join(outputDir, fn);
-    const localUrl = fs.existsSync(localFile) 
-      ? `/uploads/salupangkang/pembangunan/${fn}` 
-      : `/images/desa_irigasi_pertanian.jpg`; // Fallback lokal berkualitas
+    const localUrl = fs.existsSync(localFile)
+        ? `/uploads/salupangkang/pembangunan/${fn}`
+        : `/images/desa_irigasi_pertanian.jpg`; // Fallback lokal berkualitas
 
     await prisma.$executeRawUnsafe(
       `UPDATE "DevelopmentDocumentation" SET gambar = $1 WHERE id = $2`,
