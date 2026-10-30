@@ -47,7 +47,7 @@ async function importAllUsers() {
           : rawPassword;
 
         // Role mapping: grup 1 (administrator) -> VILLAGE_ADMIN, lainnya EDITOR / APARATUR
-        let role = TenantRole.APARATUR;
+        let role: TenantRole = TenantRole.APARATUR;
         if (idGrup === '1' || username === 'admin' || username === 'sapiil') {
           role = TenantRole.VILLAGE_ADMIN;
         } else if (idGrup === '2') {

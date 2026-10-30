@@ -44,6 +44,14 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - `tests/tenant-isolation.test.ts`: Uji integritas isolasi multi-tenant data desa (11 uji).
 
 ### Changed
+- **Optimasi Latensi Serverless & Colocation Kawasan Singapura (`vercel.json`)**:
+  - Menetapkan `"regions": ["sin1"]` pada `vercel.json` agar Vercel Serverless Functions dieksekusi di Region Singapura (Singapore), satu data center dengan basis data Neon Cloud PostgreSQL (`ap-southeast-1`).
+  - Memangkas latensi query antar-benua (*cross-ocean latency*) dari ~250ms (default Vercel `iad1` Washington D.C., USA) menjadi ~1-3ms per round-trip SQL query.
+- **Optimasi Connection Pooling Prisma di Lingkungan Produksi Serverless (`lib/prisma.ts`)**:
+  - Mengaktifkan penyimpanan instance PrismaClient di `globalThis` pada mode produksi serverless untuk mempertahankan dan menggunakan ulang pool koneksi database (*warm lambda instances*), mencegah inisialisasi ulang dan *TLS handshake* berulang pada setiap permintaan.
+  - Memastikan parameter connection pooling `&pgbouncer=true` aktif pada string koneksi database.
+- **Request-Level Memoization pada Data Beranda Publik (`lib/tenant/data.ts`)**:
+  - Membungkus fungsi `getTenantPublicHomeData` dengan `cache()` dari React untuk deduplikasi query database dalam satu siklus render SSR.
 - **Isolasi Multi-Tenant Folder Pembangunan (`public/uploads/salupangkang/pembangunan`)**:
   - Memindahkan seluruh berkas foto pembangunan dari direktori publik global (`public/uploads/pembangunan`) ke dalam direktori terisolasi per tenant (`public/uploads/salupangkang/pembangunan`) sesuai Hukum Utama Multi-Tenancy.
   - Mengunggah 160 berkas aset pembangunan ke bucket Cloudflare R2 di bawah key `salupangkang/pembangunan/`.

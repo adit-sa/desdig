@@ -33,7 +33,7 @@ async function getLatestAttendances(tenantId: string): Promise<any[]> {
   `.catch(() => []);
 }
 
-export async function getTenantPublicHomeData(tenantId: string) {
+export const getTenantPublicHomeData = cache(async (tenantId: string) => {
   // Semua query terisolasi ketat berdasarkan tenantId & dijalankan paralel
   const [
     articles,
@@ -200,7 +200,7 @@ export async function getTenantPublicHomeData(tenantId: string) {
     pembangunan,
     themeConfig: activeThemeConfig?.settings ? (activeThemeConfig.settings as any) : null,
   };
-}
+});
 
 export async function getTenantArticleBySlug(tenantId: string, slug: string) {
   const article = await prisma.article.findFirst({
