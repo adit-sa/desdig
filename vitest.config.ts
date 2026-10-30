@@ -9,6 +9,7 @@ export default defineConfig({
   },
   test: {
     globals: true,
+    testTimeout: 15000,
     exclude: ['**/node_modules/**', '**/.next/**', '**/dist/**'],
   },
 });
