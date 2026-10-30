@@ -1,0 +1,57 @@
+name: Multi-Tenant Desa Platform CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test-and-build:
+    name: Lint, Test & Production Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mydb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Setup Environment Variables
+        run: |
+          cp .env.example .env
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mydb" >> .env
+
+      - name: Generate Prisma Client & Push DB
+        run: |
+          npx prisma generate
+          npx prisma db push
+          npx tsx prisma/seed.ts
+
+      - name: Run Vitest (Unit & Tenant Isolation Tests)
+        run: npx vitest run
+
+      - name: Build Next.js 16 Application (Turbopack)
+        run: npm run build

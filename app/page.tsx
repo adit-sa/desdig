@@ -1,69 +1,81 @@
-import Image from "next/image";
+import React from 'react';
+import { headers } from 'next/headers';
+import { resolveTenant, getAllTenantsSummary } from '@/lib/tenant/resolver';
+import { getTenantPublicHomeData } from '@/lib/tenant/data';
+import ThemeRenderer from '@/components/themes/ThemeRenderer';
+import type { Metadata } from 'next';
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+export const instant = false;
+
+interface PageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const resolvedSearchParams = await searchParams;
+  const tenantSlug = typeof resolvedSearchParams.tenant === 'string' ? resolvedSearchParams.tenant : null;
+  const headerList = await headers();
+  const host = headerList.get('host') || 'localhost:3000';
+
+  const tenant = await resolveTenant(tenantSlug || host);
+  if (!tenant) {
+    return {
+      title: 'Website Desa Multi-Tenant SaaS',
+      description: 'Platform pembuatan website desa modern berlisensi.',
+    };
+  }
+
+  return {
+    title: `Pemerintah Desa ${tenant.namaDesa} - Portal Informasi & Pelayanan Publik`,
+    description: tenant.visi || `Website resmi Pemerintah Desa ${tenant.namaDesa}, Kec. ${tenant.kecamatan}, Kab. ${tenant.kabupaten}.`,
+    openGraph: {
+      title: `Desa ${tenant.namaDesa} - Portal Resmi`,
+      description: `Kecamatan ${tenant.kecamatan}, Kabupaten ${tenant.kabupaten}, Provinsi ${tenant.provinsi}`,
+    },
+  };
+}
+
+export default async function HomePage({ searchParams }: PageProps) {
+  const resolvedSearchParams = await searchParams;
+  const tenantSlug = typeof resolvedSearchParams.tenant === 'string' ? resolvedSearchParams.tenant : null;
+  const headerList = await headers();
+  const host = headerList.get('host') || 'localhost:3000';
+
+  // Resolusi tenant dari Host header atau query params
+  const tenant = await resolveTenant(tenantSlug || host);
+
+  if (!tenant) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 text-center">
+        <div className="max-w-md bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+          <h2 className="text-xl font-bold text-slate-800">Tenant Desa Tidak Ditemukan</h2>
+          <p className="text-sm text-slate-500 mt-2">
+            Domain atau subdomain &ldquo;{host}&rdquo; belum terdaftar pada platform SaaS.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/saas"
+            className="inline-block mt-4 bg-emerald-600 text-white font-semibold px-4 py-2 rounded-lg text-xs"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
+            Buka Master SaaS
           </a>
         </div>
-      </main>
-    </div>
+      </div>
+    );
+  }
+
+  // Fetch data terisolasi server-side
+  const [homeData, allTenants] = await Promise.all([
+    getTenantPublicHomeData(tenant.id),
+    getAllTenantsSummary(),
+  ]);
+
+  return (
+    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center">Memuat website desa...</div>}>
+      <ThemeRenderer
+        tenant={tenant}
+        data={homeData}
+        allTenants={allTenants}
+      />
+    </React.Suspense>
   );
 }

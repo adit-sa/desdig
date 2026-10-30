@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+.edge-temp/
+Thumbs.db
 
 # debug
 npm-debug.log*
@@ -39,3 +41,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Database, Migration & Local Backup files (Heavy local dumps)
+backup/
+*.sql
+*.sqlite
+*.sqlite-journal
+
+# Prisma engine binaries & unused legacy engines
+*.node
+*.dll
+*.tmp*
+lib/prisma-client/
+lib/prisma-client-v2/
+lib/prisma-client-v3/
+
+# Local village media & uploads (Stored in Cloudflare R2 in production)
+/public/uploads/*
+!/public/uploads/.gitkeep
+/public/desa/upload/*
+!/public/desa/upload/.gitkeep

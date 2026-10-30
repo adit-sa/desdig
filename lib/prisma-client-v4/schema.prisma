@@ -1,0 +1,589 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/prisma-client-v4"
+}
+
+// Global Roles
+enum GlobalRole {
+  SUPER_ADMIN
+  PLATFORM_OPERATOR
+  USER
+}
+
+// Tenant Roles
+enum TenantRole {
+  VILLAGE_ADMIN
+  EDITOR
+  AUTHOR
+  APARATUR
+  AUDITOR
+}
+
+// Subscription Status & Tiers
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum PlanTier {
+  BASIC
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+// Content Publication Status
+enum ContentStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+// 1. Subscription Plan (SaaS Builder)
+model SubscriptionPlan {
+  id             String   @id @default(cuid())
+  code           PlanTier @unique
+  name           String
+  description    String?
+  priceMonthly   Int      @default(0)
+  maxArticles    Int      @default(50)
+  maxStorageMb   Int      @default(500)
+  customDomain   Boolean  @default(false)
+  allowedModules String[] // array of module keys
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenants Tenant[]
+}
+
+// 2. Tenant (Desa)
+model Tenant {
+  id            String  @id @default(cuid())
+  slug          String  @unique
+  kodeDesa      String? @unique
+  namaDesa      String
+  kecamatan     String
+  kabupaten     String
+  provinsi      String  @default("Jawa Barat")
+  kodePos       String?
+  alamatKantor  String?
+  email         String?
+  telepon       String?
+  kepalaDesa    String?
+  visi          String? @db.Text
+  misi          Json? // string array
+  logoUrl       String?
+  heroImageUrl  String?
+  activeThemeId String  @default("modern-government")
+
+  // Subscription Relation
+  planId             String?
+  plan               SubscriptionPlan?  @relation(fields: [planId], references: [id])
+  subscriptionStatus SubscriptionStatus @default(ACTIVE)
+  trialEndsAt        DateTime?
+  subscriptionEndsAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Tenant-scoped Relations
+  domains             Domain[]
+  memberships         TenantMembership[]
+  themeConfigs        TenantThemeConfig[]
+  modules             TenantModule[]
+  articles            Article[]
+  categories          Category[]
+  announcements       Announcement[]
+  events              Event[]
+  officials           VillageOfficial[]
+  publicDocuments     PublicDocument[]
+  apbdesBudgets       ApbdesItem[]
+  auditLogs           AuditLog[]
+  attendances         OfficialAttendance[]
+  galleryItems        GalleryItem[]
+  navMenus            NavMenu[]
+  developmentProjects DevelopmentProject[]
+  merchants           Merchant[]
+  customPages         CustomPage[]
+  residents           Resident[]
+  kioskDevices        KioskDevice[]
+
+  @@index([slug])
+}
+
+// 3. Domain Resolution for Multi-tenancy
+model Domain {
+  id         String   @id @default(cuid())
+  tenantId   String
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  domain     String   @unique // e.g. "sukamaju.desaku.id" or "www.desasukamaju.id"
+  isPrimary  Boolean  @default(false)
+  isVerified Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+// 4. User & Authentication
+model User {
+  id           String     @id @default(cuid())
+  name         String
+  email        String     @unique
+  passwordHash String
+  avatarUrl    String?
+  globalRole   GlobalRole @default(USER)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  memberships TenantMembership[]
+  articles    Article[]
+  auditLogs   AuditLog[]
+}
+
+model TenantMembership {
+  id        String     @id @default(cuid())
+  tenantId  String
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      TenantRole @default(EDITOR)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@unique([tenantId, userId])
+  @@index([userId])
+}
+
+// 5. Theme & Configuration
+model Theme {
+  id              String   @id // e.g. "modern-government", "traditional-village", "modern-editorial"
+  name            String
+  version         String   @default("1.0.0")
+  description     String
+  previewImageUrl String?
+  isSystem        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  configs TenantThemeConfig[]
+}
+
+model TenantThemeConfig {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  themeId     String
+  theme       Theme    @relation(fields: [themeId], references: [id], onDelete: Cascade)
+  isPublished Boolean  @default(true)
+  settings    Json // colors, fonts, layout width, header style, hero sections
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([tenantId, themeId])
+  @@index([tenantId])
+}
+
+// 6. Modular Plugins (15 Registry Modules)
+model Module {
+  key          String     @id // e.g. "profile", "news", "announcements", "apbdes", etc.
+  name         String
+  description  String
+  version      String     @default("1.0.0")
+  requiredRole TenantRole @default(EDITOR)
+  isCore       Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  tenantModules TenantModule[]
+}
+
+model TenantModule {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  moduleKey String
+  module    Module   @relation(fields: [moduleKey], references: [key], onDelete: Cascade)
+  isEnabled Boolean  @default(true)
+  settings  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, moduleKey])
+  @@index([tenantId])
+}
+
+// 7. Content Management (Articles & Categories)
+model Category {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  createdAt DateTime @default(now())
+
+  articles Article[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+}
+
+model Article {
+  id               String        @id @default(cuid())
+  tenantId         String
+  tenant           Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  authorId         String?
+  author           User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorResidentId String?
+  authorResident   Resident?     @relation(fields: [authorResidentId], references: [id], onDelete: SetNull)
+  categoryId       String?
+  category         Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  title            String
+  slug             String
+  summary          String?       @db.Text
+  content          String        @db.Text
+  coverImageUrl    String?
+  galleryUrls      Json? // array of image urls for album
+  status           ContentStatus @default(PUBLISHED)
+  viewCount        Int           @default(0)
+  publishedAt      DateTime?     @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+  @@index([tenantId, publishedAt])
+  @@index([tenantId, authorResidentId])
+}
+
+// 8. Announcements & Events
+model Announcement {
+  id        String        @id @default(cuid())
+  tenantId  String
+  tenant    Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title     String
+  content   String        @db.Text
+  isPinned  Boolean       @default(false)
+  status    ContentStatus @default(PUBLISHED)
+  expiresAt DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([tenantId, status])
+}
+
+model Event {
+  id          String        @id @default(cuid())
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title       String
+  location    String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?       @db.Text
+  status      ContentStatus @default(PUBLISHED)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([tenantId, startDate])
+}
+
+// 9. Village Officials (Pamong Desa)
+model VillageOfficial {
+  id         String    @id @default(cuid())
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  residentId String?
+  resident   Resident? @relation(fields: [residentId], references: [id], onDelete: SetNull)
+  name       String
+  position   String // Kepala Desa, Sekretaris Desa, dll.
+  photoUrl   String?
+  nip        String?
+  pinCode    String?   @default("1234") // PIN 4-digit untuk absensi cepat di komputer kantor
+  orderIndex Int       @default(0)
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  attendances OfficialAttendance[]
+
+  @@index([tenantId, orderIndex])
+  @@index([tenantId, residentId])
+}
+
+enum AttendanceStatus {
+  HADIR
+  TERLAMBAT
+  IZIN
+  SAKIT
+  DINAS_LUAR
+  ALFA
+}
+
+model OfficialAttendance {
+  id           String           @id @default(cuid())
+  tenantId     String
+  tenant       Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  officialId   String
+  official     VillageOfficial  @relation(fields: [officialId], references: [id], onDelete: Cascade)
+  date         DateTime         @db.Date
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  status       AttendanceStatus @default(HADIR)
+  notes        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([tenantId, officialId, date])
+  @@index([tenantId, date])
+}
+
+// 10. Public Documents & APBDes Transparency
+model PublicDocument {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title     String
+  category  String // Perdes, SK, Laporan Keuangan
+  fileUrl   String
+  fileSize  Int? // bytes
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, category])
+}
+
+model GalleryItem {
+  id        String    @id @default(cuid())
+  tenantId  String
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title     String
+  imageUrl  String
+  caption   String?   @db.Text
+  category  String    @default("Kegiatan")
+  mediaType String    @default("IMAGE")
+  videoUrl  String?
+  mediaUrls Json?
+  takenAt   DateTime? @default(now())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([tenantId, category])
+  @@index([tenantId, createdAt])
+}
+
+model NavMenu {
+  id         String    @id @default(cuid())
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title      String
+  url        String
+  parentId   String?
+  parent     NavMenu?  @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children   NavMenu[] @relation("MenuHierarchy")
+  orderIndex Int       @default(0)
+  isVisible  Boolean   @default(true)
+  isExternal Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([tenantId, orderIndex])
+  @@index([tenantId, parentId])
+}
+
+model ApbdesItem {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  year        Int      @default(2026)
+  category    String // Pendapatan, Belanja, Pembiayaan
+  accountCode String
+  accountName String
+  budget      BigInt
+  realization BigInt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tenantId, year, category])
+}
+
+// 11. Platform Audit Log
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String // e.g. "ARTICLE_CREATE", "THEME_SWITCH", "MODULE_TOGGLE"
+  resource  String
+  details   Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+}
+
+// 12. Pembangunan Desa & Dokumentasi Progress
+model DevelopmentProject {
+  id                String   @id @default(cuid())
+  tenantId          String
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  judul             String
+  slug              String
+  keterangan        String?  @db.Text
+  lokasi            String?
+  tahunAnggaran     Int      @default(2024)
+  anggaran          BigInt   @default(0)
+  volume            String?
+  pelaksanaKegiatan String?
+  sumberDana        String?
+  manfaat           String?  @db.Text
+  waktu             String?
+  sifatProyek       String?  @default("BARU")
+  status            String?  @default("Proses")
+  progressPersen    Int      @default(0)
+  foto              String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+
+  documentations DevelopmentDocumentation[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, tahunAnggaran])
+}
+
+model DevelopmentDocumentation {
+  id         String             @id @default(cuid())
+  projectId  String
+  project    DevelopmentProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  persentase String
+  keterangan String?
+  gambar     String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @default(now()) @updatedAt
+
+  @@index([projectId])
+}
+
+// 13. Modul Pelapak / Lapak Desa & Produk UMKM Warga
+model Merchant {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  residentId  String?
+  resident    Resident? @relation(fields: [residentId], references: [id], onDelete: SetNull)
+  name        String // Nama Pemilik Pelapak (dari penduduk)
+  shopName    String // Nama Toko / Usaha
+  slug        String // Slug unik lapak
+  phone       String // Nomor WhatsApp
+  address     String? // Dusun / RT / Alamat lapak
+  description String?   @db.Text
+  avatarUrl   String? // Foto profil / foto lapak
+  bannerUrl   String?
+  isActive    Boolean   @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products MerchantProduct[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, isActive])
+  @@index([tenantId, residentId])
+}
+
+// 15. Master Data Kependudukan Desa (Penduduk / Residents)
+model Resident {
+  id               String    @id @default(cuid())
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  nik              String
+  noKk             String
+  nama             String
+  jenisKelamin     String // L / P
+  tempatLahir      String?
+  tanggalLahir     DateTime?
+  agama            String?   @default("Islam")
+  pendidikan       String?
+  pekerjaan        String?
+  statusKawin      String?
+  golonganDarah    String?
+  hubunganKeluarga String?
+  alamat           String?
+  dusun            String?
+  rt               String?
+  rw               String?
+  statusDasar      String    @default("Hidup") // Hidup, Mati, Pindah, Hilang
+  telepon          String?
+  fotoUrl          String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  villageOfficials VillageOfficial[]
+  merchants        Merchant[]
+  articles         Article[]
+
+  @@unique([tenantId, nik])
+  @@index([tenantId, nama])
+  @@index([tenantId, dusun])
+  @@index([tenantId, statusDasar])
+}
+
+model MerchantProduct {
+  id          String    @id @default(cuid())
+  merchantId  String
+  merchant    Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  name        String
+  description String?   @db.Text
+  price       Int       @default(0)
+  unit        String    @default("pcs")
+  category    String    @default("Makanan & Minuman")
+  imageUrl    String?
+  isAvailable Boolean   @default(true)
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([merchantId, isAvailable])
+}
+
+// 14. Halaman Statis / Dinamis Desa (Custom Pages)
+model CustomPage {
+  id            String        @id @default(cuid())
+  tenantId      String
+  tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  title         String
+  slug          String
+  summary       String?       @db.Text
+  content       String        @db.Text
+  coverImageUrl String?
+  galleryUrls   Json? // array of image urls for album
+  status        ContentStatus @default(PUBLISHED)
+  viewCount     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, status])
+}
+
+// 16. Komputer / Perangkat Resmi Absensi Kantor Desa
+model KioskDevice {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deviceName  String // e.g. "Komputer Pelayanan Kantor Desa"
+  deviceToken String    @unique // Unique pairing token
+  isActive    Boolean   @default(true)
+  pairedAt    DateTime? @default(now())
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([tenantId, isActive])
+}
