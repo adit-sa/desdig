@@ -68,6 +68,9 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Menambahkan aturan wajib pembaruan `CHANGELOG.md` pada `AGENTS.md`.
 
 ### Fixed
+- **Pengecualian Berkas `.env.example` dari Aturan `.gitignore`**:
+  - Menambahkan aturan un-ignore `!.env.example` setelah `.env*` pada `.gitignore` agar template environment terunggah ke Git.
+  - Memperbaiki kegagalan runner CI GitHub Actions pada langkah `cp .env.example .env` (`cp: cannot stat '.env.example': No such file or directory`).
 - **Resolusi Sinkronisasi Package Lock & CI/CD GitHub Actions**:
   - Mengembalikan keselarasan versi `@types/node` antara `package.json` dan `package-lock.json` untuk mencegah kegagalan *lockfile mismatch*.
   - Mengganti eksekusi pada workflow `.github/workflows/ci.yml` menjadi `npm install --legacy-peer-deps` dengan Node.js 20 LTS agar instalasi dependensi di CI berjalan fleksibel dan stabil tanpa hambatan ERESOLVE.
