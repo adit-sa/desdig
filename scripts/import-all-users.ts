@@ -106,3 +106,4 @@ async function importAllUsers() {
 importAllUsers()
   .catch(console.error)
   .finally(() => prisma.$disconnect());
+

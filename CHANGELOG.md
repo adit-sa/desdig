@@ -44,6 +44,10 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - `tests/tenant-isolation.test.ts`: Uji integritas isolasi multi-tenant data desa (11 uji).
 
 ### Changed
+- **Isolasi Multi-Tenant Folder Pembangunan (`public/uploads/salupangkang/pembangunan`)**:
+  - Memindahkan seluruh berkas foto pembangunan dari direktori publik global (`public/uploads/pembangunan`) ke dalam direktori terisolasi per tenant (`public/uploads/salupangkang/pembangunan`) sesuai Hukum Utama Multi-Tenancy.
+  - Mengunggah 160 berkas aset pembangunan ke bucket Cloudflare R2 di bawah key `salupangkang/pembangunan/`.
+  - Mengimpor 32 proyek pembangunan dan 128 dokumentasi tahapan ke database Neon dengan tautan terisolasi.
 - **Optimalisasi Repositori Git & Persiapan Deployment Vercel**:
   - Mengonfigurasi `.gitignore` ketat untuk mengecualikan berkas berat: folder backup lokal (`backup/`, `*.sql`), direktori upload media besar (`public/uploads/`, `public/desa/upload/`), serta binary engine Prisma (`*.node`, `*.dll`, legacy clients).
   - Ukuran push Git menjadi sangat ramping (~2-3 MB) dan bebas dari batas kuota GitHub 100 MB.
@@ -98,6 +102,11 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 - **Next.js 16 Turbopack Prerender Incompatibility**:
   - Menghapus segment config yang berkonflik `export const dynamic = 'force-dynamic'` pada `app/api/attendance/report/route.ts` dan `app/api/media/library/route.ts` agar kompatibel dengan konfigurasi `cacheComponents: true`.
   - Memperbaiki konfigurasi `vitest.config.ts` untuk mengabaikan folder build `.next/standalone`.
+
+### Security
+- **Pembersihan Akun Mock & Penetapan Kredensial Produksi Resmi**:
+  - Menghapus seluruh akun pengguna dummy/mock dari database Neon dan lokal untuk mencegah akses tidak sah.
+  - Menetapkan 2 akun resmi dengan password ter-generate acak aman: Akun Master Super Admin (`superadmindesa@adit.lt`) dan Akun Admin Desa Salupangkang (`kharismaerfin@salupangkang.desa.id.com`).
 
 ---
 

@@ -76,7 +76,7 @@ async function getAuthenticatedCookies() {
 
 async function main() {
   const cookieHeader = await getAuthenticatedCookies();
-  const outputDir = path.join(process.cwd(), 'public', 'uploads', 'pembangunan');
+  const outputDir = path.join(process.cwd(), 'public', 'uploads', 'salupangkang', 'pembangunan');
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
@@ -175,7 +175,7 @@ async function main() {
     if (!fn) continue;
     const localFile = path.join(outputDir, fn);
     const localUrl = fs.existsSync(localFile) 
-      ? `/uploads/pembangunan/${fn}` 
+      ? `/uploads/salupangkang/pembangunan/${fn}` 
       : `/images/desa_irigasi_pertanian.jpg`; // Fallback lokal berkualitas
 
     await prisma.$executeRawUnsafe(
@@ -190,7 +190,7 @@ async function main() {
     if (!fn) continue;
     const localFile = path.join(outputDir, fn);
     const localUrl = fs.existsSync(localFile) 
-      ? `/uploads/pembangunan/${fn}` 
+      ? `/uploads/salupangkang/pembangunan/${fn}` 
       : `/images/desa_irigasi_pertanian.jpg`; // Fallback lokal berkualitas
 
     await prisma.$executeRawUnsafe(

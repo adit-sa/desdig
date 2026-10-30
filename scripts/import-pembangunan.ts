@@ -141,6 +141,8 @@ async function main() {
     const createdAt = createdAtStr ? new Date(createdAtStr) : new Date();
     const updatedAt = updatedAtStr ? new Date(updatedAtStr) : new Date();
 
+    const targetPhotoUrl = foto ? `/uploads/salupangkang/pembangunan/${foto}` : null;
+
     if (existing.length > 0) {
       await prisma.$executeRaw`
         UPDATE "DevelopmentProject"
@@ -157,7 +159,7 @@ async function main() {
             "sifatProyek" = ${sifatProyek},
             "status" = ${statusVal === 1 ? 'Selesai' : 'Proses'},
             "progressPersen" = 100,
-            "foto" = ${foto ? `https://salupangkang.desa.id/desa/upload/pembangunan/${foto}` : null},
+            "foto" = ${targetPhotoUrl},
             "updatedAt" = ${updatedAt}
         WHERE id = ${existing[0].id}
       `;
@@ -171,7 +173,7 @@ async function main() {
         ) VALUES (
           ${newId}, ${tenant.id}, ${judul}, ${slug}, ${keterangan}, ${lokasi}, ${tahunAnggaran}, ${anggaranBig},
           ${volume}, ${pelaksanaKegiatan}, ${sumberDana}, ${manfaat}, ${waktu}, ${sifatProyek}, 'Selesai',
-          100, ${foto ? `https://salupangkang.desa.id/desa/upload/pembangunan/${foto}` : null}, ${createdAt}, ${updatedAt}
+          100, ${targetPhotoUrl}, ${createdAt}, ${updatedAt}
         )
       `;
     }
@@ -218,7 +220,7 @@ async function main() {
         SELECT id FROM "DevelopmentDocumentation" WHERE id = ${docId}
       `;
 
-      const fullImageUrl = gambar ? `https://salupangkang.desa.id/desa/upload/pembangunan/${gambar}` : null;
+      const fullImageUrl = gambar ? `/uploads/salupangkang/pembangunan/${gambar}` : null;
 
       if (existingDoc.length === 0) {
         await prisma.$executeRaw`
