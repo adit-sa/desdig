@@ -86,6 +86,54 @@ export default function AdminPembangunanPage() {
   const [newProgressPercent, setNewProgressPercent] = useState('50%');
   const [newProgressNote, setNewProgressNote] = useState('');
   const [newProgressImage, setNewProgressImage] = useState('');
+  const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [uploadingProgressFoto, setUploadingProgressFoto] = useState(false);
+
+  const handleUploadProjectFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingFoto(true);
+      const data = new FormData();
+      data.append('file', file);
+      data.append('folder', 'pembangunan');
+      if (currentTenantSlug) data.append('tenant', currentTenantSlug);
+      const res = await fetch('/api/upload', { method: 'POST', body: data });
+      const json = await res.json();
+      if (json.success && json.url) {
+        setFormData((prev) => ({ ...prev, foto: json.url }));
+      } else {
+        alert(json.error || 'Gagal mengunggah foto pembangunan');
+      }
+    } catch (err: any) {
+      alert('Gagal mengunggah: ' + err.message);
+    } finally {
+      setUploadingFoto(false);
+    }
+  };
+
+  const handleUploadProgressFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingProgressFoto(true);
+      const data = new FormData();
+      data.append('file', file);
+      data.append('folder', 'pembangunan');
+      if (currentTenantSlug) data.append('tenant', currentTenantSlug);
+      const res = await fetch('/api/upload', { method: 'POST', body: data });
+      const json = await res.json();
+      if (json.success && json.url) {
+        setNewProgressImage(json.url);
+      } else {
+        alert(json.error || 'Gagal mengunggah foto progres');
+      }
+    } catch (err: any) {
+      alert('Gagal mengunggah: ' + err.message);
+    } finally {
+      setUploadingProgressFoto(false);
+    }
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -795,15 +843,38 @@ export default function AdminPembangunanPage() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  URL Foto Utama Lapangan
+                  Foto Utama Lapangan (Tersimpan di /{currentTenantSlug || 'desa'}/pembangunan)
                 </label>
-                <input
-                  type="text"
-                  value={formData.foto}
-                  onChange={(e) => setFormData({ ...formData, foto: e.target.value })}
-                  placeholder="https://... atau /images/..."
-                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    value={formData.foto}
+                    onChange={(e) => setFormData({ ...formData, foto: e.target.value })}
+                    placeholder="/uploads/[desa]/pembangunan/..."
+                    className="flex-1 px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shrink-0 shadow-sm">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{uploadingFoto ? 'Mengompres...' : 'Unggah Foto'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUploadProjectFoto}
+                      className="hidden"
+                      disabled={uploadingFoto}
+                    />
+                  </label>
+                </div>
+                {formData.foto && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img
+                      src={formData.foto}
+                      alt="Preview"
+                      className="w-16 h-12 rounded border border-slate-200 object-cover"
+                    />
+                    <span className="text-[10px] text-slate-500 truncate max-w-xs">{formData.foto}</span>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -955,16 +1026,39 @@ export default function AdminPembangunanPage() {
 
               <div>
                 <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  URL Foto Dokumentasi Lapangan *
+                  Foto Dokumentasi Lapangan * (Tersimpan di /{currentTenantSlug || 'desa'}/pembangunan)
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={newProgressImage}
-                  onChange={(e) => setNewProgressImage(e.target.value)}
-                  placeholder="https://... atau link foto dokumentasi lapangan"
-                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-mono"
-                />
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    required
+                    value={newProgressImage}
+                    onChange={(e) => setNewProgressImage(e.target.value)}
+                    placeholder="/uploads/[desa]/pembangunan/..."
+                    className="flex-1 px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white font-mono"
+                  />
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shrink-0 shadow-sm">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{uploadingProgressFoto ? 'Mengompres...' : 'Unggah Foto'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUploadProgressFoto}
+                      className="hidden"
+                      disabled={uploadingProgressFoto}
+                    />
+                  </label>
+                </div>
+                {newProgressImage && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img
+                      src={newProgressImage}
+                      alt="Preview"
+                      className="w-16 h-12 rounded border border-slate-200 object-cover"
+                    />
+                    <span className="text-[10px] text-slate-500 truncate max-w-xs">{newProgressImage}</span>
+                  </div>
+                )}
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-2">

@@ -161,6 +161,10 @@ export default function IdentitasDesaPage() {
       setUploading(true);
       const data = new FormData();
       data.append('file', file);
+      data.append('folder', 'identitas');
+      if (activeTenant?.slug) {
+        data.append('tenant', activeTenant.slug);
+      }
 
       const res = await fetch('/api/upload', {
         method: 'POST',

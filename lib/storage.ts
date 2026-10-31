@@ -64,13 +64,9 @@ export async function uploadFile({
       })
     );
 
-    // Bentuk URL publik R2
-    const publicBase = R2_PUBLIC_URL
-      ? R2_PUBLIC_URL.replace(/\/$/, '')
-      : `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
-
+    // Format URL publik standar /uploads/${key} yang di-rewrite oleh next.config.ts ke Cloudflare R2
     return {
-      url: `${publicBase}/${key}`,
+      url: `/uploads/${key}`,
       storage: 'r2',
       key,
     };

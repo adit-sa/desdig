@@ -71,6 +71,10 @@ const nextConfig: NextConfig = {
           source: "/uploads/:path*",
           destination: `${cleanR2}/:path*`,
         },
+        {
+          source: "/desa/upload/:path*",
+          destination: `${cleanR2}/salupangkang/:path*`,
+        },
       ];
     }
     return [];

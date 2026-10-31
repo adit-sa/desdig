@@ -191,6 +191,11 @@ export default function PamongAdminPage() {
       setUploading(true);
       const data = new FormData();
       data.append('file', file);
+      data.append('folder', 'user_pict');
+      const targetTenant = currentTenantId || activeTenant?.slug || '';
+      if (targetTenant) {
+        data.append('tenant', targetTenant);
+      }
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: data,

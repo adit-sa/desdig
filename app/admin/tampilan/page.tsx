@@ -42,8 +42,10 @@ import {
   Layout,
   Maximize2,
   Minimize2,
+  Upload,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
+import ResidentPicker, { SelectedResident } from '@/components/admin/ResidentPicker';
 import {
   THEME_COLOR_PRESETS,
   type ThemeColorScheme,
@@ -278,12 +280,38 @@ export default function ThemeCustomizerPage() {
   // Sambutan / Highlight Kepala Desa
   const [kadesHighlight, setKadesHighlight] = useState({
     enabled: true,
+    residentId: '',
     name: activeTenant?.kepala_desa || 'Kepala Desa',
     position: 'Kepala Desa',
     kodeWilayah: activeTenant?.kode_desa || '',
     quote: `Selamat datang di Portal Resmi Pemerintah Desa ${activeTenant?.nama_desa || ''}. Seluruh layanan kependudukan dan transparansi APBDes kini dapat diakses terbuka oleh seluruh warga secara akuntabel.`,
     photoUrl: '/images/kades_portrait.jpg',
   });
+  const [uploadingKadesPhoto, setUploadingKadesPhoto] = useState(false);
+
+  const handleUploadKadesPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingKadesPhoto(true);
+      const data = new FormData();
+      data.append('file', file);
+      data.append('folder', 'user_pict');
+      const targetTenant = currentTenantId || activeTenant?.slug || '';
+      if (targetTenant) data.append('tenant', targetTenant);
+      const res = await fetch('/api/upload', { method: 'POST', body: data });
+      const json = await res.json();
+      if (json.success && json.url) {
+        setKadesHighlight((prev) => ({ ...prev, photoUrl: json.url }));
+      } else {
+        alert(json.error || 'Gagal mengunggah foto kepala desa');
+      }
+    } catch (err: any) {
+      alert('Gagal mengunggah: ' + err.message);
+    } finally {
+      setUploadingKadesPhoto(false);
+    }
+  };
 
   // Data Medsos yang tersimpan agar tidak tertimpa
   const [savedSocialMedia, setSavedSocialMedia] = useState<any>({});
@@ -2200,6 +2228,44 @@ export default function ThemeCustomizerPage() {
               </label>
             </div>
 
+            {/* Pemilih Warga untuk Kepala Desa (Wajib dari List Kependudukan) */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <UserCheck className="w-4 h-4 text-emerald-600" />
+                  Sumber Nama Kepala Desa (Wajib dari Data Kependudukan)
+                </span>
+                {kadesHighlight.name && (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+                    Terpilih: {kadesHighlight.name}
+                  </span>
+                )}
+              </div>
+              <ResidentPicker
+                tenantSlug={currentTenantId || activeTenant?.slug || ''}
+                selectedResidentId={kadesHighlight.residentId}
+                selectedResidentName={kadesHighlight.name}
+                onSelect={(resident: SelectedResident) => {
+                  setKadesHighlight((prev) => ({
+                    ...prev,
+                    residentId: resident.id,
+                    name: resident.nama,
+                    photoUrl: resident.fotoUrl || prev.photoUrl,
+                  }));
+                }}
+                onClear={() => {
+                  setKadesHighlight((prev) => ({
+                    ...prev,
+                    residentId: '',
+                    name: '',
+                  }));
+                }}
+                label="Cari & Pilih Kepala Desa Resmi"
+                helperText="Pilih nama Kepala Desa yang sah dari Buku Induk Penduduk agar data kependudukan seragam."
+                placeholder="Ketik nama Kepala Desa atau 16 digit NIK..."
+              />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Nama Pejabat / Kepala Desa:</label>
@@ -2210,6 +2276,7 @@ export default function ThemeCustomizerPage() {
                   placeholder={activeTenant?.kepala_desa || 'Nama Kepala Desa'}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
+                <p className="text-[10px] text-slate-400 mt-1">Dapat disesuaikan (misal menambah gelar akademik seperti S.IP atau H.).</p>
               </div>
 
               <div>
@@ -2226,25 +2293,48 @@ export default function ThemeCustomizerPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Kode Wilayah Desa:</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Kode Wilayah Kemendagri:</label>
                 <input
                   type="text"
                   value={kadesHighlight.kodeWilayah}
                   onChange={(e) => setKadesHighlight((prev) => ({ ...prev, kodeWilayah: e.target.value }))}
-                  placeholder="7606042009"
+                  placeholder={activeTenant?.kode_desa || 'PP.KK.CC.DDDD'}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">URL Foto Pejabat:</label>
-                <input
-                  type="text"
-                  value={kadesHighlight.photoUrl}
-                  onChange={(e) => setKadesHighlight((prev) => ({ ...prev, photoUrl: e.target.value }))}
-                  placeholder="/images/kades_portrait.jpg"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Foto Resmi Kepala Desa:</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    value={kadesHighlight.photoUrl}
+                    onChange={(e) => setKadesHighlight((prev) => ({ ...prev, photoUrl: e.target.value }))}
+                    placeholder="/uploads/[desa]/user_pict/..."
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shrink-0 shadow-sm">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{uploadingKadesPhoto ? 'Mengunggah...' : 'Unggah'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUploadKadesPhoto}
+                      className="hidden"
+                      disabled={uploadingKadesPhoto}
+                    />
+                  </label>
+                </div>
+                {kadesHighlight.photoUrl && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <img
+                      src={kadesHighlight.photoUrl}
+                      alt="Preview Kades"
+                      className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                    />
+                    <span className="text-[10px] text-slate-500 truncate max-w-xs">{kadesHighlight.photoUrl}</span>
+                  </div>
+                )}
               </div>
             </div>
 

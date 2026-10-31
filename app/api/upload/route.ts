@@ -24,9 +24,30 @@ export async function POST(request: NextRequest) {
 
     const cleanTenant = tenantSlug.toLowerCase().replace(/[^a-z0-9-_]/g, '') || 'common';
     
-    // Subfolder category (default to "galeri" or custom like "dokumen", "pembangunan", "media")
-    const folderParam = (formData.get('folder') as string) || 'galeri';
-    const cleanFolder = folderParam.toLowerCase().replace(/[^a-z0-9-_]/g, '') || 'galeri';
+    // Subfolder category terisolasi per jenis aset
+    const folderParam = ((formData.get('folder') as string) || '').toLowerCase().trim();
+    let cleanFolder = 'galeri';
+
+    if (
+      folderParam === 'user_pict' ||
+      folderParam === 'pamong' ||
+      folderParam === 'penduduk' ||
+      folderParam === 'user' ||
+      folderParam === 'kades' ||
+      folderParam === 'aparatur'
+    ) {
+      cleanFolder = 'user_pict';
+    } else if (folderParam === 'pembangunan' || folderParam === 'proyek') {
+      cleanFolder = 'pembangunan';
+    } else if (folderParam === 'artikel' || folderParam === 'berita' || folderParam === 'warta') {
+      cleanFolder = 'artikel';
+    } else if (folderParam === 'identitas' || folderParam === 'logo') {
+      cleanFolder = 'identitas';
+    } else if (folderParam === 'dokumen' || folderParam === 'doc') {
+      cleanFolder = 'dokumen';
+    } else if (folderParam) {
+      cleanFolder = folderParam.replace(/[^a-z0-9-_]/g, '') || 'galeri';
+    }
 
     if (!file) {
       return NextResponse.json({ error: 'Tidak ada berkas yang diunggah' }, { status: 400 });
@@ -91,9 +112,12 @@ export async function POST(request: NextRequest) {
         const imagePipeline = sharp(inputBuffer).rotate(); // auto-orient by EXIF
         const metadata = await imagePipeline.metadata();
 
-        // Batasi dimensi maksimal 1920x1920 (tetap mempertahankan aspect ratio asli)
-        const maxWidth = 1920;
-        const maxHeight = 1920;
+        // Standar Web: foto wajah/user_pict max 1000px (quality 85); foto dokumentasi/pembangunan/artikel max 1920px (quality 82)
+        const isFacePhoto = cleanFolder === 'user_pict';
+        const maxWidth = isFacePhoto ? 1000 : 1920;
+        const maxHeight = isFacePhoto ? 1000 : 1920;
+        const quality = isFacePhoto ? 85 : 82;
+
         if ((metadata.width && metadata.width > maxWidth) || (metadata.height && metadata.height > maxHeight)) {
           imagePipeline.resize({
             width: maxWidth,
@@ -103,10 +127,10 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Kompresi ke WebP kualitas 82 (sweet spot rasio ukuran vs ketajaman visual untuk web modern)
+        // Kompresi ke WebP kualitas standar web modern
         finalBuffer = await imagePipeline
           .webp({
-            quality: 82,
+            quality,
             effort: 4,
           })
           .toBuffer();

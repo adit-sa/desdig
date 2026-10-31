@@ -256,6 +256,10 @@ export default function AdminPelapakPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
+      fd.append('folder', 'pelapak');
+      if (activeTenant?.slug) {
+        fd.append('tenant', activeTenant.slug);
+      }
       const res = await fetch('/api/upload', { method: 'POST', body: fd });
       const data = await res.json();
       if (data.success && data.url) {
@@ -369,6 +373,10 @@ export default function AdminPelapakPage() {
     try {
       const fd = new FormData();
       fd.append('file', file);
+      fd.append('folder', 'pelapak');
+      if (activeTenant?.slug) {
+        fd.append('tenant', activeTenant.slug);
+      }
       const res = await fetch('/api/upload', { method: 'POST', body: fd });
       const data = await res.json();
       if (data.success && data.url) {

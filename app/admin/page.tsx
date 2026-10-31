@@ -23,9 +23,35 @@ import { useOpenSIDStore } from '@/lib/store';
 import { ADMIN_MENU_GROUPS } from '@/lib/admin-menu';
 
 export default function DashboardPage() {
-  const { pendudukList, keluargaList, suratList, activeTenant, apbdesList, aparaturList, isLoaded } = useOpenSIDStore();
+  const { pendudukList, keluargaList, suratList, activeTenant, currentTenantId, apbdesList, aparaturList, isLoaded } = useOpenSIDStore();
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [dashboardData, setDashboardData] = useState<{
+    stats?: {
+      totalPenduduk: number;
+      totalLaki: number;
+      totalPerempuan: number;
+      totalKeluarga: number;
+      avgJiwaPerKK: string;
+      apbdes: {
+        totalPendapatanAnggaran: number;
+        totalBelanjaRealisasi: number;
+        totalBelanjaAnggaran: number;
+        realisasiBelanjaPersen: number;
+      };
+      dusunStats: { dusun: string; count: number }[];
+    };
+    officials?: Array<{
+      id: string;
+      nama: string;
+      jabatan: string;
+      nip: string | null;
+      photoUrl: string | null;
+      status: string;
+    }>;
+    recentArticles?: Array<any>;
+  } | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     setIsMounted(true);
@@ -37,11 +63,39 @@ export default function DashboardPage() {
     } catch {}
   }, []);
 
-  const targetTenantSlug = isMounted ? (activeTenant?.slug || activeTenant?.id || '') : '';
+  const targetTenantSlug = isMounted ? (currentTenantId || activeTenant?.slug || activeTenant?.id || '') : '';
   const buildHref = (path: string) => {
     if (!targetTenantSlug || path.startsWith('/saas')) return path;
     return `${path}${path.includes('?') ? '&' : '?'}tenant=${targetTenantSlug}`;
   };
+
+  // Fetch data statistik dan aparatur real dari database Neon
+  useEffect(() => {
+    if (!targetTenantSlug) return;
+    let isCancelled = false;
+
+    const fetchRealStats = async () => {
+      try {
+        setLoadingStats(true);
+        const res = await fetch(`/api/admin/dashboard-stats?tenant=${targetTenantSlug}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (!isCancelled && json.success) {
+            setDashboardData(json);
+          }
+        }
+      } catch (err) {
+        console.error('Gagal memuat statistik dashboard real:', err);
+      } finally {
+        if (!isCancelled) setLoadingStats(false);
+      }
+    };
+
+    fetchRealStats();
+    return () => {
+      isCancelled = true;
+    };
+  }, [targetTenantSlug]);
 
   const isSuperAdmin = currentUser?.globalRole === 'SUPER_ADMIN';
   const userRole = currentUser?.role || 'VILLAGE_ADMIN';
@@ -64,20 +118,30 @@ export default function DashboardPage() {
       .filter((group) => group.items.length > 0);
   }, [isSuperAdmin, userRole]);
 
-  const totalPenduduk = pendudukList.length;
-  const totalLaki = pendudukList.filter(p => p.jenis_kelamin === 'L').length;
-  const totalPerempuan = pendudukList.filter(p => p.jenis_kelamin === 'P').length;
-  const totalKeluarga = keluargaList.length;
+  // Gunakan data real dari database bila tersedia, dengan fallback aman
+  const totalPenduduk = dashboardData?.stats ? dashboardData.stats.totalPenduduk : pendudukList.length;
+  const totalLaki = dashboardData?.stats ? dashboardData.stats.totalLaki : pendudukList.filter(p => p.jenis_kelamin === 'L').length;
+  const totalPerempuan = dashboardData?.stats ? dashboardData.stats.totalPerempuan : pendudukList.filter(p => p.jenis_kelamin === 'P').length;
+  const totalKeluarga = dashboardData?.stats ? dashboardData.stats.totalKeluarga : keluargaList.length;
+  const avgJiwaKK = dashboardData?.stats?.avgJiwaPerKK || (totalPenduduk / (totalKeluarga || 1)).toFixed(1);
   const totalSurat = suratList.length;
   const suratMenunggu = suratList.filter(s => s.status === 'Menunggu').length;
 
-  const totalPendapatanAnggaran = apbdesList
-    .filter(i => i.kategori === 'Pendapatan')
-    .reduce((acc, curr) => acc + curr.anggaran, 0);
+  const totalPendapatanAnggaran = dashboardData?.stats?.apbdes
+    ? dashboardData.stats.apbdes.totalPendapatanAnggaran
+    : apbdesList.filter(i => i.kategori === 'Pendapatan').reduce((acc, curr) => acc + curr.anggaran, 0);
 
-  const totalBelanjaRealisasi = apbdesList
-    .filter(i => i.kategori === 'Belanja')
-    .reduce((acc, curr) => acc + curr.realisasi, 0);
+  const totalBelanjaRealisasi = dashboardData?.stats?.apbdes
+    ? dashboardData.stats.apbdes.totalBelanjaRealisasi
+    : apbdesList.filter(i => i.kategori === 'Belanja').reduce((acc, curr) => acc + curr.realisasi, 0);
+
+  const realisasiPersen = dashboardData?.stats?.apbdes
+    ? dashboardData.stats.apbdes.realisasiBelanjaPersen
+    : Math.round((totalBelanjaRealisasi / (totalPendapatanAnggaran || 1)) * 100);
+
+  const realAparaturList = dashboardData?.officials && dashboardData.officials.length > 0
+    ? dashboardData.officials
+    : aparaturList;
 
   const formatRupiah = (num: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -203,7 +267,7 @@ export default function DashboardPage() {
             <span className="text-xs text-slate-500">Keluarga</span>
           </div>
           <div className="mt-3 text-xs text-slate-500 border-t border-slate-100 pt-2 dark:border-slate-800 flex items-center justify-between">
-            <span>Rata-rata: {((totalPenduduk / (totalKeluarga || 1))).toFixed(1)} jiwa/KK</span>
+            <span>Rata-rata: {avgJiwaKK} jiwa/KK</span>
             {(isSuperAdmin || userRole === 'VILLAGE_ADMIN' || userRole === 'EDITOR') && (
               <Link href={buildHref('/kependudukan')} className="text-blue-600 hover:underline">Kelola &rarr;</Link>
             )}
@@ -246,7 +310,7 @@ export default function DashboardPage() {
             </span>
           </div>
           <div className="mt-3 text-xs text-slate-500 border-t border-slate-100 pt-2 dark:border-slate-800 flex items-center justify-between">
-            <span>Realisasi Belanja: {Math.round((totalBelanjaRealisasi / (totalPendapatanAnggaran || 1)) * 100)}%</span>
+            <span>Realisasi Belanja: {realisasiPersen}%</span>
             {(isSuperAdmin || userRole === 'VILLAGE_ADMIN' || userRole === 'AUDITOR') && (
               <Link href={buildHref('/keuangan')} className="text-purple-600 hover:underline">Detail &rarr;</Link>
             )}
@@ -315,21 +379,45 @@ export default function DashboardPage() {
         <div className="space-y-6">
           {/* Aparatur Desa */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">Pamong / Aparatur Desa</h2>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Pamong / Aparatur Desa</h2>
+              <Link
+                href={buildHref('/admin/pamong')}
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold flex items-center gap-1"
+              >
+                Kelola ({dashboardData?.officials?.length || realAparaturList.length}) <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
             <p className="text-xs text-slate-500 mb-4">Struktur Pemerintah Desa {activeTenant.nama_desa}</p>
 
-            <div className="space-y-3">
-              {aparaturList.slice(0, 4).map((aparat) => (
-                <div key={aparat.id} className="flex items-center justify-between text-xs">
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">{aparat.nama}</p>
-                    <p className="text-[11px] text-slate-500">{aparat.jabatan}</p>
+            <div className="space-y-2.5">
+              {realAparaturList.slice(0, 5).map((aparat: any) => {
+                const photo = aparat.photoUrl || aparat.foto;
+                return (
+                  <div key={aparat.id} className="flex items-center justify-between text-xs py-1">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {photo ? (
+                        <img
+                          src={photo}
+                          alt={aparat.nama}
+                          className="w-7 h-7 rounded-full object-cover shrink-0 border border-slate-200"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 flex items-center justify-center font-bold text-[10px] shrink-0">
+                          {aparat.nama?.charAt(0) || 'P'}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900 dark:text-white truncate">{aparat.nama}</p>
+                        <p className="text-[11px] text-slate-500 truncate">{aparat.jabatan}</p>
+                      </div>
+                    </div>
+                    <span className="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 shrink-0 ml-2">
+                      {aparat.status}
+                    </span>
                   </div>
-                  <span className="rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                    {aparat.status}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

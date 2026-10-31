@@ -9,6 +9,9 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 ## [Unreleased]
 
 ### Added
+- **Endpoint Statistik Dashboard Real Multi-Tenant (`/api/admin/dashboard-stats`)**:
+  - Menyediakan endpoint agregasi data real dari basis data Neon PostgreSQL: Total Penduduk, Total L/P, Total Kepala Keluarga (Unique No KK), APBDes, Aparatur Pamong aktif, dan statistik persebaran dusun.
+  - Menghilangkan sepenuhnya ketergantungan Dashboard Admin (`/admin`) terhadap mock data lokal.
 - **Sinkronisasi Massal Media ke Cloudflare R2 & Transparent Media Proxy (`scripts/sync-uploads-to-r2.ts` & `next.config.ts`)**:
   - Script batch upload otomatis `scripts/sync-uploads-to-r2.ts` untuk memigrasikan seluruh aset lokal `public/uploads` (foto artikel, aparat, galeri, logo) ke bucket Cloudflare R2 secara paralel.
   - Aturan rewrite transparan pada `next.config.ts` (`/uploads/:path*` -> `${R2_PUBLIC_DOMAIN}/:path*`) sehingga seluruh gambar di database langsung tampil di Vercel tanpa broken image.
@@ -44,6 +47,17 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - `tests/tenant-isolation.test.ts`: Uji integritas isolasi multi-tenant data desa (11 uji).
 
 ### Changed
+- **Integrasi ResidentPicker pada Pengaturan Sambutan Kepala Desa (`app/admin/tampilan/page.tsx`)**:
+  - Mengintegrasikan komponen `ResidentPicker` pada tab Sambutan Kepala Desa di Admin Tampilan sehingga nama Kepala Desa wajib dipilih langsung dari Buku Induk Penduduk resmi desa untuk menjamin keseragaman dan integritas data kependudukan.
+  - Mendukung auto-populate foto kades dari data kependudukan serta tombol unggah langsung foto resmi portrait ke subfolder `user_pict` dengan kompresi WebP.
+- **Pembaruan Dashboard Admin (`/admin`) dengan Data Real Database**:
+  - Kartu KPI Total Penduduk (2.039 Jiwa), Kepala Keluarga (672 KK), dan APBDes kini terhubung langsung ke basis data Neon PostgreSQL, menghapus ketergantungan mock data.
+  - Widget "Pamong / Aparatur Desa" pada dashboard menampilkan daftar aparatur aktif real (27 pamong) dari tabel `VillageOfficial`, selaras 100% dengan halaman `/admin/pamong`.
+- **Standarisasi Unggah Foto & Struktur Folder Terisolasi per Tenant (`/api/upload` & `lib/storage.ts`)**:
+  - Normalisasi subfolder penyimpanan terisolasi: foto wajah (user/penduduk/pamong/kades) ke `/(nama_desa)/user_pict/`, proyek pembangunan ke `/(nama_desa)/pembangunan/`, artikel ke `/(nama_desa)/artikel/`, dan identitas desa ke `/(nama_desa)/identitas/`.
+  - Kompresi standar web otomatis berbasis Sharp: foto portrait/wajah dibatasi maksimal 1000x1000px WebP (quality 85), foto landscape/dokumentasi maksimal 1920x1920px WebP (quality 82).
+  - Format URL penyimpanan di database distandarkan ke format relatif kanonik `/uploads/(nama_desa)/(folder)/namafile.webp`.
+  - Penambahan tombol unggah foto langsung pada form proyek pembangunan dan dokumentasi progres (`app/admin/pembangunan/page.tsx`).
 - **Optimasi Latensi Serverless & Colocation Kawasan Singapura (`vercel.json`)**:
   - Menetapkan `"regions": ["sin1"]` pada `vercel.json` agar Vercel Serverless Functions dieksekusi di Region Singapura (Singapore), satu data center dengan basis data Neon Cloud PostgreSQL (`ap-southeast-1`).
   - Memangkas latensi query antar-benua (*cross-ocean latency*) dari ~250ms (default Vercel `iad1` Washington D.C., USA) menjadi ~1-3ms per round-trip SQL query.
@@ -83,6 +97,10 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Menambahkan aturan wajib pembaruan `CHANGELOG.md` pada `AGENTS.md`.
 
 ### Fixed
+- **Migrasi Path Foto Pamong & Artikel Desa Salupangkang ke Format Terisolasi**:
+  - Memperbaiki path foto aparatur desa yang sebelumnya masih menggunakan path lama `/desa/upload/user_pict/...` menjadi `/uploads/salupangkang/user_pict/...` pada 11 pamong dan 14 penduduk di database Neon.
+  - Memperbarui 159 artikel berita lama yang memuat path `/desa/upload/` menjadi `/uploads/salupangkang/`.
+  - Menambahkan aturan rewrite transparan di `next.config.ts` untuk `/desa/upload/:path*` mengarah ke Cloudflare R2 `${R2_PUBLIC_DOMAIN}/salupangkang/:path*` sebagai lapisan keamanan kompatibilitas mundur mutlak.
 - **Standardisasi Output Prisma Client ke `@prisma/client`**:
   - Menghapus konfigurasi custom output `lib/prisma-client-v4` pada `prisma/schema.prisma` dan mengembalikan generator ke lokasi standar `node_modules/@prisma/client`.
   - Memperbarui `lib/prisma.ts` dan script terkait agar mengimpor langsung dari `@prisma/client`.
