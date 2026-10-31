@@ -482,8 +482,9 @@ describe('desDig Telegram Bot Multi-Tenant Publishing Tests', () => {
   it('14. Mode Dialog Interaktif (Wizard Mode): Transisi state, pengumpulan foto draft, dan penerbitan album galeri tanpa ambigu', async () => {
     // 1. Verifikasi keyboard helper
     const menuKb = getMainMenuKeyboard();
-    expect(menuKb.keyboard.length).toBe(2);
+    expect(menuKb.keyboard.length).toBe(3);
     expect(menuKb.keyboard[0][1].text).toBe('🖼️ Galeri Kegiatan');
+    expect(menuKb.keyboard[2][0].text).toBe('🚪 Keluar / Logout');
 
     const galleryActionKb = getGalleryActionKeyboard();
     expect(galleryActionKb.inline_keyboard[0][0].callback_data).toBe('publish_gallery');

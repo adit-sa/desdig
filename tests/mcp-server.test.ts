@@ -7,10 +7,11 @@ describe('desDig MCP Server Integration Tests', () => {
 
   beforeAll(async () => {
     // Bersihkan jika ada sisa uji sebelumnya
-    const existing = await prisma.tenant.findUnique({ where: { slug: testSlug } });
-    if (existing) {
-      await prisma.tenant.delete({ where: { id: existing.id } });
-    }
+    await prisma.tenant.deleteMany({
+      where: {
+        OR: [{ slug: testSlug }, { kodeDesa: '32.05.11.2099' }],
+      },
+    });
 
     // Buat tenant uji
     const tenant = await prisma.tenant.create({
@@ -97,7 +98,7 @@ describe('desDig MCP Server Integration Tests', () => {
 
   afterAll(async () => {
     if (testTenantId) {
-      await prisma.tenant.delete({ where: { id: testTenantId } });
+      await prisma.tenant.deleteMany({ where: { id: testTenantId } });
     }
   });
 });

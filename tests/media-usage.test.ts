@@ -13,16 +13,20 @@ describe('desDig Audit Media & Integrasi Album Multi-Foto', () => {
   const articlePhoto2 = '/uploads/salupangkang/artikel/article_doc_2.webp';
 
   beforeAll(async () => {
-    const existing = await prisma.tenant.findUnique({ where: { slug: testSlug } });
-    if (existing) {
-      await prisma.tenant.delete({ where: { id: existing.id } });
-    }
+    await prisma.tenant.deleteMany({
+      where: {
+        OR: [
+          { slug: testSlug },
+          { kodeDesa: '32.05.11.2097' },
+        ],
+      },
+    });
 
     const tenant = await prisma.tenant.create({
       data: {
         namaDesa: 'Desa Uji Audit Media',
         slug: testSlug,
-        kodeDesa: '32.05.11.2099',
+        kodeDesa: '32.05.11.2097',
         kecamatan: 'Ciawi',
         kabupaten: 'Tasikmalaya',
         provinsi: 'Jawa Barat',
