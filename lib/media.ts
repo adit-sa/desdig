@@ -489,6 +489,118 @@ export async function cleanupTenantOrphanFiles(tenantSlug: string, tenantId: str
   };
 }
 
+export interface ImageOptimizationResult {
+  buffer: Buffer;
+  mimeType: string;
+  format: string;
+  isCompressed: boolean;
+  originalSize: number;
+  finalSize: number;
+  savingsBytes: number;
+  savingsPercent: number;
+}
+
+/**
+ * Kompresi cerdas adaptif dengan Sharp:
+ * 1. Otomatis rotasi sesuai orientasi EXIF kamera HP.
+ * 2. Skala dimensi maksimal (default 1600px untuk warta/galeri, 1000px untuk foto pamong).
+ * 3. Enkoding WebP kualitas efisien (quality 75, effort 6) untuk rasio kompresi optimal.
+ * 4. SAFEGUARD MUTLAK: Jika WebP hasil kompresi ternyata lebih besar dari sumbernya
+ *    (sering terjadi pada foto Telegram yang sudah dikompresi sangat hemat di HP pengguna),
+ *    sistem mencoba pass kedua (quality 65) atau mempertahankan buffer asli agar ukuran TIDAK PERNAH MEMBENGKAK.
+ */
+export async function optimizeImageBuffer(
+  inputBuffer: Buffer,
+  options: {
+    maxWidth?: number;
+    maxHeight?: number;
+    quality?: number;
+    effort?: number;
+    isFace?: boolean;
+  } = {}
+): Promise<ImageOptimizationResult> {
+  const originalSize = inputBuffer.length;
+  const isFace = options.isFace || false;
+  const maxWidth = options.maxWidth || (isFace ? 1000 : 1600);
+  const maxHeight = options.maxHeight || (isFace ? 1000 : 1600);
+  const targetQuality = options.quality || (isFace ? 78 : 75);
+  const effort = options.effort || 6;
+
+  try {
+    const pipeline = sharp(inputBuffer).rotate();
+    const meta = await pipeline.metadata();
+
+    if ((meta.width && meta.width > maxWidth) || (meta.height && meta.height > maxHeight)) {
+      pipeline.resize({
+        width: maxWidth,
+        height: maxHeight,
+        fit: 'inside',
+        withoutEnlargement: true,
+      });
+    }
+
+    // Pass 1: Enkoding WebP efisien (effort 6)
+    let resultBuffer = await pipeline
+      .webp({ quality: targetQuality, effort })
+      .toBuffer();
+
+    // Pass 2: Jika ukuran hasil lebih besar dari ukuran asli
+    if (resultBuffer.length >= originalSize) {
+      const pass2 = await sharp(inputBuffer)
+        .rotate()
+        .resize({ width: maxWidth, height: maxHeight, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 65, effort })
+        .toBuffer();
+
+      if (pass2.length < resultBuffer.length) {
+        resultBuffer = pass2;
+      }
+    }
+
+    // Safeguard: Jika hasil kompresi WebP lebih hemat, gunakan WebP.
+    // Jika tidak lebih hemat (misal foto asli sudah sangat kecil/terkompresi), pertahankan buffer asli.
+    if (resultBuffer.length < originalSize) {
+      const savingsBytes = originalSize - resultBuffer.length;
+      const savingsPercent = Math.round((savingsBytes / originalSize) * 100);
+      return {
+        buffer: resultBuffer,
+        mimeType: 'image/webp',
+        format: 'webp',
+        isCompressed: true,
+        originalSize,
+        finalSize: resultBuffer.length,
+        savingsBytes,
+        savingsPercent,
+      };
+    } else {
+      const detectedExt = meta.format || 'jpg';
+      const mime = detectedExt === 'webp' ? 'image/webp' : detectedExt === 'png' ? 'image/png' : 'image/jpeg';
+      return {
+        buffer: inputBuffer,
+        mimeType: mime,
+        format: detectedExt,
+        isCompressed: false,
+        originalSize,
+        finalSize: originalSize,
+        savingsBytes: 0,
+        savingsPercent: 0,
+      };
+    }
+  } catch (err) {
+    console.warn('Gagal optimasi gambar dengan Sharp:', err);
+    return {
+      buffer: inputBuffer,
+      mimeType: 'image/jpeg',
+      format: 'jpg',
+      isCompressed: false,
+      originalSize,
+      finalSize: originalSize,
+      savingsBytes: 0,
+      savingsPercent: 0,
+    };
+  }
+}
+
 /**
  * Mengompresi berkas gambar ke format modern WebP kualitas tinggi.
  */
@@ -551,53 +663,38 @@ export async function compressTenantMediaFile(
   }
 
   const originalSize = inputBuffer.length;
-  const maxWidth = isFace ? 1000 : 1920;
-  const maxHeight = isFace ? 1000 : 1920;
-  const quality = isFace ? 85 : targetQuality;
+  const opt = await optimizeImageBuffer(inputBuffer, {
+    isFace,
+    quality: isFace ? 78 : targetQuality,
+  });
 
-  const imagePipeline = sharp(inputBuffer).rotate();
-  const metadata = await imagePipeline.metadata();
+  // Jika kompresi menghasilkan file yang lebih hemat, simpan ke storage
+  if (opt.isCompressed) {
+    if (isR2Configured()) {
+      const s3 = getR2Client();
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: R2_BUCKET_NAME,
+          Key: key,
+          Body: opt.buffer,
+          ContentType: opt.mimeType,
+        })
+      );
+    }
 
-  if ((metadata.width && metadata.width > maxWidth) || (metadata.height && metadata.height > maxHeight)) {
-    imagePipeline.resize({
-      width: maxWidth,
-      height: maxHeight,
-      fit: 'inside',
-      withoutEnlargement: true,
-    });
-  }
-
-  const compressedBuffer = await imagePipeline.webp({ quality, effort: 4 }).toBuffer();
-  const newSize = compressedBuffer.length;
-  const savingsBytes = Math.max(0, originalSize - newSize);
-  const savingsPercent = originalSize > newSize ? Math.round((savingsBytes / originalSize) * 100) : 0;
-
-  // Simpan kembali buffer terkompresi ke R2 jika terkonfigurasi
-  if (isR2Configured()) {
-    const s3 = getR2Client();
-    await s3.send(
-      new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME,
-        Key: key,
-        Body: compressedBuffer,
-        ContentType: 'image/webp',
-      })
-    );
-  }
-
-  // Simpan juga ke disk lokal jika ada direktori
-  const localDir = path.join(process.cwd(), 'public', 'uploads', cleanTenant, folder);
-  if (existsSync(localDir)) {
-    const localPath = path.join(process.cwd(), 'public', 'uploads', cleanTenant, subpath);
-    await fs.writeFile(localPath, compressedBuffer);
+    const localDir = path.join(process.cwd(), 'public', 'uploads', cleanTenant, folder);
+    if (existsSync(localDir)) {
+      const localPath = path.join(process.cwd(), 'public', 'uploads', cleanTenant, subpath);
+      await fs.writeFile(localPath, opt.buffer);
+    }
   }
 
   return {
     success: true,
     originalSize,
-    newSize,
-    savingsBytes,
-    savingsPercent,
+    newSize: opt.finalSize,
+    savingsBytes: opt.savingsBytes,
+    savingsPercent: opt.savingsPercent,
     url: relativeUrl,
   };
 }

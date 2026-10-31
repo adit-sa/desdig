@@ -26,6 +26,13 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Merampingkan kartu KPI ringkasan menjadi 3 indikator akuntabilitas utama: Total Aparatur Pamong, Pamong Terhubung (Terautentikasi), dan Pamong Belum Terhubung (Belum Pairing).
 
 ### Fixed
+- **Pencegahan Pembengkakan Ukuran Kompresi Foto (`lib/media.ts`, `app/api/telegram/webhook/route.ts`, `app/api/upload/route.ts`)**:
+  - Mengatasi kendala di mana foto yang diunggah dari Telegram atau admin (misal 180 KB JPEG) justru membengkak menjadi lebih besar (217 KB - 230 KB WebP):
+    - *Akar Masalah*: Foto dari Telegram telah dikompresi di sisi perangkat pengirim (~55-65% JPEG). Ketika Sharp mendekode dan mengompresi ulang ke WebP dengan target kualitas tinggi (`quality: 80-82`, `effort: 4`), artefak kompresi JPEG diperlakukan sebagai detail mikro sehingga ukuran byte file melonjak drastis (+15% s/d +22%).
+    - *Solusi Cerdas*: Mengimplementasikan fungsi sentral `optimizeImageBuffer` dengan algoritma adaptif:
+      1. Menggunakan `effort: 6` (algoritma kuantisasi & entropi optimal libwebp).
+      2. Menyesuaikan target kualitas standar web menjadi `75` (dan pass kedua `65` jika diperlukan).
+      3. **Safeguard Mutlak (`Strict Size Guard`)**: Membandingkan ukuran akhir terhadap buffer sumber. Jika hasil WebP tidak lebih hemat dari sumbernya, sistem mempertahankan berkas asli sehingga ukuran di storage **dijamin tidak akan pernah membengkak**.
 - **Audit Media & Relasi Berkas Album Multi-Foto (`lib/media.ts`, `tests/media-usage.test.ts`)**:
   - Mengatasi kendala di mana foto ke-2, ke-3, dan seterusnya pada album galeri kegiatan atau lampiran multi-foto artikel terdeteksi keliru sebagai berkas yatim (*orphan files*) di pustaka media & Cloudflare R2:
   - Fungsi `getTenantMediaUsageMap` kini mengekstrak dan memindai secara mendalam array JSON `mediaUrls` pada `GalleryItem` serta `galleryUrls` pada `Article`, sehingga seluruh foto dokumentasi dalam album diakui sebagai berkas aktif terintegrasi (`🟢 Terintegrasi`) dan terlindungi dari penghapusan otomatis.

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { prisma } from '@/lib/prisma';
 import { uploadFile } from '@/lib/storage';
+import { optimizeImageBuffer } from '@/lib/media';
 import {
   isTelegramConfigured,
   sendTelegramMessage,
@@ -751,23 +752,20 @@ export async function POST(request: NextRequest) {
         const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
         if (!fileBuffer) continue;
 
-        let optimizedBuffer = fileBuffer;
-        try {
-          const pipeline = sharp(fileBuffer).rotate();
-          const meta = await pipeline.metadata();
-          if ((meta.width && meta.width > 1920) || (meta.height && meta.height > 1920)) {
-            pipeline.resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true });
-          }
-          optimizedBuffer = await pipeline.webp({ quality: 80, effort: 4 }).toBuffer();
-        } catch (e) {
-          console.warn('Gagal kompresi Sharp WebP:', e);
-        }
+        // Kompresi cerdas: skala maks 1600px, WebP efisien (effort 6), dengan safeguard agar ukuran tidak membengkak
+        const opt = await optimizeImageBuffer(fileBuffer, {
+          maxWidth: 1600,
+          maxHeight: 1600,
+          quality: 75,
+          effort: 6,
+        });
 
-        const filename = `media_${Date.now()}_${i + 1}.webp`;
+        const ext = opt.format === 'webp' ? 'webp' : 'jpg';
+        const filename = `media_${Date.now()}_${i + 1}.${ext}`;
         const uploadRes = await uploadFile({
-          buffer: optimizedBuffer,
+          buffer: opt.buffer,
           filename,
-          mimeType: 'image/webp',
+          mimeType: opt.mimeType,
           tenantSlug: tenant.slug,
           folder: 'galeri',
         });

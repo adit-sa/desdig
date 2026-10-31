@@ -4,6 +4,7 @@ import sharp from 'sharp';
 
 import { getTenantFromRequest } from '@/lib/tenant/resolver';
 import { uploadFile } from '@/lib/storage';
+import { optimizeImageBuffer } from '@/lib/media';
 
 export async function POST(request: NextRequest) {
   try {
@@ -107,37 +108,22 @@ export async function POST(request: NextRequest) {
     const randomSuffix = Math.random().toString(36).substring(2, 7);
 
     if (isImage && !isVectorOrAnim) {
-      // 1. KOMPRESI GAMBAR STANDAR WEBSITE KE MODERN WEBP (Ringan, Cepat, Kualitas Tinggi)
+      // 1. KOMPRESI CERDAS KE MODERN WEBP DENGAN SAFEGUARD UKURAN
       try {
-        const imagePipeline = sharp(inputBuffer).rotate(); // auto-orient by EXIF
-        const metadata = await imagePipeline.metadata();
-
-        // Standar Web: foto wajah/user_pict max 1000px (quality 85); foto dokumentasi/pembangunan/artikel max 1920px (quality 82)
         const isFacePhoto = cleanFolder === 'user_pict';
-        const maxWidth = isFacePhoto ? 1000 : 1920;
-        const maxHeight = isFacePhoto ? 1000 : 1920;
-        const quality = isFacePhoto ? 85 : 82;
+        const opt = await optimizeImageBuffer(inputBuffer, {
+          isFace: isFacePhoto,
+          maxWidth: isFacePhoto ? 1000 : 1600,
+          maxHeight: isFacePhoto ? 1000 : 1600,
+          quality: isFacePhoto ? 78 : 75,
+          effort: 6,
+        });
 
-        if ((metadata.width && metadata.width > maxWidth) || (metadata.height && metadata.height > maxHeight)) {
-          imagePipeline.resize({
-            width: maxWidth,
-            height: maxHeight,
-            fit: 'inside',
-            withoutEnlargement: true,
-          });
-        }
-
-        // Kompresi ke WebP kualitas standar web modern
-        finalBuffer = await imagePipeline
-          .webp({
-            quality,
-            effort: 4,
-          })
-          .toBuffer();
-
-        finalFilename = `${baseSlug}_${timestamp}_${randomSuffix}.webp`;
-        outputMime = 'image/webp';
-        isCompressed = true;
+        finalBuffer = opt.buffer;
+        outputMime = opt.mimeType;
+        const targetExt = opt.format === 'webp' ? '.webp' : (ext || '.jpg');
+        finalFilename = `${baseSlug}_${timestamp}_${randomSuffix}${targetExt}`;
+        isCompressed = opt.isCompressed;
       } catch (sharpError) {
         console.warn('Sharp compression warning, falling back to original buffer:', sharpError);
         finalBuffer = inputBuffer;
