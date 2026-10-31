@@ -147,9 +147,63 @@ describe('desDig Telegram Bot Multi-Tenant Publishing Tests', () => {
     });
   });
 
+  it('8. Staging multi-foto Telegram (Media Group): Berhasil mengumpulkan banyak foto ke dalam 1 grup buffer', async () => {
+    const { appendPhotoToMediaGroup, getTelegramMediaGroup } = await import('../lib/telegram');
+    const testGroupId = 'mg_test_99999';
+
+    // Bersihkan data uji sebelumnya
+    await prisma.telegramMediaGroup.deleteMany({ where: { mediaGroupId: testGroupId } });
+
+    // Request 1: Foto A (tanpa caption)
+    await appendPhotoToMediaGroup({
+      mediaGroupId: testGroupId,
+      tenantId: testTenantId,
+      telegramId: testTelegramId,
+      chatId: '12345',
+      fileId: 'file_id_aaa',
+    });
+
+    // Request 2: Foto B (dengan caption)
+    await appendPhotoToMediaGroup({
+      mediaGroupId: testGroupId,
+      tenantId: testTenantId,
+      telegramId: testTelegramId,
+      chatId: '12345',
+      caption: 'Kerja Bakti Akbar di Dusun 1\nWarga bergotong royong membersihkan parit.',
+      fileId: 'file_id_bbb',
+    });
+
+    const group = await getTelegramMediaGroup(testGroupId);
+    expect(group).not.toBeNull();
+    expect(Array.isArray(group?.fileIds)).toBe(true);
+    expect((group?.fileIds as string[]).length).toBe(2);
+    expect((group?.fileIds as string[])).toContain('file_id_aaa');
+    expect((group?.fileIds as string[])).toContain('file_id_bbb');
+    expect(group?.caption).toContain('Kerja Bakti Akbar');
+  });
+
+  it('9. Atomic claim grup media Telegram: Menjamin tepat 1 worker yang memproses album', async () => {
+    const { claimTelegramMediaGroup } = await import('../lib/telegram');
+    const testGroupId = 'mg_test_99999';
+
+    // Worker 1 mencoba klaim -> harus berhasil
+    const claimWorker1 = await claimTelegramMediaGroup(testGroupId);
+    expect(claimWorker1).toBe(true);
+
+    // Worker 2 mencoba klaim grup yang sama -> harus ditolak (false)
+    const claimWorker2 = await claimTelegramMediaGroup(testGroupId);
+    expect(claimWorker2).toBe(false);
+
+    // Bersihkan data uji media group
+    await prisma.telegramMediaGroup.deleteMany({ where: { mediaGroupId: testGroupId } });
+  });
+
   afterAll(async () => {
     await prisma.telegramSubscriber.deleteMany({
       where: { telegramId: testTelegramId },
+    });
+    await prisma.telegramMediaGroup.deleteMany({
+      where: { tenantId: testTenantId },
     });
     if (testTenantId) {
       await prisma.tenant.delete({ where: { id: testTenantId } });

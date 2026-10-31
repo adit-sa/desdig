@@ -237,3 +237,98 @@ export async function unlinkTelegramUser(telegramId: string | number) {
   }
 }
 
+/**
+ * Menambahkan foto ke Staging Buffer Telegram Media Group (Album Foto).
+ * Menangani pengiriman banyak foto sekaligus (multi-photo album) dengan aman dari race-condition.
+ */
+export async function appendPhotoToMediaGroup({
+  mediaGroupId,
+  tenantId,
+  telegramId,
+  chatId,
+  caption,
+  fileId,
+}: {
+  mediaGroupId: string;
+  tenantId: string;
+  telegramId: string;
+  chatId: string;
+  caption?: string;
+  fileId: string;
+}) {
+  const cleanCaption = caption?.trim();
+
+  // Coba hingga 3 kali untuk mengantisipasi race-condition P2002 jika 2 request pertama tiba di milidetik yang sama
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const existing = await prisma.telegramMediaGroup.findUnique({
+        where: { mediaGroupId },
+      });
+
+      if (!existing) {
+        await prisma.telegramMediaGroup.create({
+          data: {
+            mediaGroupId,
+            tenantId,
+            telegramId,
+            chatId,
+            caption: cleanCaption || null,
+            fileIds: [fileId],
+            processed: false,
+          },
+        });
+        return;
+      } else {
+        const currentFiles = Array.isArray(existing.fileIds)
+          ? (existing.fileIds as string[])
+          : [];
+        if (!currentFiles.includes(fileId)) {
+          currentFiles.push(fileId);
+        }
+        await prisma.telegramMediaGroup.update({
+          where: { mediaGroupId },
+          data: {
+            fileIds: currentFiles,
+            ...(cleanCaption && { caption: cleanCaption }),
+          },
+        });
+        return;
+      }
+    } catch (err: any) {
+      if (err.code === 'P2002') {
+        // Record baru dibuat oleh worker paralel, jeda 100ms lalu ulangi untuk update
+        await new Promise((r) => setTimeout(r, 100));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+/**
+ * Mengklaim grup media Telegram secara atomik.
+ * Menjamin hanya TEPAT 1 proses (worker) yang memproses album sehingga tidak terjadi duplikasi artikel / galeri.
+ */
+export async function claimTelegramMediaGroup(mediaGroupId: string): Promise<boolean> {
+  const res = await prisma.telegramMediaGroup.updateMany({
+    where: {
+      mediaGroupId,
+      processed: false,
+    },
+    data: {
+      processed: true,
+    },
+  });
+  return res.count > 0;
+}
+
+/**
+ * Mengambil data grup media Telegram yang sudah terkumpul
+ */
+export async function getTelegramMediaGroup(mediaGroupId: string) {
+  return prisma.telegramMediaGroup.findUnique({
+    where: { mediaGroupId },
+  });
+}
+
+

@@ -11,6 +11,9 @@ import {
   unlinkTelegramUser,
   getTelegramWebhookInfo,
   setTelegramWebhookUrl,
+  appendPhotoToMediaGroup,
+  claimTelegramMediaGroup,
+  getTelegramMediaGroup,
 } from '@/lib/telegram';
 
 // GET /api/telegram/webhook - Cek status bot & registrasi webhook
@@ -236,78 +239,196 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // 6. Pengunggahan Foto (Artikel Berita atau Galeri)
+    // 6. Pengunggahan Foto (Artikel Berita atau Galeri - Mendukung Multi-Foto / Album)
     if (photos && photos.length > 0) {
-      // Ambil foto dengan resolusi tertinggi (elemen terakhir array)
       const highestResPhoto = photos[photos.length - 1];
       const fileId = highestResPhoto.file_id;
+      const mediaGroupId = message.media_group_id ? String(message.media_group_id) : null;
 
-      // Beri tanda bot sedang memproses
-      await sendTelegramMessage(chatId, `⏳ <i>Sedang mengunduh foto & mengonversi ke format WebP ringan...</i>`);
+      let fileIdsToProcess: string[] = [];
+      let finalCaption = caption.trim();
 
-      const fileInfo = await getTelegramFileInfo(fileId);
-      if (!fileInfo || !fileInfo.file_path) {
-        await sendTelegramMessage(chatId, `❌ Gagal mengambil berkas foto dari server Telegram.`);
+      if (mediaGroupId) {
+        // Multi-photo album (dikirim bersamaan oleh Telegram)
+        await appendPhotoToMediaGroup({
+          mediaGroupId,
+          tenantId: tenant.id,
+          telegramId: from.id.toString(),
+          chatId: chatId.toString(),
+          caption: finalCaption || undefined,
+          fileId,
+        });
+
+        // Jeda waktu 1200ms agar seluruh foto dalam album dari request lain sempat ter-buffer di DB
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+
+        // Klaim grup secara atomik
+        const claimed = await claimTelegramMediaGroup(mediaGroupId);
+        if (!claimed) {
+          // Worker lain yang menang claim yang memproses seluruh album ini
+          return NextResponse.json({ ok: true });
+        }
+
+        // Ambil data final grup yang sudah lengkap
+        const groupData = await getTelegramMediaGroup(mediaGroupId);
+        if (groupData && Array.isArray(groupData.fileIds)) {
+          fileIdsToProcess = groupData.fileIds as string[];
+          if (groupData.caption) {
+            finalCaption = groupData.caption.trim();
+          }
+        } else {
+          fileIdsToProcess = [fileId];
+        }
+      } else {
+        // Foto tunggal (single photo)
+        fileIdsToProcess = [fileId];
+      }
+
+      // 1. Validasi jika foto tunggal tidak memiliki keterangan sama sekali
+      if (!finalCaption && fileIdsToProcess.length === 1) {
+        await sendTelegramMessage(
+          chatId,
+          `ℹ️ <b>Foto Diterima Tanpa Keterangan</b>\n\n` +
+          `Untuk mempublikasikan ke website desa, silakan kirim ulang foto dengan keterangan (caption):\n` +
+          `• <b>Artikel Berita:</b> Tuliskan judul dan isi berita pada keterangan foto.\n` +
+          `• <b>Galeri Desa:</b> Awali keterangan dengan <code>/galeri [Judul Foto]</code>.\n\n` +
+          `💡 <i>Tips: Anda juga dapat memilih 2 hingga 10 foto sekaligus di galeri HP untuk dikirim bersamaan!</i>`
+        );
         return NextResponse.json({ ok: true });
       }
 
-      const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
-      if (!fileBuffer) {
-        await sendTelegramMessage(chatId, `❌ Gagal mengunduh isi foto.`);
+      // 2. Tentukan tujuan: Galeri atau Berita
+      const isGallery =
+        finalCaption.startsWith('/galeri') ||
+        finalCaption.startsWith('/album') ||
+        (!finalCaption && fileIdsToProcess.length > 1); // Banyak foto tanpa caption otomatis diarahkan ke Galeri
+
+      // A. ALUR GALERI FOTO (Bisa 1 atau banyak foto sekaligus)
+      if (isGallery) {
+        const baseTitle = finalCaption.replace(/^\/(?:galeri|album)\s*/i, '').trim() || 'Dokumentasi Kegiatan Desa';
+
+        await sendTelegramMessage(
+          chatId,
+          `⏳ <i>Sedang mengunduh & memproses ${fileIdsToProcess.length} foto ke Galeri Desa ${tenant.namaDesa}...</i>`
+        );
+
+        const savedItems = [];
+        for (let i = 0; i < fileIdsToProcess.length; i++) {
+          const fId = fileIdsToProcess[i];
+          const fileInfo = await getTelegramFileInfo(fId);
+          if (!fileInfo || !fileInfo.file_path) continue;
+
+          const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
+          if (!fileBuffer) continue;
+
+          const filename = `galeri_${Date.now()}_${i + 1}.jpg`;
+          const uploadRes = await uploadFile({
+            buffer: fileBuffer,
+            filename,
+            mimeType: 'image/jpeg',
+            tenantSlug: tenant.slug,
+            folder: 'galeri',
+          });
+
+          const itemTitle = fileIdsToProcess.length > 1 ? `${baseTitle} (Foto ${i + 1})` : baseTitle;
+          const galleryItem = await prisma.galleryItem.create({
+            data: {
+              tenantId: tenant.id,
+              title: itemTitle,
+              imageUrl: uploadRes.url,
+              category: 'Kegiatan',
+              caption: baseTitle,
+              takenAt: new Date(),
+            },
+          });
+          savedItems.push(galleryItem);
+        }
+
+        if (savedItems.length === 0) {
+          await sendTelegramMessage(chatId, `❌ Gagal mengunggah foto ke Galeri. Silakan coba kembali.`);
+          return NextResponse.json({ ok: true });
+        }
+
+        await sendTelegramMessage(
+          chatId,
+          `🖼️ <b>${savedItems.length} Foto Berhasil Disimpan ke Galeri!</b>\n\n` +
+          `<b>Judul:</b> ${baseTitle}\n` +
+          `<b>Desa:</b> ${tenant.namaDesa}\n` +
+          `<b>Total Tersimpan:</b> ${savedItems.length} Foto Dokumentasi\n` +
+          `<b>Penyimpanan:</b> Cloud Storage R2\n\n` +
+          `🔗 <b>Lihat di Galeri Desa:</b>\n` +
+          `https://${primaryDomain}/galeri`
+        );
         return NextResponse.json({ ok: true });
       }
 
-      // A. JIKA CAPTION DIAWALI /galeri -> Simpan ke Galeri Desa
-      if (caption.startsWith('/galeri') || caption.startsWith('/album')) {
-        const galleryTitle = caption.replace(/^\/(?:galeri|album)\s*/i, '').trim() || 'Dokumentasi Kegiatan Desa';
-        const filename = `galeri_${Date.now()}.jpg`;
+      // B. ALUR ARTIKEL BERITA (Bisa 1 atau banyak foto sekaligus)
+      const lines = finalCaption.split('\n').map((l: string) => l.trim()).filter(Boolean);
+      const title = lines[0]?.slice(0, 150) || 'Warta Kegiatan Desa';
+      const articleContent = lines.length > 1 ? lines.slice(1).join('\n\n') : finalCaption;
 
+      await sendTelegramMessage(
+        chatId,
+        `⏳ <i>Sedang memproses penerbitan artikel dengan ${fileIdsToProcess.length} foto...</i>`
+      );
+
+      const uploadedPhotos: { url: string; storage: string }[] = [];
+      for (let i = 0; i < fileIdsToProcess.length; i++) {
+        const fId = fileIdsToProcess[i];
+        const fileInfo = await getTelegramFileInfo(fId);
+        if (!fileInfo || !fileInfo.file_path) continue;
+
+        const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
+        if (!fileBuffer) continue;
+
+        const filename = `berita_${Date.now()}_${i + 1}.jpg`;
         const uploadRes = await uploadFile({
           buffer: fileBuffer,
           filename,
           mimeType: 'image/jpeg',
           tenantSlug: tenant.slug,
-          folder: 'galeri',
+          folder: 'artikel',
         });
+        uploadedPhotos.push(uploadRes);
+      }
 
-        const galleryItem = await prisma.galleryItem.create({
-          data: {
-            tenantId: tenant.id,
-            title: galleryTitle,
-            imageUrl: uploadRes.url,
-            category: 'Kegiatan',
-            caption: galleryTitle,
-            takenAt: new Date(),
-          },
-        });
-
-        await sendTelegramMessage(
-          chatId,
-          `🖼️ <b>Dokumentasi Galeri Berhasil Disimpan!</b>\n\n` +
-          `<b>Judul:</b> ${galleryItem.title}\n` +
-          `<b>Desa:</b> ${tenant.namaDesa}\n` +
-          `<b>Penyimpanan:</b> Cloud Storage R2 (${uploadRes.storage})\n\n` +
-          `🔗 <b>Lihat di Galeri:</b> https://${primaryDomain}/galeri`
-        );
+      if (uploadedPhotos.length === 0) {
+        await sendTelegramMessage(chatId, `❌ Gagal mengunggah foto artikel. Silakan coba kembali.`);
         return NextResponse.json({ ok: true });
       }
 
-      // B. JIKA FOTO DENGAN CAPTION BIASA -> Terbitkan sebagai Artikel Berita
-      const rawCaption = caption || 'Warta Kegiatan Desa';
-      const lines = rawCaption.split('\n').map((l: string) => l.trim()).filter(Boolean);
+      // Foto pertama adalah cover artikel
+      const coverImageUrl = uploadedPhotos[0].url;
 
-      const title = lines[0].slice(0, 150);
-      const articleContent = lines.length > 1 ? lines.slice(1).join('\n\n') : rawCaption;
+      // Seluruh foto masuk ke galleryUrls artikel
+      const galleryUrls = uploadedPhotos.map((p, idx) => ({
+        url: p.url,
+        caption: idx === 0 ? 'Foto Utama' : `Dokumentasi ${idx + 1}`,
+      }));
 
-      // Upload foto cover artikel
-      const filename = `berita_${Date.now()}.jpg`;
-      const uploadRes = await uploadFile({
-        buffer: fileBuffer,
-        filename,
-        mimeType: 'image/jpeg',
-        tenantSlug: tenant.slug,
-        folder: 'artikel',
-      });
+      // Format konten dengan paragraf HTML
+      let htmlContent = articleContent
+        .split('\n\n')
+        .map((p: string) => `<p>${p}</p>`)
+        .join('');
+
+      // Jika ada lebih dari 1 foto, sisipkan album galeri rapi di dalam isi artikel
+      if (uploadedPhotos.length > 1) {
+        const additionalImages = uploadedPhotos.slice(1);
+        const galleryHtml = `
+          <div class="article-gallery-container my-6 pt-4 border-t border-slate-200">
+            <h4 class="text-sm font-bold text-slate-800 mb-3">Dokumentasi Foto Kegiatan (${additionalImages.length})</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              ${additionalImages.map((img, idx) => `
+                <div class="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                  <img src="${img.url}" alt="${title} - Foto ${idx + 2}" class="w-full h-48 object-cover rounded-xl" loading="lazy" />
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+        htmlContent += galleryHtml;
+      }
 
       // Cari atau buat kategori "Warta Desa"
       let category = await prisma.category.findFirst({
@@ -342,12 +463,6 @@ export async function POST(request: NextRequest) {
         counter++;
       }
 
-      // Format konten dengan paragraf HTML
-      const htmlContent = articleContent
-        .split('\n\n')
-        .map((p: string) => `<p>${p}</p>`)
-        .join('');
-
       const article = await prisma.article.create({
         data: {
           tenantId: tenant.id,
@@ -356,7 +471,8 @@ export async function POST(request: NextRequest) {
           slug: articleSlug,
           summary: articleContent.slice(0, 160) + '...',
           content: htmlContent,
-          coverImageUrl: uploadRes.url,
+          coverImageUrl,
+          galleryUrls,
           status: 'PUBLISHED',
           publishedAt: new Date(),
         },
@@ -370,7 +486,7 @@ export async function POST(request: NextRequest) {
         `<b>Judul:</b> ${article.title}\n` +
         `<b>Desa:</b> ${tenant.namaDesa}\n` +
         `<b>Kategori:</b> ${category.name}\n` +
-        `<b>Cover:</b> WebP di R2 Cloud Storage\n` +
+        `<b>Foto Dokumentasi:</b> ${uploadedPhotos.length} Foto (Cover + Album Berita)\n` +
         `<b>Status:</b> 🟢 Live di Website Resmi\n\n` +
         `🔗 <b>Baca Berita Sekarang:</b>\n` +
         `<a href="${articlePublicUrl}">${articlePublicUrl}</a>`

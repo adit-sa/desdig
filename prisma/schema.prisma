@@ -116,6 +116,7 @@ model Tenant {
   kioskDevices        KioskDevice[]
   telegramToken       String?
   telegramUsers       TelegramSubscriber[]
+  telegramMediaGroups TelegramMediaGroup[]
 
   @@index([slug])
 }
@@ -601,4 +602,23 @@ model TelegramSubscriber {
   updatedAt     DateTime  @updatedAt
 
   @@index([tenantId])
+}
+
+// 18. Telegram Bot Media Group Staging Buffer (Atomic Album Processing)
+model TelegramMediaGroup {
+  id           String    @id @default(cuid())
+  mediaGroupId String    @unique
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  telegramId   String
+  chatId       String
+  caption      String?   @db.Text
+  fileIds      Json      // array of string file_id
+  processed    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([tenantId])
+  @@index([mediaGroupId])
+  @@index([createdAt])
 }
