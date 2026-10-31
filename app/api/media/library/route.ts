@@ -40,6 +40,9 @@ export async function GET(request: NextRequest) {
       folders,
     });
   } catch (error: any) {
+    if (error?.digest?.startsWith('NEXT_') || error?.message?.includes('bail out of prerendering')) {
+      throw error;
+    }
     console.error('Error fetching media library:', error);
     return NextResponse.json({ error: error.message || 'Gagal memuat pustaka media' }, { status: 500 });
   }

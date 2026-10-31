@@ -144,6 +144,9 @@ export async function GET(request: NextRequest) {
       report,
     });
   } catch (error: any) {
+    if (error?.digest?.startsWith('NEXT_') || error?.message?.includes('bail out of prerendering')) {
+      throw error;
+    }
     console.error('Error generating attendance report:', error);
     return NextResponse.json({ error: error.message || 'Gagal memproses laporan' }, { status: 500 });
   }

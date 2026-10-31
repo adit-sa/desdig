@@ -124,6 +124,9 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Menambahkan aturan wajib pembaruan `CHANGELOG.md` pada `AGENTS.md`.
 
 ### Fixed
+- **Pembersihan Log Prerender Bailout pada Rute API Dinamis (`/api/admin/dashboard-stats`, `/api/attendance/report`, `/api/media/library`, `/api/media`)**:
+  - Menangani sinyal internal Next.js `NEXT_PRERENDER_INTERRUPTED` dengan me-rethrow secara tepat saat fase build prerender.
+  - Menghilangkan pesan galat palsu (*false positive error logs*) pada output Vercel CI/CD sehingga proses build bersih 100% dan seluruh 72 rute terkompilasi optimal.
 - **Perbaikan Pustaka Media Server pada Modal Pemilih Foto Admin (`/admin/berita`, `/admin/galeri`, `/admin/halaman`, `MediaLibraryModal.tsx`)**:
   - Memperbaiki masalah pemilih foto di admin yang menampilkan pesan *"Belum ada foto tersimpan di server"* pada lingkungan cloud/Vercel akibat API hanya memindai disk lokal sementara foto tersimpan di Cloudflare R2.
   - Mengintegrasikan pemindaian Cloudflare R2 ke endpoint `/api/media` dan `/api/media/library` sehingga seluruh foto yang tersimpan di R2 (2.150+ file) langsung muncul seketika di pustaka media server.
