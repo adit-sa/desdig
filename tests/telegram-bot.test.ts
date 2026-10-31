@@ -550,6 +550,22 @@ describe('desDig Telegram Bot Multi-Tenant Publishing Tests', () => {
     await prisma.galleryItem.delete({ where: { id: newGallery.id } });
   });
 
+  it('15. Format Pesan Bersih: stripHtmlTags membersihkan seluruh kode tag HTML mentah menjadi format teks rapi & aman', async () => {
+    const { stripHtmlTags } = await import('../lib/telegram');
+    const dirtyText = `🎉 <b>Alhamdulillah! Album Galeri Berhasil Diterbitkan!</b>\n\n• <b>Judul:</b> Bansos &amp; BLT\n• <b>Penanggung Jawab:</b> H. Sapiil\n\nKetik <code>/batal</code> jika ingin membatalkan.\n<i>(Tips: Kirim foto sekaligus)</i>`;
+    const cleanText = stripHtmlTags(dirtyText);
+
+    expect(cleanText).not.toContain('<b>');
+    expect(cleanText).not.toContain('</b>');
+    expect(cleanText).not.toContain('<code>');
+    expect(cleanText).not.toContain('</code>');
+    expect(cleanText).not.toContain('<i>');
+    expect(cleanText).not.toContain('</i>');
+    expect(cleanText).toContain('Bansos & BLT');
+    expect(cleanText).toContain('Ketik /batal jika ingin membatalkan.');
+    expect(cleanText).toContain('Alhamdulillah! Album Galeri Berhasil Diterbitkan!');
+  });
+
   afterAll(async () => {
     await prisma.telegramSubscriber.deleteMany({
       where: { telegramId: testTelegramId },

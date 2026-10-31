@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         await resetSubscriberConversation(from.id);
         await sendTelegramMessage(
           chatId,
-          `❌ <b>Draft dibatalkan.</b> Kembali ke menu utama. Silakan pilih menu di bawah jika ingin memulai kembali:`,
+          `❌ Draft dibatalkan. Kembali ke menu utama. Silakan pilih menu di bawah jika ingin memulai kembali:`,
           { reply_markup: getMainMenuKeyboard() }
         );
         return NextResponse.json({ ok: true });
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         await setSubscriberConversation(from.id, 'AWAITING_GALLERY_TITLE');
         await sendTelegramMessage(
           chatId,
-          `🖼️ <b>Mode Galeri Dipilih!</b>\n\nSilakan ketikkan <b>Judul / Nama Kegiatan</b> untuk galeri ini:\n<i>(Contoh: Kerja Bakti Saluran Irigasi Dusun 2)</i>\n\nKetik <code>/batal</code> jika ingin membatalkan.`,
+          `🖼️ Mode Galeri Dipilih!\n\nSilakan ketikkan Judul / Nama Kegiatan untuk galeri ini:\n(Contoh: Kerja Bakti Saluran Irigasi Dusun 2)\n\nKetik /batal jika ingin membatalkan.`,
           { reply_markup: getMainMenuKeyboard() }
         );
         return NextResponse.json({ ok: true });
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
         await setSubscriberConversation(from.id, 'AWAITING_ARTICLE_TEXT');
         await sendTelegramMessage(
           chatId,
-          `📰 <b>Mode Berita Dipilih!</b>\n\nSilakan ketikkan <b>Teks Berita</b> Anda:\n<i>(Baris pertama otomatis menjadi Judul Berita, baris berikutnya adalah isi penjelasan berita)</i>\n\nKetik <code>/batal</code> jika ingin membatalkan.`,
+          `📰 Mode Berita Dipilih!\n\nSilakan ketikkan Teks Berita Anda:\n(Baris pertama otomatis menjadi Judul Berita, baris berikutnya adalah isi penjelasan berita)\n\nKetik /batal jika ingin membatalkan.`,
           { reply_markup: getMainMenuKeyboard() }
         );
         return NextResponse.json({ ok: true });
@@ -163,12 +163,12 @@ export async function POST(request: NextRequest) {
         await resetSubscriberConversation(from.id);
         await sendTelegramMessage(
           chatId,
-          `🎉 <b>Alhamdulillah! Album Galeri Berhasil Diterbitkan!</b>\n\n` +
-          `• <b>Judul:</b> ${title}\n` +
-          `• <b>Total Foto:</b> ${photos.length} Foto di Album\n` +
-          `• <b>Desa:</b> ${tenant.namaDesa}\n` +
-          `• <b>Penanggung Jawab:</b> ${authorName}\n\n` +
-          `🔗 <b>Lihat di Website:</b>\nhttps://${primaryDomain}/galeri`,
+          `🎉 Alhamdulillah! Album Galeri Berhasil Diterbitkan!\n\n` +
+          `• Judul: ${title}\n` +
+          `• Total Foto: ${photos.length} Foto di Album\n` +
+          `• Desa: ${tenant.namaDesa}\n` +
+          `• Penanggung Jawab: ${authorName}\n\n` +
+          `🔗 Lihat di Website:\nhttps://${primaryDomain}/galeri`,
           { reply_markup: getMainMenuKeyboard() }
         );
         return NextResponse.json({ ok: true });
@@ -228,12 +228,12 @@ export async function POST(request: NextRequest) {
         const articlePublicUrl = `https://${primaryDomain}/berita/${article.slug}?tenant=${tenant.slug}`;
         await sendTelegramMessage(
           chatId,
-          `📰 <b>Artikel Berita Berhasil Diterbitkan!</b>\n\n` +
-          `• <b>Judul:</b> ${article.title}\n` +
-          `• <b>Desa:</b> ${tenant.namaDesa}\n` +
-          `• <b>Penulis:</b> ${authorName}\n` +
-          `• <b>Total Foto:</b> ${photos.length} Foto\n\n` +
-          `🔗 <b>Buka Artikel di Website:</b>\n<a href="${articlePublicUrl}">${articlePublicUrl}</a>`,
+          `📰 Artikel Berita Berhasil Diterbitkan!\n\n` +
+          `• Judul: ${article.title}\n` +
+          `• Desa: ${tenant.namaDesa}\n` +
+          `• Penulis: ${authorName}\n` +
+          `• Total Foto: ${photos.length} Foto\n\n` +
+          `🔗 Buka Artikel di Website:\n${articlePublicUrl}`,
           { reply_markup: getMainMenuKeyboard() }
         );
         return NextResponse.json({ ok: true });
@@ -263,17 +263,17 @@ export async function POST(request: NextRequest) {
       if (!linked) {
         await sendTelegramMessage(
           chatId,
-          `👋 <b>Halo, ${from.first_name || 'Rekan Desa'}!</b>\n\n` +
-          `Selamat datang di <b>Bot Publikasi Resmi desDig (desa Digital)</b>.\n\n` +
-          `Bot ini memungkinkan Anda menerbitkan <b>Berita, Galeri Kegiatan, & Pengumuman</b> ke portal website desa langsung dari HP Anda.\n\n` +
-          `🔐 <b>Langkah Awal: Hubungkan Bot dengan Desa Anda</b>\n` +
+          `👋 Halo, ${from.first_name || 'Rekan Desa'}!\n\n` +
+          `Selamat datang di Bot Publikasi Resmi desDig (desa Digital).\n\n` +
+          `Bot ini memungkinkan Anda menerbitkan Berita, Galeri Kegiatan, & Pengumuman ke portal website desa langsung dari HP Anda.\n\n` +
+          `🔐 Langkah Awal: Hubungkan Bot dengan Desa Anda\n` +
           `Ketik perintah:\n` +
-          `<code>/login [nama_atau_slug_desa] [kode_rahasia]</code>\n\n` +
-          `<i>Contoh dengan spasi:</i>\n` +
-          `<code>/login Sinjai Tengah rahasia123</code>\n\n` +
-          `<i>Contoh dengan slug:</i>\n` +
-          `<code>/login sinjai-tengah rahasia123</code>\n\n` +
-          `💡 <i>Admin desa dapat melihat atau mengganti kode pairing kapan saja di menu <b>Bot Telegram</b> pada dashboard admin.</i>`
+          `/login [nama_atau_slug_desa] [kode_rahasia]\n\n` +
+          `Contoh dengan nama desa:\n` +
+          `/login Sinjai Tengah rahasia123\n\n` +
+          `Contoh dengan slug:\n` +
+          `/login sinjai-tengah rahasia123\n\n` +
+          `💡 Tips: Admin desa dapat melihat atau mengganti kode pairing kapan saja di menu Bot Telegram pada dashboard admin.`
         );
         return NextResponse.json({ ok: true });
       }
@@ -281,13 +281,13 @@ export async function POST(request: NextRequest) {
       const tenant = linked.tenant;
       await sendTelegramMessage(
         chatId,
-        `🏛️ <b>Halo, ${linked.officialName ? `${linked.officialName} (${linked.officialPosition})` : 'Pamong Desa'}!</b>\n` +
-        `Anda terhubung ke <b>Desa ${tenant.namaDesa}</b> (<code>${tenant.slug}</code>).\n\n` +
+        `🏛️ Halo, ${linked.officialName ? `${linked.officialName} (${linked.officialPosition})` : 'Pamong Desa'}!\n` +
+        `Anda terhubung ke Desa ${tenant.namaDesa} (${tenant.slug}).\n\n` +
         `Pilih menu di tombol keyboard bawah untuk mempublikasikan konten:\n` +
-        `• <b>📰 Tulis Berita:</b> Panduan langkah demi langkah menulis berita & upload foto.\n` +
-        `• <b>🖼️ Galeri Kegiatan:</b> Masukkan judul kegiatan lalu kirim foto-fotonya.\n` +
-        `• <b>📢 Buat Pengumuman:</b> Menerbitkan pengumuman resmi ke portal warga.\n` +
-        `• <b>❌ Batal / Menu Utama:</b> Membatalkan draft yang sedang berjalan.`,
+        `• 📰 Tulis Berita: Panduan langkah demi langkah menulis berita & upload foto.\n` +
+        `• 🖼️ Galeri Kegiatan: Masukkan judul kegiatan lalu kirim foto-fotonya.\n` +
+        `• 📢 Buat Pengumuman: Menerbitkan pengumuman resmi ke portal warga.\n` +
+        `• ❌ Batal / Menu Utama: Membatalkan draft yang sedang berjalan.`,
         { reply_markup: getMainMenuKeyboard() }
       );
       return NextResponse.json({ ok: true });
@@ -299,12 +299,12 @@ export async function POST(request: NextRequest) {
       if (parts.length < 3) {
         await sendTelegramMessage(
           chatId,
-          `⚠️ <b>Format Login Salah</b>\n\n` +
+          `⚠️ Format Login Salah\n\n` +
           `Gunakan format:\n` +
-          `<code>/login [nama_atau_slug_desa] [kode_rahasia]</code>\n\n` +
-          `<i>Contoh dengan spasi:</i> <code>/login Sinjai Tengah rahasia123</code>\n` +
-          `<i>Contoh dengan slug:</i> <code>/login sinjai-tengah rahasia123</code>\n\n` +
-          `💡 <i>Kode pairing rahasia desa dapat dilihat atau diubah di menu <b>Bot Telegram</b> pada panel admin.</i>`
+          `/login [nama_atau_slug_desa] [kode_rahasia]\n\n` +
+          `Contoh dengan spasi: /login Sinjai Tengah rahasia123\n` +
+          `Contoh dengan slug: /login sinjai-tengah rahasia123\n\n` +
+          `💡 Tips: Kode pairing rahasia desa dapat dilihat atau diubah di menu Bot Telegram pada panel admin.`
         );
         return NextResponse.json({ ok: true });
       }
@@ -327,8 +327,8 @@ export async function POST(request: NextRequest) {
 
       await sendTelegramMessage(
         chatId,
-        `🎉 <b>Selamat! Akun Telegram Anda Berhasil Terhubung.</b>\n\n` +
-        `Anda sekarang dapat mempublikasikan Berita, Galeri, dan Pengumuman langsung ke website resmi <b>Desa ${pairResult.tenant.namaDesa}</b>.\n\n` +
+        `🎉 Selamat! Akun Telegram Anda Berhasil Terhubung.\n\n` +
+        `Anda sekarang dapat mempublikasikan Berita, Galeri, dan Pengumuman langsung ke website resmi Desa ${pairResult.tenant.namaDesa}.\n\n` +
         `Gunakan menu tombol di bawah ini untuk memulai publikasi! 👇`,
         { reply_markup: getMainMenuKeyboard() }
       );
@@ -340,7 +340,7 @@ export async function POST(request: NextRequest) {
       await unlinkTelegramUser(from.id);
       await sendTelegramMessage(
         chatId,
-        `👋 Akun Telegram Anda telah dilepas dari desa. Anda dapat menghubungkan kembali kapan saja menggunakan perintah <code>/login</code>.`
+        `👋 Akun Telegram Anda telah dilepas dari desa. Anda dapat menghubungkan kembali kapan saja menggunakan perintah /login.`
       );
       return NextResponse.json({ ok: true });
     }
@@ -350,9 +350,9 @@ export async function POST(request: NextRequest) {
     if (!linked) {
       await sendTelegramMessage(
         chatId,
-        `⚠️ <b>Akun Belum Terhubung ke Desa</b>\n\n` +
+        `⚠️ Akun Belum Terhubung ke Desa\n\n` +
         `Silakan tautkan akun Anda terlebih dahulu dengan mengetik:\n` +
-        `<code>/login [slug_desa] [kode_rahasia]</code>`
+        `/login [nama_atau_slug_desa] [kode_rahasia]`
       );
       return NextResponse.json({ ok: true });
     }
@@ -374,16 +374,16 @@ export async function POST(request: NextRequest) {
 
       await sendTelegramMessage(
         chatId,
-        `🏛️ <b>Profil Desa: ${tenant.namaDesa}</b>\n\n` +
-        `• <b>Petugas Login:</b> ${authorName}\n` +
-        `• <b>Kecamatan:</b> ${tenant.kecamatan}\n` +
-        `• <b>Kabupaten:</b> ${tenant.kabupaten}\n` +
-        `• <b>Kepala Desa:</b> ${tenant.kepalaDesa || '-'}\n` +
-        `• <b>Total Warga:</b> ${residentCount.toLocaleString('id-ID')} Jiwa\n` +
-        `• <b>Total Berita:</b> ${articleCount} Artikel\n` +
-        `• <b>Total Galeri:</b> ${galleryCount} Album\n` +
-        `• <b>Pamong Aktif:</b> ${officialCount} Aparatur\n\n` +
-        `🌐 <b>Portal Website:</b> https://${primaryDomain}`,
+        `🏛️ Profil Desa: ${tenant.namaDesa}\n\n` +
+        `• Petugas Login: ${authorName}\n` +
+        `• Kecamatan: ${tenant.kecamatan}\n` +
+        `• Kabupaten: ${tenant.kabupaten}\n` +
+        `• Kepala Desa: ${tenant.kepalaDesa || '-'}\n` +
+        `• Total Warga: ${residentCount.toLocaleString('id-ID')} Jiwa\n` +
+        `• Total Berita: ${articleCount} Artikel\n` +
+        `• Total Galeri: ${galleryCount} Album\n` +
+        `• Pamong Aktif: ${officialCount} Aparatur\n\n` +
+        `🌐 Portal Website: https://${primaryDomain}`,
         { reply_markup: getMainMenuKeyboard() }
       );
       return NextResponse.json({ ok: true });
@@ -393,8 +393,8 @@ export async function POST(request: NextRequest) {
     if (message.document || message.video || message.audio || message.voice || message.video_note) {
       await sendTelegramMessage(
         chatId,
-        `⚠️ <b>Format Berkas Belum Didukung</b>\n\n` +
-        `Untuk menghemat kuota dan kapasitas penyimpanan server desa, bot saat ini hanya menerima berkas <b>Foto / Gambar</b> (JPG, PNG, WebP).\n\n` +
+        `⚠️ Format Berkas Belum Didukung\n\n` +
+        `Untuk menghemat kuota dan kapasitas penyimpanan server desa, bot saat ini hanya menerima berkas Foto / Gambar (JPG, PNG, WebP).\n\n` +
         `Silakan kirimkan dokumentasi kegiatan dalam bentuk foto biasa.`
       );
       return NextResponse.json({ ok: true });
@@ -409,7 +409,7 @@ export async function POST(request: NextRequest) {
       await resetSubscriberConversation(from.id);
       await sendTelegramMessage(
         chatId,
-        `🔄 <b>Mode dialog dibatalkan.</b> Kembali ke menu utama.\n\nSilakan pilih salah satu tombol menu di bawah:`,
+        `🔄 Mode dialog dibatalkan. Kembali ke menu utama.\n\nSilakan pilih salah satu tombol menu di bawah:`,
         { reply_markup: getMainMenuKeyboard() }
       );
       return NextResponse.json({ ok: true });
@@ -420,10 +420,10 @@ export async function POST(request: NextRequest) {
       await setSubscriberConversation(from.id, 'AWAITING_GALLERY_TITLE', { photos: [] });
       await sendTelegramMessage(
         chatId,
-        `🖼️ <b>Mode Galeri Kegiatan Aktif</b>\n\n` +
-        `Silakan ketikkan <b>Judul / Nama Kegiatan</b> untuk album galeri ini:\n` +
-        `<i>(Contoh: Kerja Bakti Saluran Irigasi Dusun 2)</i>\n\n` +
-        `Ketik <code>/batal</code> jika ingin membatalkan.`,
+        `🖼️ Mode Galeri Kegiatan Aktif\n\n` +
+        `Silakan ketikkan Judul / Nama Kegiatan untuk album galeri ini:\n` +
+        `(Contoh: Kerja Bakti Saluran Irigasi Dusun 2)\n\n` +
+        `Ketik /batal jika ingin membatalkan.`,
         { reply_markup: getMainMenuKeyboard() }
       );
       return NextResponse.json({ ok: true });
@@ -434,10 +434,10 @@ export async function POST(request: NextRequest) {
       await setSubscriberConversation(from.id, 'AWAITING_ARTICLE_TEXT', { photos: [] });
       await sendTelegramMessage(
         chatId,
-        `📰 <b>Mode Tulis Berita Aktif</b>\n\n` +
-        `Silakan kirimkan <b>Teks Berita</b> Anda:\n` +
-        `<i>(Tips: Baris pertama otomatis menjadi Judul Berita, baris berikutnya adalah isi penjelasan berita)</i>\n\n` +
-        `Ketik <code>/batal</code> jika ingin membatalkan.`,
+        `📰 Mode Tulis Berita Aktif\n\n` +
+        `Silakan kirimkan Teks Berita Anda:\n` +
+        `(Tips: Baris pertama otomatis menjadi Judul Berita, baris berikutnya adalah isi penjelasan berita)\n\n` +
+        `Ketik /batal jika ingin membatalkan.`,
         { reply_markup: getMainMenuKeyboard() }
       );
       return NextResponse.json({ ok: true });
@@ -448,9 +448,9 @@ export async function POST(request: NextRequest) {
       await setSubscriberConversation(from.id, 'AWAITING_ANNOUNCEMENT_TEXT');
       await sendTelegramMessage(
         chatId,
-        `📢 <b>Mode Pengumuman Warga Aktif</b>\n\n` +
-        `Silakan ketikkan <b>Teks Pengumuman</b> yang ingin diterbitkan di portal desa:\n\n` +
-        `Ketik <code>/batal</code> jika ingin membatalkan.`,
+        `📢 Mode Pengumuman Warga Aktif\n\n` +
+        `Silakan ketikkan Teks Pengumuman yang ingin diterbitkan di portal desa:\n\n` +
+        `Ketik /batal jika ingin membatalkan.`,
         { reply_markup: getMainMenuKeyboard() }
       );
       return NextResponse.json({ ok: true });
@@ -466,7 +466,7 @@ export async function POST(request: NextRequest) {
         if (photos.length === 0) {
           await sendTelegramMessage(
             chatId,
-            `⚠️ Anda belum mengirimkan foto untuk galeri "<b>${title}</b>". Silakan kirim minimal 1 foto terlebih dahulu.`
+            `⚠️ Anda belum mengirimkan foto untuk galeri "${title}". Silakan kirim minimal 1 foto terlebih dahulu.`
           );
           return NextResponse.json({ ok: true });
         }
@@ -495,12 +495,12 @@ export async function POST(request: NextRequest) {
         await resetSubscriberConversation(from.id);
         await sendTelegramMessage(
           chatId,
-          `🎉 <b>Alhamdulillah! Album Galeri Berhasil Diterbitkan!</b>\n\n` +
-          `• <b>Judul:</b> ${title}\n` +
-          `• <b>Total Foto:</b> ${photos.length} Foto di Album\n` +
-          `• <b>Desa:</b> ${tenant.namaDesa}\n` +
-          `• <b>Penanggung Jawab:</b> ${authorName}\n\n` +
-          `🔗 <b>Lihat di Website:</b>\nhttps://${primaryDomain}/galeri`,
+          `🎉 Alhamdulillah! Album Galeri Berhasil Diterbitkan!\n\n` +
+          `• Judul: ${title}\n` +
+          `• Total Foto: ${photos.length} Foto di Album\n` +
+          `• Desa: ${tenant.namaDesa}\n` +
+          `• Penanggung Jawab: ${authorName}\n\n` +
+          `🔗 Lihat di Website:\nhttps://${primaryDomain}/galeri`,
           { reply_markup: getMainMenuKeyboard() }
         );
         return NextResponse.json({ ok: true });
@@ -558,12 +558,12 @@ export async function POST(request: NextRequest) {
         const articlePublicUrl = `https://${primaryDomain}/berita/${article.slug}?tenant=${tenant.slug}`;
         await sendTelegramMessage(
           chatId,
-          `📰 <b>Artikel Berita Berhasil Diterbitkan!</b>\n\n` +
-          `• <b>Judul:</b> ${article.title}\n` +
-          `• <b>Desa:</b> ${tenant.namaDesa}\n` +
-          `• <b>Penulis:</b> ${authorName}\n` +
-          `• <b>Total Foto:</b> ${photos.length} Foto\n\n` +
-          `🔗 <b>Buka Artikel di Website:</b>\n<a href="${articlePublicUrl}">${articlePublicUrl}</a>`,
+          `📰 Artikel Berita Berhasil Diterbitkan!\n\n` +
+          `• Judul: ${article.title}\n` +
+          `• Desa: ${tenant.namaDesa}\n` +
+          `• Penulis: ${authorName}\n` +
+          `• Total Foto: ${photos.length} Foto\n\n` +
+          `🔗 Buka Artikel di Website:\n${articlePublicUrl}`,
           { reply_markup: getMainMenuKeyboard() }
         );
         return NextResponse.json({ ok: true });
@@ -595,18 +595,18 @@ export async function POST(request: NextRequest) {
         if (existingPhotos.length > 0) {
           await sendTelegramMessage(
             chatId,
-            `✅ Judul dicatat: <b>${title}</b>\n\n` +
-            `Saat ini sudah ada <b>${existingPhotos.length} foto</b> tersimpan di draft album ini.\n` +
+            `✅ Judul dicatat: ${title}\n\n` +
+            `Saat ini sudah ada ${existingPhotos.length} foto tersimpan di draft album ini.\n` +
             `Anda dapat mengirim foto tambahan lagi, atau klik tombol di bawah untuk langsung menerbitkan album:`,
             { reply_markup: getGalleryActionKeyboard() }
           );
         } else {
           await sendTelegramMessage(
             chatId,
-            `✅ Judul dicatat: <b>${title}</b>\n\n` +
+            `✅ Judul dicatat: ${title}\n\n` +
             `📸 Sekarang silakan kirimkan foto-foto dokumentasinya!\n` +
-            `<i>(Anda bisa mengirim 1, 2, atau banyak foto sekaligus dari galeri HP)</i>\n\n` +
-            `Setelah selesai, klik tombol di bawah atau ketik <code>/selesai</code>.`,
+            `(Anda bisa mengirim 1, 2, atau banyak foto sekaligus dari galeri HP)\n\n` +
+            `Setelah selesai, klik tombol di bawah atau ketik /selesai.`,
             { reply_markup: getGalleryActionKeyboard() }
           );
         }
@@ -630,18 +630,18 @@ export async function POST(request: NextRequest) {
         if (existingPhotos.length > 0) {
           await sendTelegramMessage(
             chatId,
-            `✅ Berita dicatat: <b>${title}</b>\n\n` +
-            `Saat ini sudah ada <b>${existingPhotos.length} foto</b> tersimpan.\n` +
+            `✅ Berita dicatat: ${title}\n\n` +
+            `Saat ini sudah ada ${existingPhotos.length} foto tersimpan.\n` +
             `Anda dapat mengirim foto tambahan lagi, atau klik tombol di bawah untuk langsung menerbitkan berita:`,
             { reply_markup: getArticleActionKeyboard() }
           );
         } else {
           await sendTelegramMessage(
             chatId,
-            `✅ Teks berita dicatat: <b>${title}</b>\n\n` +
+            `✅ Teks berita dicatat: ${title}\n\n` +
             `📸 Sekarang silakan kirimkan foto dokumentasinya!\n` +
-            `<i>(Foto pertama otomatis dijadikan cover utama berita)</i>\n\n` +
-            `Setelah selesai, klik tombol di bawah atau ketik <code>/selesai</code>.`,
+            `(Foto pertama otomatis dijadikan cover utama berita)\n\n` +
+            `Setelah selesai, klik tombol di bawah atau ketik /selesai.`,
             { reply_markup: getArticleActionKeyboard() }
           );
         }
@@ -668,10 +668,10 @@ export async function POST(request: NextRequest) {
         await resetSubscriberConversation(from.id);
         await sendTelegramMessage(
           chatId,
-          `📢 <b>Pengumuman Resmi Berhasil Diterbitkan!</b>\n\n` +
-          `<b>Judul:</b> ${title}\n` +
-          `<b>Desa:</b> ${tenant.namaDesa}\n` +
-          `<b>Diumumkan Oleh:</b> ${authorName}\n\n` +
+          `📢 Pengumuman Resmi Berhasil Diterbitkan!\n\n` +
+          `• Judul: ${title}\n` +
+          `• Desa: ${tenant.namaDesa}\n` +
+          `• Diumumkan Oleh: ${authorName}\n\n` +
           `Pengumuman sudah langsung tayang di papan pengumuman portal warga: https://${primaryDomain}`,
           { reply_markup: getMainMenuKeyboard() }
         );
@@ -785,8 +785,8 @@ export async function POST(request: NextRequest) {
 
         await sendTelegramMessage(
           chatId,
-          `📸 <b>${newUploadedPhotos.length} Foto Diterima!</b>\n` +
-          `Total saat ini: <b>${updatedPhotos.length} foto</b> di album '<i>${currentDraft.title || 'Galeri Kegiatan'}</i>'.\n\n` +
+          `📸 ${newUploadedPhotos.length} Foto Diterima!\n` +
+          `Total saat ini: ${updatedPhotos.length} foto di album '${currentDraft.title || 'Galeri Kegiatan'}'.\n\n` +
           `Kirim foto tambahan lagi jika ada, atau klik tombol di bawah untuk menerbitkan:`,
           { reply_markup: getGalleryActionKeyboard() }
         );
@@ -806,8 +806,8 @@ export async function POST(request: NextRequest) {
 
         await sendTelegramMessage(
           chatId,
-          `📸 <b>${newUploadedPhotos.length} Foto Berita Diterima!</b>\n` +
-          `Total: <b>${updatedPhotos.length} foto</b> untuk berita '<i>${currentDraft.title || 'Warta Desa'}</i>'.\n\n` +
+          `📸 ${newUploadedPhotos.length} Foto Berita Diterima!\n` +
+          `Total: ${updatedPhotos.length} foto untuk berita '${currentDraft.title || 'Warta Desa'}'.\n\n` +
           `Kirim foto tambahan lagi jika ada, atau klik tombol di bawah untuk menerbitkan:`,
           { reply_markup: getArticleActionKeyboard() }
         );
@@ -827,7 +827,7 @@ export async function POST(request: NextRequest) {
 
         await sendTelegramMessage(
           chatId,
-          `📸 <b>Foto Tambahan Diterima!</b> (Total: <b>${updatedPhotos.length} foto</b> tersimpan di draft sementara).\n\n` +
+          `📸 Foto Tambahan Diterima! (Total: ${updatedPhotos.length} foto tersimpan di draft sementara).\n\n` +
           `Ingin dipublikasikan sebagai apa? Silakan pilih tombol di bawah:`,
           { reply_markup: getPhotoChoiceKeyboard() }
         );
@@ -861,12 +861,12 @@ export async function POST(request: NextRequest) {
 
         await sendTelegramMessage(
           chatId,
-          `🖼️ <b>${newUploadedPhotos.length > 1 ? `${newUploadedPhotos.length} Foto Berhasil Disimpan ke Album Galeri!` : 'Foto Berhasil Disimpan ke Galeri!'}</b>\n\n` +
-          `<b>Judul:</b> ${baseTitle}\n` +
-          `<b>Desa:</b> ${tenant.namaDesa}\n` +
-          `<b>Diunggah Oleh:</b> ${authorName}\n` +
-          `<b>Total Foto:</b> ${newUploadedPhotos.length} Foto (WebP Terkompresi)\n\n` +
-          `🔗 <b>Lihat di Galeri Desa:</b>\nhttps://${primaryDomain}/galeri`,
+          `🖼️ ${newUploadedPhotos.length > 1 ? `${newUploadedPhotos.length} Foto Berhasil Disimpan ke Album Galeri!` : 'Foto Berhasil Disimpan ke Galeri!'}\n\n` +
+          `• Judul: ${baseTitle}\n` +
+          `• Desa: ${tenant.namaDesa}\n` +
+          `• Diunggah Oleh: ${authorName}\n` +
+          `• Total Foto: ${newUploadedPhotos.length} Foto (WebP Terkompresi)\n\n` +
+          `🔗 Lihat di Galeri Desa:\nhttps://${primaryDomain}/galeri`,
           { reply_markup: getMainMenuKeyboard() }
         );
         return NextResponse.json({ ok: true });
@@ -923,12 +923,12 @@ export async function POST(request: NextRequest) {
         const articlePublicUrl = `https://${primaryDomain}/berita/${article.slug}?tenant=${tenant.slug}`;
         await sendTelegramMessage(
           chatId,
-          `📰 <b>Artikel Berita Berhasil Diterbitkan!</b>\n\n` +
-          `<b>Judul:</b> ${article.title}\n` +
-          `<b>Desa:</b> ${tenant.namaDesa}\n` +
-          `<b>Penulis:</b> ${authorName}\n` +
-          `<b>Total Foto:</b> ${newUploadedPhotos.length} Foto\n\n` +
-          `🔗 <b>Baca Berita Sekarang:</b>\n<a href="${articlePublicUrl}">${articlePublicUrl}</a>`,
+          `📰 Artikel Berita Berhasil Diterbitkan!\n\n` +
+          `• Judul: ${article.title}\n` +
+          `• Desa: ${tenant.namaDesa}\n` +
+          `• Penulis: ${authorName}\n` +
+          `• Total Foto: ${newUploadedPhotos.length} Foto\n\n` +
+          `🔗 Baca Berita Sekarang:\n${articlePublicUrl}`,
           { reply_markup: getMainMenuKeyboard() }
         );
         return NextResponse.json({ ok: true });
@@ -941,7 +941,7 @@ export async function POST(request: NextRequest) {
 
       await sendTelegramMessage(
         chatId,
-        `📸 <b>${newUploadedPhotos.length} Foto Diterima!</b>\n\n` +
+        `📸 ${newUploadedPhotos.length} Foto Diterima!\n\n` +
         `Ingin dipublikasikan sebagai apa?\n` +
         `Silakan pilih salah satu opsi tombol di bawah ini:`,
         { reply_markup: getPhotoChoiceKeyboard() }
@@ -953,12 +953,12 @@ export async function POST(request: NextRequest) {
     if (text) {
       await sendTelegramMessage(
         chatId,
-        `💡 <b>Pilih Menu Publikasi</b>\n\n` +
+        `💡 Pilih Menu Publikasi\n\n` +
         `Gunakan tombol menu di bawah layar untuk memulai publikasi:\n` +
-        `• <b>📰 Tulis Berita</b>\n` +
-        `• <b>🖼️ Galeri Kegiatan</b>\n` +
-        `• <b>📢 Buat Pengumuman</b>\n` +
-        `• <b>❌ Batal / Menu Utama</b>`,
+        `• 📰 Tulis Berita\n` +
+        `• 🖼️ Galeri Kegiatan\n` +
+        `• 📢 Buat Pengumuman\n` +
+        `• ❌ Batal / Menu Utama`,
         { reply_markup: getMainMenuKeyboard() }
       );
     }

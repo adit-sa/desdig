@@ -18,28 +18,55 @@ export function isTelegramConfigured(): boolean {
 }
 
 /**
+ * Membersihkan seluruh tag HTML (<b>, <i>, <code>, <a>, dll) menjadi teks bersih biasa.
+ * Mencegah munculnya kode mentah teknis di chat Telegram dan aman dari karakter spesial (&, <, >).
+ */
+export function stripHtmlTags(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/<\/?[^>]+(>|$)/g, '')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"');
+}
+
+/**
  * Kirim pesan teks ke chat/user Telegram
+ * Default: format teks biasa yang bersih & rapi tanpa tag teknis (HTML)
  */
 export async function sendTelegramMessage(
   chatId: number | string,
   text: string,
-  options: {
+  options?: {
     parse_mode?: 'Markdown' | 'HTML';
     reply_to_message_id?: number;
     reply_markup?: any;
-  } = { parse_mode: 'HTML' }
+  }
 ) {
   if (!isTelegramConfigured()) return null;
 
   try {
+    const cleanText = options?.parse_mode ? text : stripHtmlTags(text);
+    const payload: Record<string, any> = {
+      chat_id: chatId,
+      text: cleanText,
+    };
+
+    if (options?.parse_mode) {
+      payload.parse_mode = options.parse_mode;
+    }
+    if (options?.reply_to_message_id) {
+      payload.reply_to_message_id = options.reply_to_message_id;
+    }
+    if (options?.reply_markup) {
+      payload.reply_markup = options.reply_markup;
+    }
+
     const res = await fetch(`${TELEGRAM_API_BASE}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        ...options,
-      }),
+      body: JSON.stringify(payload),
     });
     return await res.json();
   } catch (err) {
@@ -194,7 +221,7 @@ export async function pairTelegramUserWithTenant({
   if (!tenant) {
     return {
       success: false,
-      message: `Desa "<b>${rawIdentifier}</b>" tidak ditemukan. Periksa kembali nama desa atau slug Anda.`,
+      message: `Desa "${rawIdentifier}" tidak ditemukan. Periksa kembali nama desa atau slug Anda.`,
     };
   }
 
@@ -227,7 +254,7 @@ export async function pairTelegramUserWithTenant({
     if (!isGeneralTokenValid) {
       return {
         success: false,
-        message: `Kunci rahasia pairing salah untuk Desa <b>${tenant.namaDesa}</b>. Silakan periksa atau atur token pairing di menu <b>Bot Telegram</b> pada dashboard admin.`,
+        message: `Kunci rahasia pairing salah untuk Desa ${tenant.namaDesa}. Silakan periksa atau atur token pairing di menu Bot Telegram pada dashboard admin.`,
       };
     }
 
@@ -263,12 +290,12 @@ export async function pairTelegramUserWithTenant({
   });
 
   const identityGreeting = officialId
-    ? `Bapak/Ibu <b>${officialName}</b> (${officialPosition})`
+    ? `Bapak/Ibu ${officialName} (${officialPosition})`
     : `Operator Desa ${tenant.namaDesa}`;
 
   return {
     success: true,
-    message: `Berhasil terhubung ke Desa <b>${tenant.namaDesa}</b> sebagai ${identityGreeting}!`,
+    message: `Berhasil terhubung ke Desa ${tenant.namaDesa} sebagai ${identityGreeting}!`,
     tenant,
     official: matchedOfficial || null,
   };

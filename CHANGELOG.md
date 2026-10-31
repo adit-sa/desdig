@@ -9,6 +9,10 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 ## [Unreleased]
 
 ### Fixed
+- **Pembersihan & Standardisasi Format Pesan Bot Telegram (`lib/telegram.ts`, `/api/telegram/webhook`)**:
+  - Menghapus seluruh tag kode HTML mentah (`<b>`, `</b>`, `<i>`, `</i>`, `<code>`, `</code>`, `<a>`, `</a>`) dari seluruh pesan respon bot Telegram, beralih ke format teks biasa (*plain text*) yang rapi, bersih, dan natural menggunakan emoji serta tanda bullet (`•`).
+  - Menambahkan fungsi pembersih `stripHtmlTags(text: string)` pada `lib/telegram.ts` yang menjamin tidak ada lagi tag kode mentah teknis yang bocor ke chat Telegram pengguna.
+  - Mengamankan pengiriman pesan dari kendala error parsing karakter khusus (seperti tanda `&`, `<`, `>`) pada judul berita, nama kegiatan galeri, maupun nama perangkat desa.
 - **Konsolidasi Multi-Foto & Album Galeri Kegiatan Desa (`/api/telegram/webhook`, `lib/telegram.ts`, `prisma/schema.prisma`)**:
   - Mengatasi kendala di mana pengiriman multi-foto galeri membuat item galeri baru terpisah untuk setiap foto yang dikirim:
     - Seluruh foto yang dikirimkan bersamaan melalui perintah `/galeri [Judul]` kini otomatis dikelompokkan ke dalam **1 item `GalleryItem` tunggal** dengan `mediaType: 'ALBUM'`, foto pertama sebagai sampul (`imageUrl`), dan seluruh foto tercatat rapi di dalam array JSON `mediaUrls`.
