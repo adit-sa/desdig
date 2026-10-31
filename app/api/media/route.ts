@@ -4,6 +4,7 @@ import {
   getTenantMediaFiles,
   deleteTenantMediaFiles,
   compressTenantMediaFile,
+  cleanupTenantOrphanFiles,
 } from '@/lib/media';
 import { uploadFile } from '@/lib/storage';
 import { requireTenantManagerApi } from '@/lib/auth/rbac';
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE /api/media - Menghapus satu atau banyak berkas dari R2 dan server
+// DELETE /api/media - Menghapus satu/banyak berkas atau cleanup seluruh berkas yatim
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
@@ -185,6 +186,21 @@ export async function DELETE(request: NextRequest) {
     const auth = requireTenantManagerApi(request, tenant.slug);
     if (!auth.authorized) return auth.response!;
 
+    // A. Mode Cleanup Seluruh Berkas Yatim
+    const isCleanupOrphans = body.cleanupOrphans === true || body.action === 'cleanup_orphans';
+    if (isCleanupOrphans) {
+      const result = await cleanupTenantOrphanFiles(tenant.slug, tenant.id);
+      return NextResponse.json({
+        success: true,
+        ...result,
+        message:
+          result.deletedCount > 0
+            ? `Berhasil membersihkan ${result.deletedCount} berkas yatim. Menghemat ${result.freedBytesFormatted} ruang penyimpanan.`
+            : 'Tidak ada berkas yatim yang perlu dibersihkan. Seluruh berkas aktif terintegrasi.',
+      });
+    }
+
+    // B. Mode Hapus Berkas Spesifik
     const rawUrls = (body.urls as string[]) || (body.url ? [body.url as string] : []);
     if (rawUrls.length === 0) {
       return NextResponse.json({ error: 'URL berkas yang akan dihapus wajib disertakan' }, { status: 400 });

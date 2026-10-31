@@ -93,6 +93,8 @@ export default function AdminMediaPage() {
   const [deletingUrls, setDeletingUrls] = useState<string[]>([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deletingProgress, setDeletingProgress] = useState(false);
+  const [isCleanupModalOpen, setIsCleanupModalOpen] = useState(false);
+  const [cleanupProgress, setCleanupProgress] = useState(false);
   const [compressingUrl, setCompressingUrl] = useState<string | null>(null);
   const [batchCompressing, setBatchCompressing] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -295,6 +297,34 @@ export default function AdminMediaPage() {
     }
   };
 
+  // Handle Cleanup All Orphan Files
+  const handleCleanupOrphans = async () => {
+    try {
+      setCleanupProgress(true);
+      const res = await fetch('/api/media', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant: tenantSlug,
+          cleanupOrphans: true,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || `Berhasil membersihkan ${data.deletedCount} berkas yatim!`, 'success');
+        setIsCleanupModalOpen(false);
+        setSelectedUrls([]);
+        fetchMedia();
+      } else {
+        showToast(data.error || 'Gagal membersihkan berkas yatim', 'error');
+      }
+    } catch (err: any) {
+      showToast('Terjadi kesalahan saat membersihkan: ' + err.message, 'error');
+    } finally {
+      setCleanupProgress(false);
+    }
+  };
+
   // Handle Upload File Baru
   const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -395,14 +425,24 @@ export default function AdminMediaPage() {
             <button
               onClick={() => fetchMedia()}
               disabled={loading}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition backdrop-blur-md"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold text-white transition backdrop-blur-md cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span>Muat Ulang</span>
             </button>
+            {stats.totalUnused > 0 && (
+              <button
+                onClick={() => setIsCleanupModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs shadow-md transition cursor-pointer"
+                title="Bersihkan seluruh berkas yatim yang tidak terhubung dengan database"
+              >
+                <Sparkles className="w-4 h-4 text-slate-950" />
+                <span>Cleanup File Yatim ({stats.totalUnused.toLocaleString('id-ID')})</span>
+              </button>
+            )}
             <button
               onClick={() => setUploadModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-extrabold text-xs shadow-md transition"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold text-xs shadow-md transition cursor-pointer"
             >
               <Upload className="w-4 h-4" />
               <span>Unggah Foto Baru</span>
@@ -475,25 +515,42 @@ export default function AdminMediaPage() {
         {/* Card 4: Yatim / Tidak Terpakai */}
         <div
           onClick={() => { setStatusFilter('unused'); setPage(1); }}
-          className={`rounded-xl border p-5 shadow-sm cursor-pointer transition ${
+          className={`rounded-xl border p-5 shadow-sm cursor-pointer transition flex flex-col justify-between ${
             statusFilter === 'unused'
               ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20'
               : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900'
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-amber-700 dark:text-amber-400">🟡 File Yatim (Tidak Dipakai)</span>
-            <div className="rounded-lg bg-amber-100 p-2 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
-              <FileQuestion className="h-5 w-5" />
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-700 dark:text-amber-400">🟡 File Yatim (Tidak Dipakai)</span>
+              <div className="rounded-lg bg-amber-100 p-2 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                <FileQuestion className="h-5 w-5" />
+              </div>
+            </div>
+            <div className="mt-3 flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.totalUnused.toLocaleString('id-ID')}</span>
+              <span className="text-xs text-slate-500">Berkas</span>
             </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-slate-900 dark:text-white">{stats.totalUnused.toLocaleString('id-ID')}</span>
-            <span className="text-xs text-slate-500">Berkas</span>
-          </div>
-          <div className="mt-2 text-[11px] text-slate-500 border-t border-slate-100 pt-2 dark:border-slate-800 flex items-center justify-between">
-            <span>Aman dibersihkan dari storage</span>
-            <span className="text-amber-600 font-bold">&rarr;</span>
+          <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+            <div className="text-[11px] text-slate-500 flex items-center justify-between">
+              <span>Aman dibersihkan dari storage</span>
+              <span className="text-amber-600 font-bold">&rarr;</span>
+            </div>
+            {stats.totalUnused > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCleanupModalOpen(true);
+                }}
+                className="w-full py-1.5 px-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-extrabold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Cleanup Semua File Yatim</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -563,6 +620,32 @@ export default function AdminMediaPage() {
             </button>
           </div>
         </div>
+
+        {/* Banner Alert Saat Tab Yatim Aktif */}
+        {statusFilter === 'unused' && stats.totalUnused > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 shrink-0">
+                <FileQuestion className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-extrabold text-sm text-amber-950 dark:text-amber-100">
+                  Ditemukan {stats.totalUnused.toLocaleString('id-ID')} berkas foto yatim di server desa
+                </p>
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-0.5">
+                  Berkas ini tidak terikat dengan artikel, galeri, pamong, penduduk, pembangunan, atau identitas desa sehingga aman dibersihkan.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsCleanupModalOpen(true)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs shadow transition shrink-0 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Bersihkan Semua File Yatim</span>
+            </button>
+          </div>
+        )}
 
         {/* Folder Chips */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
@@ -1079,6 +1162,97 @@ export default function AdminMediaPage() {
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>{deletingProgress ? 'Menghapus...' : 'Ya, Hapus Permanen'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI CLEANUP SELURUH FILE YATIM */}
+      {isCleanupModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center gap-3 text-amber-600">
+              <div className="p-3 bg-amber-100 rounded-2xl dark:bg-amber-950/60">
+                <Sparkles className="w-6 h-6 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
+                  Cleanup Seluruh Berkas Yatim
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Akan menghapus permanen {stats.totalUnused.toLocaleString('id-ID')} berkas yatim dari server.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-2xl text-xs space-y-2">
+                <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-bold">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>{stats.totalUnused.toLocaleString('id-ID')} Berkas Tidak Terpakai di Database</span>
+                </div>
+                <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                  Berkas-berkas ini terverifikasi <strong>tidak terhubung</strong> dengan data aktif manapun di desa:
+                </p>
+                <div className="grid grid-cols-2 gap-1 text-[11px] text-amber-900 dark:text-amber-200 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-amber-600">&bull;</span> Artikel Berita
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-amber-600">&bull;</span> Galeri Kegiatan
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-amber-600">&bull;</span> Aparatur Pamong
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-amber-600">&bull;</span> Data Penduduk
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-amber-600">&bull;</span> Pembangunan Fisik
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-amber-600">&bull;</span> Identitas & Banner
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl text-[11px] text-emerald-800 dark:text-emerald-300 flex items-center gap-2 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Berkas yang aktif digunakan dijamin 100% aman dan tidak tersentuh.</span>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Aksi ini akan menghapus berkas dari Cloud Storage R2 dan membebaskan ruang penyimpanan desa secara instan.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsCleanupModalOpen(false)}
+                disabled={cleanupProgress}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 rounded-xl transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleCleanupOrphans}
+                disabled={cleanupProgress || stats.totalUnused === 0}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold rounded-xl transition shadow flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {cleanupProgress ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Membersihkan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Ya, Bersihkan Semua ({stats.totalUnused})</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

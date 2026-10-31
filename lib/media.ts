@@ -404,6 +404,38 @@ export async function deleteTenantMediaFiles(tenantSlug: string, relativeUrls: s
 }
 
 /**
+ * Membersihkan secara massal seluruh berkas yatim (yang tidak terintegrasi di database) untuk tenant tertentu.
+ * Mengembalikan total file yang terhapus dan kapasitas storage yang berhasil dibebaskan.
+ */
+export async function cleanupTenantOrphanFiles(tenantSlug: string, tenantId: string): Promise<{
+  deletedCount: number;
+  freedBytes: number;
+  freedBytesFormatted: string;
+}> {
+  const scanResult = await getTenantMediaFiles(tenantSlug, tenantId);
+  const orphanFiles = scanResult.files.filter((f) => !f.isUsed);
+
+  if (orphanFiles.length === 0) {
+    return {
+      deletedCount: 0,
+      freedBytes: 0,
+      freedBytesFormatted: '0 B',
+    };
+  }
+
+  const freedBytes = orphanFiles.reduce((acc, cur) => acc + cur.size, 0);
+  const orphanUrls = orphanFiles.map((f) => f.url);
+
+  const deletedCount = await deleteTenantMediaFiles(tenantSlug, orphanUrls);
+
+  return {
+    deletedCount,
+    freedBytes,
+    freedBytesFormatted: formatBytes(freedBytes),
+  };
+}
+
+/**
  * Mengompresi berkas gambar ke format modern WebP kualitas tinggi.
  */
 export async function compressTenantMediaFile(

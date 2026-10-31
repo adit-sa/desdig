@@ -15,6 +15,9 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Mesin audit relasi database real-time: mendeteksi berkas terintegrasi (dipakai di artikel berita, galeri kegiatan, foto pamong/kades, penduduk berfoto, proyek pembangunan fisik & dokumentasi, halaman statis, atau identitas desa) vs berkas yatim (*orphaned*) yang tidak terintegrasi.
   - Fitur kompresi WebP berbasis Sharp langsung di server (single & batch) dengan kalkulasi persentase dan visualisasi penghematan kapasitas storage.
   - Fitur hapus aman berkas (single & batch) dari Cloudflare R2 dan storage disk dengan proteksi konfirmasi bila berkas sedang aktif dipakai di database.
+  - **Tombol Satu-Klik Cleanup Seluruh Berkas Yatim (`cleanupTenantOrphanFiles`)**:
+    - Tombol aksi cepat pada Header Banner, Kartu KPI File Yatim, dan bilah alert tab Yatim untuk membersihkan seluruh file yang tidak terpakai sekaligus dari Cloudflare R2 dan storage disk.
+    - Dilengkapi modal dialog konfirmasi mendalam yang merinci kategori keterikatan data yang diverifikasi aman serta indikator proses penghapusan massal.
   - Filter dinamis per folder (`artikel`, `galeri`, `user_pict`, `pembangunan`, `identitas`, `dokumen`), filter status (Semua, Terintegrasi, Yatim), pencarian instan debounced, pengurutan ukuran/tanggal, tata letak Grid & Tabel, modal pratinjau resolusi tinggi, dan modal unggah berkas baru.
 - **Endpoint Statistik Dashboard Real Multi-Tenant (`/api/admin/dashboard-stats`)**:
   - Menyediakan endpoint agregasi data real dari basis data Neon PostgreSQL: Total Penduduk, Total L/P, Total Kepala Keluarga (Unique No KK), APBDes, Aparatur Pamong aktif, dan statistik persebaran dusun.
