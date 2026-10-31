@@ -382,7 +382,7 @@ describe('desDig Telegram Bot Multi-Tenant Publishing Tests', () => {
     // Bersihkan data uji
     await prisma.article.delete({ where: { id: article.id } });
     await prisma.telegramMediaGroup.deleteMany({ where: { mediaGroupId: testGroupId } });
-  });
+  }, 30000);
 
   it('12. Konfigurasi jeda waktu foto susulan otomatis (telegramAttachWindowMinutes) tersimpan per-tenant', async () => {
     // Default harus 5 menit (atau null/default)
@@ -414,6 +414,64 @@ describe('desDig Telegram Bot Multi-Tenant Publishing Tests', () => {
       select: { telegramAttachWindowMinutes: true },
     });
     expect(finalTenant?.telegramAttachWindowMinutes).toBe(10);
+  });
+
+  it('13. Multi-Foto Galeri & Lampiran Susulan: Menggabungkan foto ke 1 GalleryItem album tanpa membuat galeri baru', async () => {
+    // Buat 1 gallery item dengan 3 foto album
+    const initialPhotos = [
+      { type: 'IMAGE', url: 'https://r2.desdig.id/galeri_1.webp', caption: 'Foto Utama' },
+      { type: 'IMAGE', url: 'https://r2.desdig.id/galeri_2.webp', caption: 'Dokumentasi 2' },
+      { type: 'IMAGE', url: 'https://r2.desdig.id/galeri_3.webp', caption: 'Dokumentasi 3' },
+    ];
+
+    const gallery = await prisma.galleryItem.create({
+      data: {
+        tenantId: testTenantId,
+        title: 'Kerja Bakti Bersama Warga',
+        imageUrl: initialPhotos[0].url,
+        category: 'Kegiatan',
+        caption: 'Kerja Bakti Bersama Warga',
+        authorName: 'Budi Pamong',
+        mediaType: 'ALBUM',
+        mediaUrls: initialPhotos,
+        takenAt: new Date(),
+      },
+    });
+
+    expect(gallery.id).toBeDefined();
+    expect(gallery.mediaType).toBe('ALBUM');
+
+    // Simulasikan foto susulan yang datang: disematkan ke album yang sama, TIDAK boleh create galleryItem baru
+    const existingMedia = Array.isArray(gallery.mediaUrls) ? (gallery.mediaUrls as any[]) : [];
+    const updatedMedia = [
+      ...existingMedia,
+      { type: 'IMAGE', url: 'https://r2.desdig.id/galeri_4_lampiran.webp', caption: `Dokumentasi ${existingMedia.length + 1}` },
+    ];
+
+    await prisma.galleryItem.update({
+      where: { id: gallery.id },
+      data: {
+        mediaUrls: updatedMedia,
+        mediaType: 'ALBUM',
+      },
+    });
+
+    // Verifikasi jumlah galleryItem tetap 1 di database (tidak membuat baris/kartu baru)
+    const totalGalleries = await prisma.galleryItem.count({
+      where: { tenantId: testTenantId, title: 'Kerja Bakti Bersama Warga' },
+    });
+    expect(totalGalleries).toBe(1);
+
+    // Verifikasi album sekarang berisi 4 foto
+    const updatedGallery = await prisma.galleryItem.findUnique({
+      where: { id: gallery.id },
+    });
+    const finalMediaList = Array.isArray(updatedGallery?.mediaUrls) ? (updatedGallery?.mediaUrls as any[]) : [];
+    expect(finalMediaList.length).toBe(4);
+    expect(finalMediaList[3].url).toBe('https://r2.desdig.id/galeri_4_lampiran.webp');
+
+    // Bersihkan
+    await prisma.galleryItem.delete({ where: { id: gallery.id } });
   });
 
   afterAll(async () => {

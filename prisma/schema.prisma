@@ -627,6 +627,7 @@ model TelegramMediaGroup {
   fileIds        Json      // array of string file_id
   processedFiles Json?     // array of string file_id yang sudah berhasil diproses
   articleId      String?   // ID artikel yang ditautkan untuk penambahan foto bertahap
+  galleryId      String?   // ID galeri yang ditautkan untuk penambahan foto bertahap
   targetType     String?   // 'ARTICLE' | 'GALLERY'
   processed      Boolean   @default(false)
   createdAt      DateTime  @default(now())

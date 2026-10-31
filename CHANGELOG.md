@@ -9,6 +9,15 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 ## [Unreleased]
 
 ### Fixed
+- **Konsolidasi Multi-Foto & Album Galeri Kegiatan Desa (`/api/telegram/webhook`, `lib/telegram.ts`, `prisma/schema.prisma`)**:
+  - Mengatasi kendala di mana pengiriman multi-foto galeri membuat item galeri baru terpisah untuk setiap foto yang dikirim:
+    - Seluruh foto yang dikirimkan bersamaan melalui perintah `/galeri [Judul]` kini otomatis dikelompokkan ke dalam **1 item `GalleryItem` tunggal** dengan `mediaType: 'ALBUM'`, foto pertama sebagai sampul (`imageUrl`), dan seluruh foto tercatat rapi di dalam array JSON `mediaUrls`.
+    - Di website publik (`/galeri`) dan dashboard admin (`/admin/galeri`), foto tampil sebagai 1 kartu album dengan label jumlah foto (`Buka Album (N Foto)`) yang dapat dibuka menjadi penampil carousel / lightbox interaktif.
+  - **Penyematan Cerdas Foto Galeri Susulan Tanpa Caption**:
+    - Sistem kini secara otomatis membandingkan waktu aktivitas terbaru pamong antara artikel berita vs galeri kegiatan. Jika galeri kegiatan merupakan aktivitas paling baru dalam jendela jeda waktu aktif, foto susulan tanpa caption langsung disematkan (*append*) ke dalam `mediaUrls` galeri tersebut tanpa membuat baris/kartu galeri baru.
+    - Menambahkan kolom `galleryId String?` pada model `TelegramMediaGroup` untuk mendukung penambahan foto album bertahap.
+  - **Pembersihan Seluruh Berkas Album Galeri saat Dihapus (`/api/gallery/[id]`, `lib/media.ts`)**:
+    - Penanganan `DELETE /api/gallery/[id]` kini mengekstrak dan menghapus secara permanen seluruh URL foto yang tercantum di dalam `mediaUrls` dan foto sampul dari Cloudflare R2 dan penyimpanan lokal.
 - **Penyempurnaan Pemrosesan Multi-Foto & Album Telegram (`TelegramMediaGroup`, `lib/telegram.ts`, `/api/telegram/webhook`)**:
   - Mengatasi akar masalah kegagalan pengiriman 2 atau lebih foto di mana hanya 1 foto yang tercatat/tampil:
     - **Penyebab Awal**: Timer tunggu 1.2 detik terlalu cepat bagi Telegram yang sering kali mengirimkan foto-foto dalam album dengan jeda 2 hingga 6 detik melalui request webhook paralel, sehingga worker pertama mengklaim status `processed: true` saat foto kedua belum selesai tiba di server.

@@ -23,10 +23,28 @@ export async function DELETE(
       return auth.response!;
     }
 
-    // Hapus foto dari Cloudflare R2 / storage lokal jika ada
-    if (existing.imageUrl) {
+    // Hapus foto utama & seluruh foto album dari Cloudflare R2 / storage lokal jika ada
+    const urlsToDelete: string[] = [];
+    if (existing.imageUrl) urlsToDelete.push(existing.imageUrl);
+    if (existing.mediaUrls) {
+      let mediaList: any[] = [];
+      if (Array.isArray(existing.mediaUrls)) {
+        mediaList = existing.mediaUrls;
+      } else if (typeof existing.mediaUrls === 'string') {
+        try {
+          mediaList = JSON.parse(existing.mediaUrls);
+        } catch (_) {}
+      }
+      for (const item of mediaList) {
+        if (item?.url && typeof item.url === 'string') {
+          urlsToDelete.push(item.url);
+        }
+      }
+    }
+
+    if (urlsToDelete.length > 0) {
       try {
-        await deleteTenantMediaFiles(existing.tenant.slug, [existing.imageUrl]);
+        await deleteTenantMediaFiles(existing.tenant.slug, urlsToDelete);
       } catch (e) {
         console.warn('Gagal menghapus berkas foto galeri dari storage:', e);
       }

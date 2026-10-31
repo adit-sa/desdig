@@ -407,11 +407,13 @@ export async function recordProcessedMediaGroupFiles({
   mediaGroupId,
   newProcessedFiles,
   articleId,
+  galleryId,
   targetType,
 }: {
   mediaGroupId: string;
   newProcessedFiles: string[];
   articleId?: string;
+  galleryId?: string;
   targetType?: 'ARTICLE' | 'GALLERY';
 }) {
   const group = await prisma.telegramMediaGroup.findUnique({
@@ -431,6 +433,7 @@ export async function recordProcessedMediaGroupFiles({
     data: {
       processedFiles: allProcessed,
       ...(articleId && { articleId }),
+      ...(galleryId && { galleryId }),
       ...(targetType && { targetType }),
       processed: allDone,
     },
