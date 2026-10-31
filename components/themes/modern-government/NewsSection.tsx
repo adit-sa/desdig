@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Calendar, ArrowRight, ChevronRight, Eye, Megaphone, Clock, Sparkles, MessageSquare, BookOpen, X } from 'lucide-react';
+import { Calendar, ArrowRight, ChevronRight, ChevronLeft, Eye, Megaphone, Clock, Sparkles, MessageSquare, BookOpen, X } from 'lucide-react';
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { ThemeData, SectionOrderFn, getPengaduanUrl } from './shared';
 import LapakWidget from './LapakWidget';
@@ -26,6 +26,25 @@ export default function NewsSection({
   getSectionOrder: SectionOrderFn;
 }) {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<any | null>(null);
+  const [announcementPage, setAnnouncementPage] = useState(0);
+  const [isAnnouncementHovered, setIsAnnouncementHovered] = useState(false);
+
+  // Filter pengumuman aktif (belum kedaluwarsa)
+  const activeAnnouncements = (data.announcements || []).filter(
+    (ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now()
+  );
+  // Maksimal 2 pengumuman tampil per slide
+  const totalAnnouncementPages = Math.ceil(activeAnnouncements.length / 2);
+
+  // Auto-scroll pengumuman setiap 6 detik jika lebih dari 2 (1 halaman)
+  useEffect(() => {
+    if (totalAnnouncementPages <= 1 || isAnnouncementHovered) return;
+    const timer = setInterval(() => {
+      setAnnouncementPage((prev) => (prev < totalAnnouncementPages - 1 ? prev + 1 : 0));
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [totalAnnouncementPages, isAnnouncementHovered]);
+
   const displayedArticles = data.articles.slice(0, articleCount);
   const featuredArticle = displayedArticles.length > 0 ? displayedArticles[0] : null;
   const regularArticles = displayedArticles.slice(1);
@@ -207,31 +226,67 @@ export default function NewsSection({
             <LapakWidget tenant={tenant} order={getSectionOrder('lapak')} />
           )}
 
-          {/* 2. Papan Pengumuman */}
+          {/* 2. Papan Pengumuman (Maksimal 2 item per slide) */}
           {isSectionVisible('pengumuman') && hasAnnouncements && (
             <div
               style={{ order: getSectionOrder('pengumuman') }}
+              onMouseEnter={() => setIsAnnouncementHovered(true)}
+              onMouseLeave={() => setIsAnnouncementHovered(false)}
               className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4"
             >
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
                   <Megaphone className="w-5 h-5 text-amber-500" />
-                  Papan Pengumuman
+                  <span>Papan Pengumuman</span>
                 </div>
-                <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                  {data.announcements.length} Edaran
-                </span>
+                
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
+                    {activeAnnouncements.length} Edaran
+                  </span>
+
+                  {/* Tombol Slide Navigasi jika pengumuman lebih dari 2 */}
+                  {totalAnnouncementPages > 1 && (
+                    <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg p-0.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAnnouncementPage((prev) => (prev > 0 ? prev - 1 : totalAnnouncementPages - 1))
+                        }
+                        className="p-1 rounded-md hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+                        title="Pengumuman Sebelumnya"
+                        aria-label="Pengumuman Sebelumnya"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-[10px] font-bold text-slate-500 font-mono px-1">
+                        {announcementPage + 1}/{totalAnnouncementPages}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAnnouncementPage((prev) => (prev < totalAnnouncementPages - 1 ? prev + 1 : 0))
+                        }
+                        className="p-1 rounded-md hover:bg-slate-200 text-slate-600 transition cursor-pointer"
+                        title="Pengumuman Selanjutnya"
+                        aria-label="Pengumuman Selanjutnya"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-3.5">
-                {data.announcements
-                  .filter((ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now())
+                {activeAnnouncements
+                  .slice(announcementPage * 2, announcementPage * 2 + 2)
                   .map((ann: any) => {
                     const isLong = (ann.content || '').length > 100 || (ann.content || '').includes('\n');
                     return (
                       <div
                         key={ann.id}
-                        className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/70 text-slate-800 space-y-1.5"
+                        className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/70 text-slate-800 space-y-1.5 transition-all duration-200"
                       >
                         <div className="flex items-center justify-between text-[10px] font-bold text-amber-800 uppercase tracking-wider">
                           <span className="flex items-center gap-1">
@@ -251,7 +306,7 @@ export default function NewsSection({
                           <button
                             type="button"
                             onClick={() => setSelectedAnnouncement(ann)}
-                            className="inline-flex items-center gap-1 text-[11px] font-extrabold text-amber-800 hover:text-amber-950 underline underline-offset-2 pt-1 transition"
+                            className="inline-flex items-center gap-1 text-[11px] font-extrabold text-amber-800 hover:text-amber-950 underline underline-offset-2 pt-1 transition cursor-pointer"
                           >
                             <span>Pengumuman Lengkap</span>
                             <ChevronRight className="w-3 h-3" />
@@ -261,10 +316,27 @@ export default function NewsSection({
                     );
                   })}
 
-                {data.announcements.length === 0 && (
+                {activeAnnouncements.length === 0 && (
                   <p className="text-xs text-slate-400 italic text-center py-6">Tidak ada pengumuman baru.</p>
                 )}
               </div>
+
+              {/* Indikator titik slide jika lebih dari 1 halaman */}
+              {totalAnnouncementPages > 1 && (
+                <div className="flex items-center justify-center gap-1.5 pt-1">
+                  {Array.from({ length: totalAnnouncementPages }).map((_, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setAnnouncementPage(idx)}
+                      className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                        announcementPage === idx ? 'w-5 bg-amber-500' : 'w-1.5 bg-slate-200 hover:bg-slate-300'
+                      }`}
+                      aria-label={`Ke slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

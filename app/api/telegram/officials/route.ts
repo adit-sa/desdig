@@ -8,8 +8,8 @@ import { isTelegramConfigured, getTelegramBotMe, sendTelegramMessage } from '@/l
 function generateRandomToken(prefix: string = 'TG'): string {
   const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   let result = '';
-  const bytes = crypto.randomBytes(6);
-  for (let i = 0; i < 6; i++) {
+  const bytes = crypto.randomBytes(10);
+  for (let i = 0; i < 10; i++) {
     result += chars[bytes[i] % chars.length];
   }
   return `${prefix}-${result}`;
@@ -151,9 +151,9 @@ export async function POST(request: NextRequest) {
     // 2. Set Custom Token
     if (action === 'set_token') {
       const cleanToken = (token || '').trim();
-      if (!cleanToken || cleanToken.length < 4) {
+      if (!cleanToken || cleanToken.length < 6) {
         return NextResponse.json(
-          { error: 'Token rahasia minimal 4 karakter alfanumerik' },
+          { error: 'Token rahasia minimal 6 karakter alfanumerik untuk keamanan optimal' },
           { status: 400 }
         );
       }

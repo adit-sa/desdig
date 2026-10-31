@@ -360,12 +360,15 @@ export default function TraditionalVillageTheme({ tenant, data }: ThemeProps) {
                   Maklumat & Pengumuman
                 </div>
                 <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200">
-                  {data.announcements.length} Maklumat
+                  {data.announcements.filter((ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now()).length} Maklumat
                 </span>
               </div>
 
               <div className="space-y-3">
-                {data.announcements.map((ann) => (
+                {data.announcements
+                  .filter((ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now())
+                  .slice(0, 2)
+                  .map((ann) => (
                   <div key={ann.id} className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200 text-stone-800 space-y-1.5">
                     <span className="text-[10px] font-bold text-amber-800 flex items-center gap-1 uppercase tracking-wider">
                       <Clock className="w-3 h-3 text-amber-700" />
@@ -375,7 +378,7 @@ export default function TraditionalVillageTheme({ tenant, data }: ThemeProps) {
                     <p className="text-xs text-stone-600 leading-relaxed line-clamp-3">{ann.content}</p>
                   </div>
                 ))}
-                {data.announcements.length === 0 && (
+                {data.announcements.filter((ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now()).length === 0 && (
                   <p className="text-xs text-stone-400 italic text-center py-6">Belum ada maklumat baru.</p>
                 )}
               </div>

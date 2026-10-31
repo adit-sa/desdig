@@ -202,7 +202,7 @@ export default function IdentitasDesaPage() {
   const generateRandomToken = () => {
     const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
     let res = 'des-';
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 10; i++) {
       res += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     setFormData((prev) => ({ ...prev, telegramToken: res }));

@@ -162,7 +162,10 @@ export default function PengumumanAdminPage() {
       setTitle('');
       setContent('');
       setIsPinned(false);
-      setExpiresAt('');
+      // Default masa kedaluwarsa 1 bulan (30 hari) dari sekarang
+      const defaultExp = new Date();
+      defaultExp.setMonth(defaultExp.getMonth() + 1);
+      setExpiresAt(defaultExp.toISOString().split('T')[0]);
     }
     setError(null);
     setIsModalOpen(true);
@@ -672,8 +675,8 @@ export default function PengumumanAdminPage() {
                 </div>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400">
                   {expiresAt
-                    ? `Pengumuman akan otomatis ditandai kedaluwarsa setelah tanggal ${new Date(expiresAt).toLocaleDateString('id-ID')}.`
-                    : 'Kosongkan jika pengumuman ini berlaku terus (permanen).'}
+                    ? `Pengumuman akan otomatis ditandai kedaluwarsa setelah tanggal ${new Date(expiresAt).toLocaleDateString('id-ID')}. Anda dapat memperpanjang masa berlaku kapan saja.`
+                    : 'Default masa aktif adalah 1 bulan dari pembuatan jika tidak diatur.'}
                 </p>
               </div>
 

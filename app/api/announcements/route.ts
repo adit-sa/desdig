@@ -54,7 +54,9 @@ export async function POST(request: NextRequest) {
         content: validation.data.content,
         isPinned: validation.data.isPinned,
         status: validation.data.status,
-        expiresAt: validation.data.expiresAt ? new Date(validation.data.expiresAt) : null,
+        expiresAt: validation.data.expiresAt
+          ? new Date(validation.data.expiresAt)
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Default 1 bulan jika tidak diatur
       },
     });
 

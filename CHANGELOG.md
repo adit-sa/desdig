@@ -8,7 +8,25 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 
 ## [Unreleased]
 
+### Added
+- **Slide Carousel & Batasan Maksimal Papan Pengumuman Beranda (`components/themes/modern-government/NewsSection.tsx`, `components/themes/ModernEditorialTheme.tsx`, `components/themes/TraditionalVillageTheme.tsx`)**:
+  - Membatasi tampilan Papan Pengumuman di halaman utama portal desa maksimal 2 pengumuman aktif per tampilan.
+  - Jika terdapat lebih dari 2 pengumuman aktif, widget otomatis menyediakan navigasi slide interaktif (tombol Sebelumnya/Selanjutnya, nomor slide `X/Y`, serta indikator titik slide) dan auto-scroll bergantian secara berkala (6 detik) dengan pause saat di-hover/disentuh.
+  - Mengatur masa aktif (*expired date*) default untuk setiap pengumuman baru menjadi **1 bulan** (30 hari dari tanggal pembuatan) jika tanggal kedaluwarsa tidak diisi, baik saat dibuat melalui form admin `/admin/pengumuman`, API backend `/api/announcements`, maupun melalui bot Telegram (`/pengumuman` & dialog wizard). Admin tetap leluasa memperpanjang tanggal kedaluwarsa kapan saja.
+- **Penguatan Keamanan Kode Token Pairing Pamong (`app/api/telegram/officials/route.ts`, `app/admin/telegram/page.tsx`, `app/admin/identitas/page.tsx`)**:
+  - Meningkatkan panjang kode acak token pairing dari 6 karakter menjadi **10 karakter alfanumerik berkekuatan tinggi** (contoh: `PMG-7K8M9W2A4F`) dengan ruang kombinasi mencapai lebih dari 590 triliun kemungkinan, mencegah potensi tebakan acak maupun *brute-force*.
+  - Menetapkan batas validasi minimal 6 karakter alfanumerik untuk penulisan token kustom manual.
+
+### Changed
+- **Pembersihan & Simplifikasi Halaman Admin Telegram (`app/admin/telegram/page.tsx`)**:
+  - Menghapus modul *"Token Akses Operator Umum Desa"* dan *"Jeda Waktu Penyematan Foto Susulan Otomatis"* yang sudah tidak lagi relevan usai transisi penuh ke pairing berbasis pamong desa resmi dan mode dialog wizard interaktif.
+  - Merampingkan kartu KPI ringkasan menjadi 3 indikator akuntabilitas utama: Total Aparatur Pamong, Pamong Terhubung (Terautentikasi), dan Pamong Belum Terhubung (Belum Pairing).
+
 ### Fixed
+- **Audit Media & Relasi Berkas Album Multi-Foto (`lib/media.ts`, `tests/media-usage.test.ts`)**:
+  - Mengatasi kendala di mana foto ke-2, ke-3, dan seterusnya pada album galeri kegiatan atau lampiran multi-foto artikel terdeteksi keliru sebagai berkas yatim (*orphan files*) di pustaka media & Cloudflare R2:
+  - Fungsi `getTenantMediaUsageMap` kini mengekstrak dan memindai secara mendalam array JSON `mediaUrls` pada `GalleryItem` serta `galleryUrls` pada `Article`, sehingga seluruh foto dokumentasi dalam album diakui sebagai berkas aktif terintegrasi (`🟢 Terintegrasi`) dan terlindungi dari penghapusan otomatis.
+  - Menambahkan pengenalan berkas untuk modul Pelapak UMKM (`avatarUrl`, `bannerUrl`), Produk UMKM (`imageUrl`), dan Dokumen Publik APBDes/Perdes (`fileUrl`).
 - **Pembersihan & Standardisasi Format Pesan Bot Telegram (`lib/telegram.ts`, `/api/telegram/webhook`)**:
   - Menghapus seluruh tag kode HTML mentah (`<b>`, `</b>`, `<i>`, `</i>`, `<code>`, `</code>`, `<a>`, `</a>`) dari seluruh pesan respon bot Telegram, beralih ke format teks biasa (*plain text*) yang rapi, bersih, dan natural menggunakan emoji serta tanda bullet (`•`).
   - Menambahkan fungsi pembersih `stripHtmlTags(text: string)` pada `lib/telegram.ts` yang menjamin tidak ada lagi tag kode mentah teknis yang bocor ke chat Telegram pengguna.

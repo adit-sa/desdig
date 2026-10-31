@@ -34,6 +34,25 @@ export function formatBytes(bytes: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
+function extractUrlsFromJson(jsonValue: any): string[] {
+  if (!jsonValue) return [];
+  const urls: string[] = [];
+  if (Array.isArray(jsonValue)) {
+    for (const item of jsonValue) {
+      if (typeof item === 'string') {
+        urls.push(item);
+      } else if (item && typeof item === 'object') {
+        if (typeof item.url === 'string') urls.push(item.url);
+        if (typeof item.imageUrl === 'string') urls.push(item.imageUrl);
+        if (typeof item.src === 'string') urls.push(item.src);
+      }
+    }
+  } else if (typeof jsonValue === 'object') {
+    if (typeof jsonValue.url === 'string') urls.push(jsonValue.url);
+  }
+  return urls;
+}
+
 /**
  * Mengambil peta penggunaan seluruh file media di database untuk tenant tertentu.
  * Menghasilkan Map key (nama file atau URL relatif) -> list judul/posisi penggunaan.
@@ -60,16 +79,16 @@ export async function getTenantMediaUsageMap(tenantId: string, tenantSlug: strin
   };
 
   try {
-    const [articles, gallery, officials, residents, projects, docs, customPages, tenant] = await Promise.all([
-      // 1. Artikel Berita (cover & content)
+    const [articles, gallery, officials, residents, projects, docs, customPages, tenant, merchants, products, publicDocs] = await Promise.all([
+      // 1. Artikel Berita (cover, content & gallery album)
       prisma.article.findMany({
         where: { tenantId },
-        select: { title: true, coverImageUrl: true, content: true },
+        select: { title: true, coverImageUrl: true, content: true, galleryUrls: true },
       }),
-      // 2. Galeri Foto
+      // 2. Galeri Foto (cover & seluruh mediaUrls album)
       prisma.galleryItem.findMany({
         where: { tenantId },
-        select: { title: true, imageUrl: true },
+        select: { title: true, imageUrl: true, mediaUrls: true },
       }),
       // 3. Aparatur Pamong
       prisma.villageOfficial.findMany({
@@ -102,6 +121,21 @@ export async function getTenantMediaUsageMap(tenantId: string, tenantSlug: strin
         where: { id: tenantId },
         select: { logoUrl: true, heroImageUrl: true },
       }),
+      // 9. Lapak UMKM Warga
+      prisma.merchant.findMany({
+        where: { tenantId },
+        select: { shopName: true, avatarUrl: true, bannerUrl: true },
+      }),
+      // 10. Produk Lapak UMKM
+      prisma.merchantProduct.findMany({
+        where: { merchant: { tenantId } },
+        select: { name: true, imageUrl: true },
+      }),
+      // 11. Dokumen Publik
+      prisma.publicDocument.findMany({
+        where: { tenantId },
+        select: { title: true, fileUrl: true },
+      }),
     ]);
 
     // Daftarkan Artikel
@@ -111,11 +145,15 @@ export async function getTenantMediaUsageMap(tenantId: string, tenantSlug: strin
         const matches = a.content.match(/\/uploads\/[^\s"')]+/g) || [];
         matches.forEach((m) => registerUsage(m, `Konten Artikel: ${a.title}`));
       }
+      const galleryList = extractUrlsFromJson(a.galleryUrls);
+      galleryList.forEach((u) => registerUsage(u, `Album Artikel: ${a.title}`));
     });
 
-    // Daftarkan Galeri
+    // Daftarkan Galeri (termasuk seluruh foto dalam album multi-photo)
     gallery.forEach((g) => {
       registerUsage(g.imageUrl, `Galeri: ${g.title}`);
+      const albumList = extractUrlsFromJson(g.mediaUrls);
+      albumList.forEach((u) => registerUsage(u, `Album Galeri: ${g.title}`));
     });
 
     // Daftarkan Pamong
@@ -150,6 +188,22 @@ export async function getTenantMediaUsageMap(tenantId: string, tenantSlug: strin
       registerUsage(tenant.logoUrl, 'Logo Resmi Desa');
       registerUsage(tenant.heroImageUrl, 'Banner Utama Beranda');
     }
+
+    // Daftarkan Lapak UMKM
+    merchants.forEach((m) => {
+      registerUsage(m.avatarUrl, `Profil Toko: ${m.shopName}`);
+      registerUsage(m.bannerUrl, `Banner Toko: ${m.shopName}`);
+    });
+
+    // Daftarkan Produk Lapak UMKM
+    products.forEach((p) => {
+      registerUsage(p.imageUrl, `Produk UMKM: ${p.name}`);
+    });
+
+    // Daftarkan Dokumen Publik
+    publicDocs.forEach((doc) => {
+      registerUsage(doc.fileUrl, `Dokumen Publik: ${doc.title}`);
+    });
   } catch (err) {
     console.warn('Gagal memindai penggunaan media di database:', err);
   }

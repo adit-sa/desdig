@@ -226,12 +226,15 @@ export default function ModernEditorialTheme({ tenant, data }: ThemeProps) {
                   Maklumat Resmi
                 </h4>
                 <span className="text-[10px] font-bold bg-stone-100 text-stone-800 px-2 py-0.5 rounded border border-stone-300">
-                  {data.announcements.length} Edaran
+                  {data.announcements.filter((ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now()).length} Edaran
                 </span>
               </div>
 
               <div className="space-y-3.5">
-                {data.announcements.map((ann) => (
+                {data.announcements
+                  .filter((ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now())
+                  .slice(0, 2)
+                  .map((ann) => (
                   <div key={ann.id} className="text-xs space-y-1.5 p-3 rounded-xl bg-stone-50 border border-stone-200">
                     <span className="font-bold text-stone-950 block">{ann.title}</span>
                     <p className="text-stone-600 leading-relaxed text-[11px]">{ann.content}</p>
@@ -241,7 +244,7 @@ export default function ModernEditorialTheme({ tenant, data }: ThemeProps) {
                     </span>
                   </div>
                 ))}
-                {data.announcements.length === 0 && (
+                {data.announcements.filter((ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now()).length === 0 && (
                   <p className="text-xs text-stone-400 italic text-center py-4">Tidak ada maklumat baru.</p>
                 )}
               </div>

@@ -22,10 +22,6 @@ import {
   Smartphone,
   ChevronDown,
   ChevronUp,
-  Radio,
-  Clock,
-  CheckCircle2,
-  Sliders,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 
@@ -86,7 +82,6 @@ export default function TelegramAdminPage() {
     currentToken: '',
   });
   const [customTokenValue, setCustomTokenValue] = useState('');
-  const [attachWindow, setAttachWindow] = useState<number>(5);
 
   const currentSlug = currentTenantId || activeTenant?.slug || '';
 
@@ -98,9 +93,6 @@ export default function TelegramAdminPage() {
       const json = await res.json();
       if (json.success) {
         setData(json);
-        if (typeof json.tenant?.telegramAttachWindowMinutes === 'number') {
-          setAttachWindow(json.tenant.telegramAttachWindowMinutes);
-        }
       }
     } catch (err) {
       console.error('Failed to load telegram officials data:', err);
@@ -150,8 +142,8 @@ export default function TelegramAdminPage() {
 
   // Simpan Custom Token
   const handleSaveCustomToken = async () => {
-    if (!customTokenValue.trim() || customTokenValue.trim().length < 4) {
-      alert('Token minimal 4 karakter!');
+    if (!customTokenValue.trim() || customTokenValue.trim().length < 6) {
+      alert('Token rahasia minimal 6 karakter alfanumerik untuk keamanan optimal!');
       return;
     }
 
@@ -213,33 +205,6 @@ export default function TelegramAdminPage() {
     }
   };
 
-  // Simpan Jeda Waktu Foto Susulan Otomatis
-  const handleUpdateAttachWindow = async (minutes: number) => {
-    try {
-      setActionLoadingId('save-attach-window');
-      setAttachWindow(minutes);
-      const res = await fetch('/api/telegram/officials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenantSlug: currentSlug,
-          action: 'update_attach_window',
-          minutes,
-        }),
-      });
-      const result = await res.json();
-      if (result.success) {
-        await fetchData();
-      } else {
-        alert(result.error || 'Gagal menyimpan pengaturan jeda waktu');
-      }
-    } catch (err: any) {
-      alert(err.message || 'Terjadi kesalahan sistem');
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
   // Filter & Search pamong
   const filteredOfficials = useMemo(() => {
     if (!data?.officials) return [];
@@ -262,13 +227,12 @@ export default function TelegramAdminPage() {
   // Statistik Ringkasan
   const stats = useMemo(() => {
     if (!data?.officials) {
-      return { total: 0, connected: 0, disconnected: 0, unassigned: 0 };
+      return { total: 0, connected: 0, disconnected: 0 };
     }
     const total = data.officials.length;
     const connected = data.officials.filter((o) => o.subscribers.length > 0).length;
     const disconnected = total - connected;
-    const unassigned = data.unassignedSubscribers.length;
-    return { total, connected, disconnected, unassigned };
+    return { total, connected, disconnected };
   }, [data]);
 
   const villageName = data?.tenant.namaDesa || 'Desa';
@@ -320,7 +284,7 @@ export default function TelegramAdminPage() {
       </div>
 
       {/* 2. Kartu Statistik Ringkasan */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Aparatur</span>
@@ -332,7 +296,7 @@ export default function TelegramAdminPage() {
             <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
               {stats.total}
             </span>
-            <span className="text-xs text-slate-400 ml-1.5 font-medium">pamong</span>
+            <span className="text-xs text-slate-400 ml-1.5 font-medium">pamong desa</span>
           </div>
         </div>
 
@@ -363,21 +327,6 @@ export default function TelegramAdminPage() {
               {stats.disconnected}
             </span>
             <span className="text-xs text-slate-400 ml-1.5 font-medium">belum pairing</span>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-sky-600 dark:text-sky-400">Operator Umum</span>
-            <div className="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/60 flex items-center justify-center text-sky-600 dark:text-sky-400">
-              <Radio className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <span className="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400">
-              {stats.unassigned}
-            </span>
-            <span className="text-xs text-slate-400 ml-1.5 font-medium">sesi aktif</span>
           </div>
         </div>
       </div>
@@ -710,190 +659,7 @@ export default function TelegramAdminPage() {
         )}
       </div>
 
-      {/* 5. Token Akses Operator Umum Desa */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Radio className="w-5 h-5 text-sky-500" />
-              <span>Token Akses Operator Umum Desa</span>
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Gunakan token ini untuk staf redaksi/admin umum yang belum didaftarkan di aparatur desa. Konten akan berlabel <i>Operator Desa</i>.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              disabled={actionLoadingId === 'gen-general'}
-              onClick={() => handleGenerateToken()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition"
-            >
-              <RefreshCw
-                className={`w-3.5 h-3.5 ${actionLoadingId === 'gen-general' ? 'animate-spin' : ''}`}
-              />
-              <span>Acak Token Umum</span>
-            </button>
-            <button
-              onClick={() => {
-                setCustomTokenModal({
-                  isOpen: true,
-                  officialId: null,
-                  officialName: `Umum Desa ${villageName}`,
-                  currentToken: data?.tenant.generalToken || '',
-                });
-                setCustomTokenValue(data?.tenant.generalToken || '');
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs transition"
-            >
-              <Key className="w-3.5 h-3.5" />
-              <span>Ubah Manual</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              Token Rahasia Umum
-            </span>
-            <div className="flex items-center gap-2">
-              <code className="text-base font-black font-mono text-slate-900 dark:text-white select-all">
-                {data?.tenant.generalToken || 'DESA-1234'}
-              </code>
-              <button
-                onClick={() =>
-                  copyToClipboard(
-                    `/login ${villageName} ${data?.tenant.generalToken || ''}`,
-                    'general-token'
-                  )
-                }
-                className="ml-auto inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition shadow-sm"
-              >
-                {copiedId === 'general-token' ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Tersalin!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Salin Perintah Login</span>
-                  </>
-                )}
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Perintah login: <code>/login {villageName} {data?.tenant.generalToken}</code>
-            </p>
-          </div>
-
-          <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-              Sesi Operator Umum Aktif ({data?.unassignedSubscribers.length || 0})
-            </span>
-            {data?.unassignedSubscribers && data.unassignedSubscribers.length > 0 ? (
-              <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-                {data.unassignedSubscribers.map((sub) => (
-                  <div
-                    key={sub.id}
-                    className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">
-                        {sub.username ? `@${sub.username}` : sub.firstName || 'Operator Telegram'}
-                      </span>
-                    </div>
-                    <button
-                      title="Putuskan sesi"
-                      disabled={actionLoadingId === `unlink-${sub.id}`}
-                      onClick={() => handleUnlink(sub.id, sub.username || 'Operator')}
-                      className="text-slate-400 hover:text-red-500 p-1 transition"
-                    >
-                      <Unlink className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 italic py-2">
-                Belum ada operator umum yang terhubung via token ini.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 6. Pengaturan Jeda Waktu Foto Susulan Otomatis */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-sky-500" />
-              <span>Jeda Waktu Penyematan Foto Susulan Otomatis</span>
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Tentukan batas jeda waktu di mana foto tambahan yang dikirim tanpa teks (caption) akan otomatis disematkan ke dalam artikel warta atau galeri terbaru.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 font-bold text-xs">
-              <Clock className="w-3.5 h-3.5" />
-              <span>
-                {attachWindow === 0 ? 'Nonaktif' : `Aktif: ${attachWindow} Menit`}
-              </span>
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-            {[
-              { minutes: 2, label: '2 Menit', desc: 'Singkat' },
-              { minutes: 5, label: '5 Menit', desc: 'Standar (Disarankan)' },
-              { minutes: 10, label: '10 Menit', desc: 'Santai' },
-              { minutes: 15, label: '15 Menit', desc: 'Leluasa' },
-              { minutes: 30, label: '30 Menit', desc: 'Panjang' },
-              { minutes: 0, label: 'Nonaktif (0)', desc: 'Setiap foto jadi artikel baru' },
-            ].map((opt) => {
-              const isSelected = attachWindow === opt.minutes;
-
-              return (
-                <button
-                  key={opt.minutes}
-                  disabled={actionLoadingId === 'save-attach-window'}
-                  onClick={() => handleUpdateAttachWindow(opt.minutes)}
-                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
-                    isSelected
-                      ? 'bg-sky-50 dark:bg-sky-950/60 border-sky-400 dark:border-sky-600 ring-2 ring-sky-500/20'
-                      : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className={`text-sm font-black ${isSelected ? 'text-sky-700 dark:text-sky-300' : 'text-slate-800 dark:text-slate-200'}`}>
-                      {opt.label}
-                    </span>
-                    {isSelected && (
-                      <CheckCircle2 className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
-                    )}
-                  </div>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                    {opt.desc}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-            💡 <b>Tips:</b> Jika pamong sering mengambil foto di lapangan dan mengirimkannya satu per satu, atur ke <b>5 Menit</b> atau <b>10 Menit</b> agar seluruh foto otomatis disematkan ke warta/galeri yang baru saja dibuat tanpa terpisah-pisah.
-          </p>
-        </div>
-      </div>
-
-      {/* 7. Modal Custom Token */}
+      {/* 5. Modal Custom Token */}
       {customTokenModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
@@ -920,13 +686,13 @@ export default function TelegramAdminPage() {
                 </strong>
               </p>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Kode Token Baru (Minimal 4 Karakter)
+                Kode Token Baru (Minimal 6 Karakter)
               </label>
               <input
                 type="text"
                 value={customTokenValue}
                 onChange={(e) => setCustomTokenValue(e.target.value)}
-                placeholder="Contoh: KADES-2026 atau PMG-78A1"
+                placeholder="Contoh: KADES-2026 atau PMG-7K8M9W2A4F"
                 className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
               <span className="text-[11px] text-slate-400 mt-1.5 block">
