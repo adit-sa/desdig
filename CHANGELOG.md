@@ -9,6 +9,13 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 ## [Unreleased]
 
 ### Added
+- **Pustaka Media Server Cloudflare R2 & Audit Integrasi Berkas (`/admin/media`, `/api/media`, `lib/media.ts`)**:
+  - Halaman admin baru **Pustaka Media** (`/admin/media`) yang terdaftar di grup menu `Informasi` untuk memanajemen seluruh aset foto/video milik desa secara terisolasi.
+  - Pemindaian berkas hybrid Cloudflare R2 (`ListObjectsV2Command`) dan disk lokal dengan paginasi berkinerja tinggi.
+  - Mesin audit relasi database real-time: mendeteksi berkas terintegrasi (dipakai di artikel berita, galeri kegiatan, foto pamong/kades, penduduk berfoto, proyek pembangunan fisik & dokumentasi, halaman statis, atau identitas desa) vs berkas yatim (*orphaned*) yang tidak terintegrasi.
+  - Fitur kompresi WebP berbasis Sharp langsung di server (single & batch) dengan kalkulasi persentase dan visualisasi penghematan kapasitas storage.
+  - Fitur hapus aman berkas (single & batch) dari Cloudflare R2 dan storage disk dengan proteksi konfirmasi bila berkas sedang aktif dipakai di database.
+  - Filter dinamis per folder (`artikel`, `galeri`, `user_pict`, `pembangunan`, `identitas`, `dokumen`), filter status (Semua, Terintegrasi, Yatim), pencarian instan debounced, pengurutan ukuran/tanggal, tata letak Grid & Tabel, modal pratinjau resolusi tinggi, dan modal unggah berkas baru.
 - **Endpoint Statistik Dashboard Real Multi-Tenant (`/api/admin/dashboard-stats`)**:
   - Menyediakan endpoint agregasi data real dari basis data Neon PostgreSQL: Total Penduduk, Total L/P, Total Kepala Keluarga (Unique No KK), APBDes, Aparatur Pamong aktif, dan statistik persebaran dusun.
   - Menghilangkan sepenuhnya ketergantungan Dashboard Admin (`/admin`) terhadap mock data lokal.
@@ -97,6 +104,10 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Menambahkan aturan wajib pembaruan `CHANGELOG.md` pada `AGENTS.md`.
 
 ### Fixed
+- **Perbaikan Pustaka Media Server pada Modal Pemilih Foto Admin (`/admin/berita`, `/admin/galeri`, `/admin/halaman`, `MediaLibraryModal.tsx`)**:
+  - Memperbaiki masalah pemilih foto di admin yang menampilkan pesan *"Belum ada foto tersimpan di server"* pada lingkungan cloud/Vercel akibat API hanya memindai disk lokal sementara foto tersimpan di Cloudflare R2.
+  - Mengintegrasikan pemindaian Cloudflare R2 ke endpoint `/api/media` dan `/api/media/library` sehingga seluruh foto yang tersimpan di R2 (2.150+ file) langsung muncul seketika di pustaka media server.
+  - Menghilangkan pemblokiran query client saat `tenantSlug` belum selesai ter-hydrate pada initial render, dengan fallback otomatis ke sesi autentikasi cookie desa.
 - **Migrasi Path Foto Pamong & Artikel Desa Salupangkang ke Format Terisolasi**:
   - Memperbaiki path foto aparatur desa yang sebelumnya masih menggunakan path lama `/desa/upload/user_pict/...` menjadi `/uploads/salupangkang/user_pict/...` pada 11 pamong dan 14 penduduk di database Neon.
   - Memperbarui 159 artikel berita lama yang memuat path `/desa/upload/` menjadi `/uploads/salupangkang/`.

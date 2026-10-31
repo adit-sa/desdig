@@ -1261,7 +1261,7 @@ Pemerintah desa senantiasa berkomitmen memberikan pelayanan terbaik, akuntabel, 
       <MediaLibraryModal
         isOpen={isMediaModalOpen}
         onClose={() => setIsMediaModalOpen(false)}
-        tenantSlug={currentTenantId}
+        tenantSlug={activeTenant?.slug || currentTenantId || ''}
         onSelectImage={handleSelectMedia}
         multiSelect={mediaModalPurpose === 'album'}
         onSelectMultiple={handleSelectMultipleMedia}

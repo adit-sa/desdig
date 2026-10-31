@@ -161,9 +161,16 @@ export default function GaleriAdminPage() {
   const fetchServerLibrary = async () => {
     try {
       setLoadingServerFiles(true);
-      const res = await fetch(
-        `/api/media/library?tenant=${currentTenantId}&folder=${selectedServerFolder}&q=${serverSearchQuery}`
-      );
+      const tenantParam = activeTenant?.slug || currentTenantId || '';
+      const params = new URLSearchParams();
+      if (tenantParam) params.append('tenant', tenantParam);
+      if (selectedServerFolder && selectedServerFolder !== 'ALL') {
+        params.append('folder', selectedServerFolder);
+      }
+      if (serverSearchQuery && serverSearchQuery.trim()) {
+        params.append('q', serverSearchQuery.trim());
+      }
+      const res = await fetch(`/api/media/library?${params.toString()}`);
       const data = await res.json();
       if (data.files) {
         setServerFiles(data.files);

@@ -86,15 +86,16 @@ export default function MediaLibraryModal({
     folder = selectedFolder,
     query = debouncedSearch
   ) => {
-    if (!tenantSlug) return;
     try {
       setLoading(true);
       setError(null);
       const params = new URLSearchParams({
-        tenant: tenantSlug,
         page: targetPage.toString(),
         limit: limit.toString(),
       });
+      if (tenantSlug && tenantSlug.trim()) {
+        params.append('tenant', tenantSlug.trim());
+      }
       if (folder && folder !== 'all') {
         params.append('folder', folder);
       }

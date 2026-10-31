@@ -23,6 +23,7 @@ import {
   FileCode,
   Monitor,
   Shield,
+  Image as ImageIcon,
   LucideIcon,
 } from 'lucide-react';
 
@@ -169,6 +170,14 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         label: 'Galeri Foto',
         icon: Camera,
         allowedRoles: ['VILLAGE_ADMIN', 'EDITOR', 'AUTHOR'],
+      },
+      {
+        href: '/admin/media',
+        label: 'Pustaka Media',
+        icon: ImageIcon,
+        badge: 'Storage',
+        description: 'Kelola pustaka berkas foto server, audit file yatim, dan kompresi WebP',
+        allowedRoles: ['VILLAGE_ADMIN', 'EDITOR'],
       },
       {
         href: '/admin/pengumuman',

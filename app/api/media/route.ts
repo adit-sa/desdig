@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
-import fs from 'fs/promises';
-import { existsSync } from 'fs';
-import sharp from 'sharp';
 import { getTenantFromRequest } from '@/lib/tenant/resolver';
+import {
+  getTenantMediaFiles,
+  deleteTenantMediaFiles,
+  compressTenantMediaFile,
+} from '@/lib/media';
+import { uploadFile } from '@/lib/storage';
+import { requireTenantManagerApi } from '@/lib/auth/rbac';
 
-interface ScannedFile {
-  name: string;
-  folder: string;
-  fullPath: string;
-  ext: string;
-  isImage: boolean;
-}
-
-// GET /api/media?tenant=...&page=1&limit=24&search=...&folder=...
+// GET /api/media?tenant=...&page=1&limit=24&search=...&folder=...&status=all|used|unused&sort=...
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -22,6 +17,8 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '24', 10)));
     const search = (searchParams.get('search') || searchParams.get('q') || '').trim().toLowerCase();
     const folderFilter = (searchParams.get('folder') || '').trim().toLowerCase();
+    const statusFilter = (searchParams.get('status') || 'all').trim().toLowerCase(); // all, used, unused
+    const sortBy = (searchParams.get('sort') || 'newest').trim().toLowerCase(); // newest, oldest, size_desc, size_asc
 
     const tenant = await getTenantFromRequest(request, tenantParam);
 
@@ -29,134 +26,47 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Parameter tenant wajib disertakan' }, { status: 400 });
     }
 
-    const cleanTenant = tenant.slug.toLowerCase().replace(/[^a-z0-9-_]/g, '') || 'default';
-    const tenantBaseDir = path.join(process.cwd(), 'public', 'uploads', cleanTenant);
+    // Ambil seluruh berkas media riil dari Cloudflare R2 + disk lokal lengkap dengan status integrasi DB
+    const scanResult = await getTenantMediaFiles(tenant.slug, tenant.id);
+    let filtered = scanResult.files;
 
-    if (!existsSync(tenantBaseDir)) {
-      return NextResponse.json({
-        files: [],
-        pagination: { total: 0, page: 1, limit, totalPages: 0 },
-        folders: [],
-      });
-    }
-
-    const scannedFiles: ScannedFile[] = [];
-    const discoveredFolders = new Set<string>();
-
-    // 1. Fast recursive scan directory structure without stat-ing all files yet
-    const scanDir = async (dirPath: string, subfolder: string, depth = 0) => {
-      if (depth > 5) return;
-      try {
-        const entries = await fs.readdir(dirPath, { withFileTypes: true });
-        for (const entry of entries) {
-          const fullPath = path.join(dirPath, entry.name);
-          if (entry.isDirectory()) {
-            const nextSubfolder = subfolder ? `${subfolder}/${entry.name}` : entry.name;
-            discoveredFolders.add(nextSubfolder);
-            await scanDir(fullPath, nextSubfolder, depth + 1);
-          } else if (entry.isFile()) {
-            // Exclude thumbnail files from main listing
-            if (entry.name.endsWith('_thumb.webp')) continue;
-
-            const ext = path.extname(entry.name).toLowerCase();
-            const isImage = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'].includes(ext);
-
-            if (isImage) {
-              const currentFolder = subfolder || 'root';
-              discoveredFolders.add(currentFolder);
-
-              scannedFiles.push({
-                name: entry.name,
-                folder: currentFolder,
-                fullPath,
-                ext,
-                isImage,
-              });
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Error scanning folder:', err);
-      }
-    };
-
-    await scanDir(tenantBaseDir, '');
-
-    // 2. Filter by search & folder before expensive operations
-    let filtered = scannedFiles;
+    // 1. Filter folder
     if (folderFilter && folderFilter !== 'all' && folderFilter !== 'semua') {
       filtered = filtered.filter((f) => f.folder.toLowerCase() === folderFilter);
     }
+
+    // 2. Filter search query
     if (search) {
       filtered = filtered.filter((f) => f.name.toLowerCase().includes(search));
     }
 
+    // 3. Filter status integrasi (terpakai vs yatim)
+    if (statusFilter === 'used' || statusFilter === 'terintegrasi') {
+      filtered = filtered.filter((f) => f.isUsed);
+    } else if (statusFilter === 'unused' || statusFilter === 'yatim') {
+      filtered = filtered.filter((f) => !f.isUsed);
+    }
+
+    // 4. Pengurutan
+    if (sortBy === 'oldest') {
+      filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    } else if (sortBy === 'size_desc') {
+      filtered.sort((a, b) => b.size - a.size);
+    } else if (sortBy === 'size_asc') {
+      filtered.sort((a, b) => a.size - b.size);
+    } else {
+      // Default: newest
+      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+
     const total = filtered.length;
-
-    // 3. Fast parallel stat collection in batches to get timestamps
-    const fileWithStats = await Promise.all(
-      filtered.map(async (f) => {
-        try {
-          const stat = await fs.stat(f.fullPath);
-          return {
-            ...f,
-            size: stat.size,
-            mtimeMs: stat.mtimeMs,
-            createdAt: stat.birthtime ? stat.birthtime.toISOString() : stat.mtime.toISOString(),
-          };
-        } catch {
-          return {
-            ...f,
-            size: 0,
-            mtimeMs: 0,
-            createdAt: new Date().toISOString(),
-          };
-        }
-      })
-    );
-
-    // 4. Sort latest first
-    fileWithStats.sort((a, b) => b.mtimeMs - a.mtimeMs);
-
-    // 5. Slice page
-    const totalPages = Math.ceil(total / limit);
+    const totalPages = Math.ceil(total / limit) || 1;
     const startIndex = (page - 1) * limit;
-    const pagedEntries = fileWithStats.slice(startIndex, startIndex + limit);
-
-    // 6. Map into client-friendly objects with thumbnail support
-    const filesList = pagedEntries.map((item) => {
-      const sizeInKb = (item.size / 1024).toFixed(1);
-      const sizeFormatted = item.size > 1024 * 1024
-        ? `${(item.size / (1024 * 1024)).toFixed(1)} MB`
-        : `${sizeInKb} KB`;
-
-      const subfolderPath = item.folder === 'root' ? '' : `${item.folder}/`;
-      const relativeUrl = `/uploads/${cleanTenant}/${subfolderPath}${item.name}`;
-
-      // Check for thumbnail
-      const thumbFilename = item.name.replace(/\.[^/.]+$/, '_thumb.webp');
-      const thumbFullPath = path.join(path.dirname(item.fullPath), thumbFilename);
-      const hasThumb = existsSync(thumbFullPath);
-      const thumbnailUrl = hasThumb
-        ? `/uploads/${cleanTenant}/${subfolderPath}${thumbFilename}`
-        : relativeUrl;
-
-      return {
-        id: `${cleanTenant}_${item.folder}_${item.name}`,
-        name: item.name,
-        url: relativeUrl,
-        thumbnailUrl,
-        size: item.size,
-        sizeFormatted,
-        createdAt: item.createdAt,
-        folder: item.folder,
-        isImage: item.isImage,
-      };
-    });
+    const pagedEntries = filtered.slice(startIndex, startIndex + limit);
 
     return NextResponse.json({
       success: true,
-      files: filesList,
+      files: pagedEntries,
       pagination: {
         total,
         page,
@@ -165,7 +75,8 @@ export async function GET(request: NextRequest) {
         hasPrevPage: page > 1,
         hasNextPage: page < totalPages,
       },
-      folders: Array.from(discoveredFolders).sort(),
+      folders: scanResult.folders,
+      stats: scanResult.stats,
     });
   } catch (error: any) {
     console.error('Error listing media:', error);
@@ -173,160 +84,118 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/media - Upload image directly with auto-compressed master + ultra-lightweight thumbnail
+// POST /api/media - Kompresi atau Unggah langsung
 export async function POST(request: NextRequest) {
   try {
+    const contentType = request.headers.get('content-type') || '';
+
+    // A. Kompresi berkas gambar yang sudah ada di server
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      const action = body.action || 'compress';
+      const tenantParam = body.tenant || '';
+      const tenant = await getTenantFromRequest(request, tenantParam);
+
+      if (!tenant) {
+        return NextResponse.json({ error: 'Tenant tidak valid' }, { status: 400 });
+      }
+
+      const auth = requireTenantManagerApi(request, tenant.slug);
+      if (!auth.authorized) return auth.response!;
+
+      if (action === 'compress') {
+        const url = body.url as string;
+        const urls = (body.urls as string[]) || (url ? [url] : []);
+        const quality = typeof body.quality === 'number' ? body.quality : 82;
+
+        if (urls.length === 0) {
+          return NextResponse.json({ error: 'URL berkas wajib disertakan' }, { status: 400 });
+        }
+
+        const results = [];
+        for (const targetUrl of urls) {
+          try {
+            const comp = await compressTenantMediaFile(tenant.slug, targetUrl, quality);
+            results.push(comp);
+          } catch (err: any) {
+            results.push({ url: targetUrl, success: false, error: err.message });
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          results,
+          totalCompressed: results.filter((r) => r.success).length,
+        });
+      }
+    }
+
+    // B. Unggah berkas baru (FormData)
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
-    const tenantParam = (formData.get('tenant') as string) || request.headers.get('x-tenant-slug') || '';
-    const folderParam = (formData.get('folder') as string) || 'artikel';
+    const tenantParam = (formData.get('tenant') as string) || '';
+    const folderParam = (formData.get('folder') as string) || 'galeri';
 
     const tenant = await getTenantFromRequest(request, tenantParam);
-
     if (!tenant) {
       return NextResponse.json({ error: 'Parameter tenant wajib disertakan' }, { status: 400 });
     }
 
-    const cleanTenant = tenant.slug.toLowerCase().replace(/[^a-z0-9-_]/g, '') || 'default';
-    const cleanFolder = folderParam.toLowerCase().replace(/[^a-z0-9-_]/g, '') || 'artikel';
+    const auth = requireTenantManagerApi(request, tenant.slug);
+    if (!auth.authorized) return auth.response!;
 
     if (!file) {
       return NextResponse.json({ error: 'Tidak ada berkas yang diunggah' }, { status: 400 });
     }
 
-    const ext = path.extname(file.name || '').toLowerCase();
-    const allowed = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'];
-    if (!allowed.includes(ext) && !file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Hanya format gambar (JPG, PNG, WebP, GIF, SVG) yang diperbolehkan' }, { status: 400 });
-    }
-
-    if (file.size > 15 * 1024 * 1024) {
-      return NextResponse.json({ error: 'Ukuran gambar maksimal 15 MB' }, { status: 400 });
-    }
-
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', cleanTenant, cleanFolder);
-    await fs.mkdir(uploadDir, { recursive: true });
-
     const bytes = await file.arrayBuffer();
-    const inputBuffer = Buffer.from(bytes);
+    const buffer = Buffer.from(bytes);
 
-    const baseSlug = (file.name || 'foto')
-      .replace(/\.[^/.]+$/, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9-_]/g, '_')
-      .substring(0, 30);
-
-    const timestamp = Date.now();
-    const randomSuffix = Math.random().toString(36).substring(2, 6);
-
-    let finalFilename = `${baseSlug}_${timestamp}_${randomSuffix}.webp`;
-    let finalBuffer: Buffer;
-
-    if (ext === '.svg' || ext === '.gif') {
-      finalFilename = `${baseSlug}_${timestamp}_${randomSuffix}${ext}`;
-      finalBuffer = inputBuffer;
-    } else {
-      try {
-        finalBuffer = await sharp(inputBuffer)
-          .rotate()
-          .resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: 82 })
-          .toBuffer();
-      } catch {
-        finalBuffer = inputBuffer;
-        finalFilename = `${baseSlug}_${timestamp}_${randomSuffix}${ext || '.jpg'}`;
-      }
-    }
-
-    const fullFilePath = path.join(uploadDir, finalFilename);
-    await fs.writeFile(fullFilePath, finalBuffer);
-
-    // Generate lightweight thumbnail (320x240 webp ~8-15KB) for super fast gallery loading
-    const thumbFilename = `${baseSlug}_${timestamp}_${randomSuffix}_thumb.webp`;
-    let thumbnailUrl = `/uploads/${cleanTenant}/${cleanFolder}/${finalFilename}`;
-
-    if (ext !== '.svg') {
-      try {
-        const thumbBuffer = await sharp(inputBuffer)
-          .rotate()
-          .resize({ width: 360, height: 270, fit: 'cover' })
-          .webp({ quality: 75 })
-          .toBuffer();
-        await fs.writeFile(path.join(uploadDir, thumbFilename), thumbBuffer);
-        thumbnailUrl = `/uploads/${cleanTenant}/${cleanFolder}/${thumbFilename}`;
-      } catch (err) {
-        console.warn('Could not generate thumbnail, fallback to original:', err);
-      }
-    }
-
-    const publicUrl = `/uploads/${cleanTenant}/${cleanFolder}/${finalFilename}`;
-    const sizeInKb = (finalBuffer.length / 1024).toFixed(1);
+    const uploadRes = await uploadFile({
+      buffer,
+      filename: file.name,
+      mimeType: file.type || 'image/jpeg',
+      tenantSlug: tenant.slug,
+      folder: folderParam,
+    });
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-      thumbnailUrl,
-      name: finalFilename,
-      sizeFormatted: `${sizeInKb} KB`,
+      url: uploadRes.url,
+      name: file.name,
+      storage: uploadRes.storage,
     });
   } catch (error: any) {
-    console.error('Error uploading media:', error);
-    return NextResponse.json({ error: error.message || 'Gagal mengunggah foto' }, { status: 500 });
+    console.error('Error handling media POST:', error);
+    return NextResponse.json({ error: error.message || 'Gagal memproses aksi media' }, { status: 500 });
   }
 }
 
-// DELETE /api/media - Delete file and its thumbnail from server
+// DELETE /api/media - Menghapus satu atau banyak berkas dari R2 dan server
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
-    const fileUrl = body.url as string;
     const tenantParam = (body.tenant as string) || '';
-
     const tenant = await getTenantFromRequest(request, tenantParam);
 
-    if (!fileUrl || !tenant) {
-      return NextResponse.json({ error: 'URL berkas dan tenant wajib disertakan' }, { status: 400 });
+    if (!tenant) {
+      return NextResponse.json({ error: 'Tenant tidak valid' }, { status: 400 });
     }
 
-    const cleanTenant = tenant.slug.toLowerCase().replace(/[^a-z0-9-_]/g, '') || 'default';
+    const auth = requireTenantManagerApi(request, tenant.slug);
+    if (!auth.authorized) return auth.response!;
 
-    // Verify path starts with /uploads/[cleanTenant]/
-    const expectedPrefix = `/uploads/${cleanTenant}/`;
-    if (!fileUrl.startsWith(expectedPrefix)) {
-      return NextResponse.json(
-        { error: 'Akses ditolak: berkas tidak berada dalam direktori desa ini' },
-        { status: 403 }
-      );
+    const rawUrls = (body.urls as string[]) || (body.url ? [body.url as string] : []);
+    if (rawUrls.length === 0) {
+      return NextResponse.json({ error: 'URL berkas yang akan dihapus wajib disertakan' }, { status: 400 });
     }
 
-    // Relative subpath after prefix
-    const relativeSubPath = fileUrl.slice(expectedPrefix.length);
-
-    // Prevent directory traversal
-    if (relativeSubPath.includes('..') || path.isAbsolute(relativeSubPath)) {
-      return NextResponse.json({ error: 'Jalur berkas tidak valid' }, { status: 400 });
-    }
-
-    const targetFullPath = path.join(process.cwd(), 'public', 'uploads', cleanTenant, relativeSubPath);
-
-    if (existsSync(targetFullPath)) {
-      await fs.unlink(targetFullPath);
-    }
-
-    // Also attempt deleting associated thumbnail if exists
-    const ext = path.extname(targetFullPath);
-    const thumbPath = targetFullPath.replace(new RegExp(`${ext}$`), '_thumb.webp');
-    if (existsSync(thumbPath)) {
-      try {
-        await fs.unlink(thumbPath);
-      } catch (e) {
-        console.warn('Could not remove thumbnail:', e);
-      }
-    }
+    const deletedCount = await deleteTenantMediaFiles(tenant.slug, rawUrls);
 
     return NextResponse.json({
       success: true,
-      message: 'Foto dan thumbnail berhasil dihapus secara permanen dari server',
+      deletedCount,
+      message: `${deletedCount} berkas berhasil dihapus secara permanen dari server penyimpanan.`,
     });
   } catch (error: any) {
     console.error('Error deleting media file:', error);
