@@ -20,6 +20,11 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
     - Komponen album dokumentasi di bawah isi berita kini hanya ditampilkan jika artikel memiliki 2 atau lebih foto (`albumPhotos.length > 1`), menghindari duplikasi tampilan foto tunggal yang sudah menjadi cover headline di atasnya.
 
 ### Added
+- **Konfigurasi Jeda Waktu Foto Susulan Otomatis (*Auto-Attach Window*) (`/admin/telegram`, `/api/telegram/officials`, `/api/telegram/webhook`, `prisma/schema.prisma`)**:
+  - Penambahan kolom `telegramAttachWindowMinutes Int? @default(5)` pada model `Tenant`.
+  - Admin desa kini dapat mengatur secara mandiri batas jeda waktu penyematan foto susulan tanpa caption langsung dari menu admin `/admin/telegram` (pilihan: 2 Menit, 5 Menit / Standar, 10 Menit, 15 Menit, 30 Menit, atau 0 Menit / Nonaktif).
+  - Ketika pamong mengirim foto dokumentasi kedua dan seterusnya tanpa keterangan teks dalam rentang waktu yang dipilih, bot Telegram secara cerdas menyematkan foto tersebut ke dalam album warta atau galeri terbaru milik pamong/desa tersebut tanpa membuat artikel ganda.
+  - Setiap desa memiliki pengaturan jeda waktu mandiri yang terisolasi 100% (*Strict Multi-Tenancy*).
 - **Halaman Khusus Integrasi Bot Telegram desDig (`/admin/telegram`, `/api/telegram/officials`, `lib/admin-menu.ts`)**:
   - Halaman manajemen lengkap berformat list/tabel untuk mengelola token pairing rahasia per pamong desa maupun token umum desa.
   - Kartu KPI ringkasan: Total Pamong Desa, Pamong Terhubung, Pamong Belum Terhubung, dan Sesi Operator Umum Aktif.

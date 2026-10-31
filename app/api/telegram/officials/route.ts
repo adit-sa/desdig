@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
         namaDesa: tenant.namaDesa,
         generalToken: tenant.telegramToken || tenant.id.slice(-6),
         hasCustomToken: Boolean(tenant.telegramToken),
+        telegramAttachWindowMinutes: tenant.telegramAttachWindowMinutes ?? 5,
       },
       bot: {
         configured: botConfigured,
@@ -223,6 +224,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'Sambungan akun Telegram berhasil diputuskan.',
+      });
+    }
+
+    // 4. Update Jeda Waktu Foto Susulan Otomatis (Attach Window)
+    if (action === 'update_attach_window') {
+      const minutes = Math.max(0, Math.min(120, parseInt(body.minutes, 10) || 0));
+      const updated = await prisma.tenant.update({
+        where: { id: tenant.id },
+        data: { telegramAttachWindowMinutes: minutes },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: minutes === 0
+          ? 'Penyematan foto susulan otomatis dinonaktifkan (setiap foto akan diminta caption terpisah).'
+          : `Jeda waktu penyematan foto susulan berhasil diatur ke ${minutes} menit.`,
+        minutes: updated.telegramAttachWindowMinutes,
       });
     }
 

@@ -384,6 +384,38 @@ describe('desDig Telegram Bot Multi-Tenant Publishing Tests', () => {
     await prisma.telegramMediaGroup.deleteMany({ where: { mediaGroupId: testGroupId } });
   });
 
+  it('12. Konfigurasi jeda waktu foto susulan otomatis (telegramAttachWindowMinutes) tersimpan per-tenant', async () => {
+    // Default harus 5 menit (atau null/default)
+    const initialTenant = await prisma.tenant.findUnique({
+      where: { id: testTenantId },
+      select: { telegramAttachWindowMinutes: true },
+    });
+    expect(initialTenant?.telegramAttachWindowMinutes ?? 5).toBe(5);
+
+    // Update jeda waktu menjadi 15 menit
+    await prisma.tenant.update({
+      where: { id: testTenantId },
+      data: { telegramAttachWindowMinutes: 15 },
+    });
+
+    const updatedTenant = await prisma.tenant.findUnique({
+      where: { id: testTenantId },
+      select: { telegramAttachWindowMinutes: true },
+    });
+    expect(updatedTenant?.telegramAttachWindowMinutes).toBe(15);
+
+    // Kembalikan ke 10 menit
+    await prisma.tenant.update({
+      where: { id: testTenantId },
+      data: { telegramAttachWindowMinutes: 10 },
+    });
+    const finalTenant = await prisma.tenant.findUnique({
+      where: { id: testTenantId },
+      select: { telegramAttachWindowMinutes: true },
+    });
+    expect(finalTenant?.telegramAttachWindowMinutes).toBe(10);
+  });
+
   afterAll(async () => {
     await prisma.telegramSubscriber.deleteMany({
       where: { telegramId: testTelegramId },

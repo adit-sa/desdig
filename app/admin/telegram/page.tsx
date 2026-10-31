@@ -23,6 +23,9 @@ import {
   ChevronDown,
   ChevronUp,
   Radio,
+  Clock,
+  CheckCircle2,
+  Sliders,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 
@@ -52,6 +55,7 @@ interface TelegramPageData {
     namaDesa: string;
     generalToken: string;
     hasCustomToken: boolean;
+    telegramAttachWindowMinutes: number;
   };
   bot: {
     configured: boolean;
@@ -82,6 +86,7 @@ export default function TelegramAdminPage() {
     currentToken: '',
   });
   const [customTokenValue, setCustomTokenValue] = useState('');
+  const [attachWindow, setAttachWindow] = useState<number>(5);
 
   const currentSlug = currentTenantId || activeTenant?.slug || '';
 
@@ -93,6 +98,9 @@ export default function TelegramAdminPage() {
       const json = await res.json();
       if (json.success) {
         setData(json);
+        if (typeof json.tenant?.telegramAttachWindowMinutes === 'number') {
+          setAttachWindow(json.tenant.telegramAttachWindowMinutes);
+        }
       }
     } catch (err) {
       console.error('Failed to load telegram officials data:', err);
@@ -197,6 +205,33 @@ export default function TelegramAdminPage() {
         await fetchData();
       } else {
         alert(result.error || 'Gagal memutuskan sambungan');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Terjadi kesalahan sistem');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  // Simpan Jeda Waktu Foto Susulan Otomatis
+  const handleUpdateAttachWindow = async (minutes: number) => {
+    try {
+      setActionLoadingId('save-attach-window');
+      setAttachWindow(minutes);
+      const res = await fetch('/api/telegram/officials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantSlug: currentSlug,
+          action: 'update_attach_window',
+          minutes,
+        }),
+      });
+      const result = await res.json();
+      if (result.success) {
+        await fetchData();
+      } else {
+        alert(result.error || 'Gagal menyimpan pengaturan jeda waktu');
       }
     } catch (err: any) {
       alert(err.message || 'Terjadi kesalahan sistem');
@@ -790,7 +825,75 @@ export default function TelegramAdminPage() {
         </div>
       </div>
 
-      {/* 6. Modal Custom Token */}
+      {/* 6. Pengaturan Jeda Waktu Foto Susulan Otomatis */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Sliders className="w-5 h-5 text-sky-500" />
+              <span>Jeda Waktu Penyematan Foto Susulan Otomatis</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Tentukan batas jeda waktu di mana foto tambahan yang dikirim tanpa teks (caption) akan otomatis disematkan ke dalam artikel warta atau galeri terbaru.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 font-bold text-xs">
+              <Clock className="w-3.5 h-3.5" />
+              <span>
+                {attachWindow === 0 ? 'Nonaktif' : `Aktif: ${attachWindow} Menit`}
+              </span>
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            {[
+              { minutes: 2, label: '2 Menit', desc: 'Singkat' },
+              { minutes: 5, label: '5 Menit', desc: 'Standar (Disarankan)' },
+              { minutes: 10, label: '10 Menit', desc: 'Santai' },
+              { minutes: 15, label: '15 Menit', desc: 'Leluasa' },
+              { minutes: 30, label: '30 Menit', desc: 'Panjang' },
+              { minutes: 0, label: 'Nonaktif (0)', desc: 'Setiap foto jadi artikel baru' },
+            ].map((opt) => {
+              const isSelected = attachWindow === opt.minutes;
+
+              return (
+                <button
+                  key={opt.minutes}
+                  disabled={actionLoadingId === 'save-attach-window'}
+                  onClick={() => handleUpdateAttachWindow(opt.minutes)}
+                  className={`p-3 rounded-2xl border text-left transition-all relative overflow-hidden flex flex-col justify-between ${
+                    isSelected
+                      ? 'bg-sky-50 dark:bg-sky-950/60 border-sky-400 dark:border-sky-600 ring-2 ring-sky-500/20'
+                      : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className={`text-sm font-black ${isSelected ? 'text-sky-700 dark:text-sky-300' : 'text-slate-800 dark:text-slate-200'}`}>
+                      {opt.label}
+                    </span>
+                    {isSelected && (
+                      <CheckCircle2 className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
+                    )}
+                  </div>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                    {opt.desc}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+            💡 <b>Tips:</b> Jika pamong sering mengambil foto di lapangan dan mengirimkannya satu per satu, atur ke <b>5 Menit</b> atau <b>10 Menit</b> agar seluruh foto otomatis disematkan ke warta/galeri yang baru saja dibuat tanpa terpisah-pisah.
+          </p>
+        </div>
+      </div>
+
+      {/* 7. Modal Custom Token */}
       {customTokenModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">

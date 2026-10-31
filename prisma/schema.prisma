@@ -114,8 +114,9 @@ model Tenant {
   customPages         CustomPage[]
   residents           Resident[]
   kioskDevices        KioskDevice[]
-  telegramToken       String?
-  telegramUsers       TelegramSubscriber[]
+  telegramToken               String?
+  telegramAttachWindowMinutes Int?                  @default(5) // Jeda waktu (menit) untuk otomatis menyematkan foto susulan tanpa caption (default: 5 menit, 0 = nonaktif)
+  telegramUsers               TelegramSubscriber[]
   telegramMediaGroups TelegramMediaGroup[]
 
   @@index([slug])
