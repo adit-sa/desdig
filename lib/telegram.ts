@@ -7,6 +7,7 @@
  */
 
 import { prisma } from './prisma';
+import { Prisma } from '@prisma/client';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN?.trim() || '';
 const TELEGRAM_API_BASE = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
@@ -245,6 +246,8 @@ export async function pairTelegramUserWithTenant({
       villageOfficialId: officialId,
       officialName,
       officialPosition,
+      conversationState: null,
+      pendingDraft: Prisma.DbNull,
     },
     create: {
       telegramId: tid,
@@ -254,6 +257,8 @@ export async function pairTelegramUserWithTenant({
       villageOfficialId: officialId,
       officialName,
       officialPosition,
+      conversationState: null,
+      pendingDraft: Prisma.DbNull,
     },
   });
 
@@ -439,5 +444,117 @@ export async function recordProcessedMediaGroupFiles({
     },
   });
 }
+
+/**
+ * Menjawab interaksi tombol inline (Callback Query) Telegram
+ */
+export async function answerTelegramCallbackQuery(
+  callbackQueryId: string,
+  text?: string,
+  showAlert: boolean = false
+) {
+  if (!isTelegramConfigured()) return null;
+  try {
+    const res = await fetch(`${TELEGRAM_API_BASE}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text,
+        show_alert: showAlert,
+      }),
+    });
+    return await res.json();
+  } catch (err) {
+    console.error('Error answering Telegram callback query:', err);
+    return null;
+  }
+}
+
+/**
+ * Keyboard Menu Utama Tetap di Layar Telegram (Reply Keyboard)
+ */
+export function getMainMenuKeyboard() {
+  return {
+    keyboard: [
+      [{ text: '📰 Tulis Berita' }, { text: '🖼️ Galeri Kegiatan' }],
+      [{ text: '📢 Buat Pengumuman' }, { text: '❌ Batal / Menu Utama' }],
+    ],
+    resize_keyboard: true,
+    is_persistent: true,
+  };
+}
+
+/**
+ * Keyboard Aksi Selesai / Terbitkan Galeri (Inline Keyboard)
+ */
+export function getGalleryActionKeyboard() {
+  return {
+    inline_keyboard: [
+      [{ text: '✅ Selesai & Terbitkan Galeri', callback_data: 'publish_gallery' }],
+      [{ text: '❌ Batalkan Draft Galeri', callback_data: 'cancel_draft' }],
+    ],
+  };
+}
+
+/**
+ * Keyboard Aksi Selesai / Terbitkan Berita (Inline Keyboard)
+ */
+export function getArticleActionKeyboard() {
+  return {
+    inline_keyboard: [
+      [{ text: '✅ Selesai & Terbitkan Berita', callback_data: 'publish_article' }],
+      [{ text: '❌ Batalkan Draft Berita', callback_data: 'cancel_draft' }],
+    ],
+  };
+}
+
+/**
+ * Keyboard Pilihan Jenis Konten jika foto dikirim langsung tanpa menu
+ */
+export function getPhotoChoiceKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '📰 Jadikan Berita', callback_data: 'choice_article' },
+        { text: '🖼️ Masukkan ke Galeri', callback_data: 'choice_gallery' },
+      ],
+      [{ text: '❌ Batalkan', callback_data: 'cancel_draft' }],
+    ],
+  };
+}
+
+/**
+ * Memperbarui State Dialog Interaktif Subscriber Telegram
+ */
+export async function setSubscriberConversation(
+  telegramId: string | number,
+  conversationState: string | null,
+  pendingDraft?: any
+) {
+  const tid = telegramId.toString();
+  return prisma.telegramSubscriber.update({
+    where: { telegramId: tid },
+    data: {
+      conversationState,
+      ...(pendingDraft !== undefined ? { pendingDraft } : {}),
+    },
+  });
+}
+
+/**
+ * Reset State Dialog Interaktif Subscriber Telegram
+ */
+export async function resetSubscriberConversation(telegramId: string | number) {
+  const tid = telegramId.toString();
+  return prisma.telegramSubscriber.update({
+    where: { telegramId: tid },
+    data: {
+      conversationState: null,
+      pendingDraft: Prisma.DbNull,
+    },
+  });
+}
+
 
 

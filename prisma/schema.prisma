@@ -608,6 +608,8 @@ model TelegramSubscriber {
   villageOfficial   VillageOfficial? @relation(fields: [villageOfficialId], references: [id], onDelete: SetNull)
   officialName      String?
   officialPosition  String?
+  conversationState String?         // Mode interaktif dialog: 'IDLE' | 'AWAITING_CHOICE' | 'AWAITING_GALLERY_TITLE' | 'COLLECTING_GALLERY_PHOTOS' | 'AWAITING_ARTICLE_TEXT' | 'COLLECTING_ARTICLE_PHOTOS' | 'AWAITING_ANNOUNCEMENT_TEXT'
+  pendingDraft      Json?           // Draft sementara { title, content, photos: [{ url, caption }] }
   pairedAt          DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 

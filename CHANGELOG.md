@@ -29,6 +29,13 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
     - Komponen album dokumentasi di bawah isi berita kini hanya ditampilkan jika artikel memiliki 2 atau lebih foto (`albumPhotos.length > 1`), menghindari duplikasi tampilan foto tunggal yang sudah menjadi cover headline di atasnya.
 
 ### Added
+- **Mode Dialog Interaktif / Tanya-Jawab (Interactive Wizard Mode) Bot Telegram (`lib/telegram.ts`, `/api/telegram/webhook`, `prisma/schema.prisma`)**:
+  - Menyediakan pengalaman interaktif anti-salah yang ramah pengguna bagi pamong desa di lapangan:
+    - **Menu Tombol di Layar HP (Reply Keyboard)**: Tombol menu tetap (`📰 Tulis Berita`, `🖼️ Galeri Kegiatan`, `📢 Buat Pengumuman`, `❌ Batal / Menu Utama`) di layar chat Telegram sehingga pamong tidak perlu lagi mengingat sintaks perintah garis miring (`/`).
+    - **Alur Tanya-Jawab Galeri Kegiatan (`AWAITING_GALLERY_TITLE` -> `COLLECTING_GALLERY_PHOTOS`)**: Bot menanyakan judul/nama kegiatan terlebih dahulu, lalu mengumpulkan semua foto yang dikirimkan pamong ke dalam draft album, dan menerbitkannya hanya setelah dikonfirmasi via tombol `[ ✅ Selesai & Terbitkan Galeri ]` atau `/selesai` (100% anti-keliru, foto tidak akan pernah salah masuk ke warta berita).
+    - **Alur Tanya-Jawab Tulis Berita (`AWAITING_ARTICLE_TEXT` -> `COLLECTING_ARTICLE_PHOTOS`)**: Bot meminta teks berita terlebih dahulu (baris pertama otomatis jadi judul), kemudian meminta foto pendukung, dan menerbitkan berita setelah dikonfirmasi.
+    - **Safety Net Foto Langsung (Inline Choice Keyboard)**: Jika pamong langsung mengirim foto tanpa memilih menu sebelumnya, bot menyimpannya ke draft dan menampilkan tombol pertanyaan interaktif: `[ 📰 Jadikan Berita ]` atau `[ 🖼️ Masukkan ke Galeri ]`.
+  - Penambahan kolom `conversationState String?` dan `pendingDraft Json?` pada model `TelegramSubscriber` untuk persistensi state percakapan interaktif.
 - **Konfigurasi Jeda Waktu Foto Susulan Otomatis (*Auto-Attach Window*) (`/admin/telegram`, `/api/telegram/officials`, `/api/telegram/webhook`, `prisma/schema.prisma`)**:
   - Penambahan kolom `telegramAttachWindowMinutes Int? @default(5)` pada model `Tenant`.
   - Admin desa kini dapat mengatur secara mandiri batas jeda waktu penyematan foto susulan tanpa caption langsung dari menu admin `/admin/telegram` (pilihan: 2 Menit, 5 Menit / Standar, 10 Menit, 15 Menit, 30 Menit, atau 0 Menit / Nonaktif).

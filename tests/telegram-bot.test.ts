@@ -4,6 +4,11 @@ import {
   pairTelegramUserWithTenant,
   getLinkedTenantForTelegramUser,
   unlinkTelegramUser,
+  setSubscriberConversation,
+  resetSubscriberConversation,
+  getMainMenuKeyboard,
+  getGalleryActionKeyboard,
+  getPhotoChoiceKeyboard,
 } from '../lib/telegram';
 
 describe('desDig Telegram Bot Multi-Tenant Publishing Tests', () => {
@@ -472,6 +477,77 @@ describe('desDig Telegram Bot Multi-Tenant Publishing Tests', () => {
 
     // Bersihkan
     await prisma.galleryItem.delete({ where: { id: gallery.id } });
+  });
+
+  it('14. Mode Dialog Interaktif (Wizard Mode): Transisi state, pengumpulan foto draft, dan penerbitan album galeri tanpa ambigu', async () => {
+    // 1. Verifikasi keyboard helper
+    const menuKb = getMainMenuKeyboard();
+    expect(menuKb.keyboard.length).toBe(2);
+    expect(menuKb.keyboard[0][1].text).toBe('🖼️ Galeri Kegiatan');
+
+    const galleryActionKb = getGalleryActionKeyboard();
+    expect(galleryActionKb.inline_keyboard[0][0].callback_data).toBe('publish_gallery');
+
+    const choiceKb = getPhotoChoiceKeyboard();
+    expect(choiceKb.inline_keyboard[0][1].callback_data).toBe('choice_gallery');
+
+    // 2. Hubungkan akun telegram uji terlebih dahulu
+    await pairTelegramUserWithTenant({
+      telegramId: testTelegramId,
+      username: 'wizard_tester',
+      firstName: 'Budi Wizard',
+      tenantSlug: testSlug,
+      token: 'tokenrahasia123',
+    });
+
+    // 3. Masuk ke mode dialog galeri: AWAITING_GALLERY_TITLE
+    await setSubscriberConversation(testTelegramId, 'AWAITING_GALLERY_TITLE', { photos: [] });
+    let subscriber = await getLinkedTenantForTelegramUser(testTelegramId);
+    expect(subscriber?.conversationState).toBe('AWAITING_GALLERY_TITLE');
+
+    // 4. Pengguna memasukkan judul: transisi ke COLLECTING_GALLERY_PHOTOS
+    const galleryTitle = 'Festival Panen Raya Desa';
+    await setSubscriberConversation(testTelegramId, 'COLLECTING_GALLERY_PHOTOS', {
+      title: galleryTitle,
+      photos: [
+        { type: 'IMAGE', url: 'https://r2.desdig.id/wizard_foto1.webp', caption: 'Foto Utama' },
+        { type: 'IMAGE', url: 'https://r2.desdig.id/wizard_foto2.webp', caption: 'Dokumentasi 2' },
+      ],
+    });
+
+    subscriber = await getLinkedTenantForTelegramUser(testTelegramId);
+    expect(subscriber?.conversationState).toBe('COLLECTING_GALLERY_PHOTOS');
+    const draft = subscriber?.pendingDraft as any;
+    expect(draft.title).toBe(galleryTitle);
+    expect(draft.photos.length).toBe(2);
+
+    // 5. Terbitkan galeri dari draft interaktif
+    const newGallery = await prisma.galleryItem.create({
+      data: {
+        tenantId: testTenantId,
+        title: draft.title,
+        imageUrl: draft.photos[0].url,
+        category: 'Kegiatan',
+        caption: draft.title,
+        authorName: subscriber?.officialName || 'Operator Desa',
+        mediaType: 'ALBUM',
+        mediaUrls: draft.photos,
+        takenAt: new Date(),
+      },
+    });
+
+    expect(newGallery.id).toBeDefined();
+    expect(newGallery.title).toBe(galleryTitle);
+    expect(Array.isArray(newGallery.mediaUrls)).toBe(true);
+
+    // 6. Reset percakapan setelah terbit
+    await resetSubscriberConversation(testTelegramId);
+    subscriber = await getLinkedTenantForTelegramUser(testTelegramId);
+    expect(subscriber?.conversationState).toBeNull();
+    expect(subscriber?.pendingDraft).toBeNull();
+
+    // Bersihkan
+    await prisma.galleryItem.delete({ where: { id: newGallery.id } });
   });
 
   afterAll(async () => {

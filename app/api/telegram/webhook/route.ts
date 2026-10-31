@@ -16,6 +16,13 @@ import {
   claimTelegramMediaGroup,
   getTelegramMediaGroup,
   recordProcessedMediaGroupFiles,
+  answerTelegramCallbackQuery,
+  getMainMenuKeyboard,
+  getGalleryActionKeyboard,
+  getArticleActionKeyboard,
+  getPhotoChoiceKeyboard,
+  setSubscriberConversation,
+  resetSubscriberConversation,
 } from '@/lib/telegram';
 
 // GET /api/telegram/webhook - Cek status bot & registrasi webhook
@@ -61,8 +68,184 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const update = await request.json();
-    const message = update.message;
 
+    // =========================================================================
+    // 1. PENANGANAN INTERAKSI TOMBOL INLINE (CALLBACK QUERY)
+    // =========================================================================
+    if (update.callback_query) {
+      const cb = update.callback_query;
+      const from = cb.from;
+      const chatId = cb.message?.chat?.id || from.id;
+      const data = cb.data;
+      const queryId = cb.id;
+
+      const linked = await getLinkedTenantForTelegramUser(from.id);
+      if (!linked) {
+        await answerTelegramCallbackQuery(queryId, 'Akun belum terhubung ke desa', true);
+        return NextResponse.json({ ok: true });
+      }
+
+      const tenant = linked.tenant;
+      const authorName = linked.officialName
+        ? (linked.officialPosition ? `${linked.officialName} (${linked.officialPosition})` : linked.officialName)
+        : (from.first_name || 'Operator Desa');
+      const primaryDomain = tenant.domains?.find((d: any) => d.isPrimary)?.domain || `${tenant.slug}.desdig.id`;
+
+      // A. Batalkan Draft
+      if (data === 'cancel_draft') {
+        await answerTelegramCallbackQuery(queryId, 'Draft dibatalkan');
+        await resetSubscriberConversation(from.id);
+        await sendTelegramMessage(
+          chatId,
+          `❌ <b>Draft dibatalkan.</b> Kembali ke menu utama. Silakan pilih menu di bawah jika ingin memulai kembali:`,
+          { reply_markup: getMainMenuKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // B. Pengguna Memilih "Masukkan ke Galeri" dari foto yang dikirim
+      if (data === 'choice_gallery') {
+        await answerTelegramCallbackQuery(queryId, 'Mode Galeri Dipilih');
+        await setSubscriberConversation(from.id, 'AWAITING_GALLERY_TITLE');
+        await sendTelegramMessage(
+          chatId,
+          `🖼️ <b>Mode Galeri Dipilih!</b>\n\nSilakan ketikkan <b>Judul / Nama Kegiatan</b> untuk galeri ini:\n<i>(Contoh: Kerja Bakti Saluran Irigasi Dusun 2)</i>\n\nKetik <code>/batal</code> jika ingin membatalkan.`,
+          { reply_markup: getMainMenuKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // C. Pengguna Memilih "Jadikan Berita" dari foto yang dikirim
+      if (data === 'choice_article') {
+        await answerTelegramCallbackQuery(queryId, 'Mode Berita Dipilih');
+        await setSubscriberConversation(from.id, 'AWAITING_ARTICLE_TEXT');
+        await sendTelegramMessage(
+          chatId,
+          `📰 <b>Mode Berita Dipilih!</b>\n\nSilakan ketikkan <b>Teks Berita</b> Anda:\n<i>(Baris pertama otomatis menjadi Judul Berita, baris berikutnya adalah isi penjelasan berita)</i>\n\nKetik <code>/batal</code> jika ingin membatalkan.`,
+          { reply_markup: getMainMenuKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // D. Terbitkan Galeri dari Draft
+      if (data === 'publish_gallery') {
+        const draft = (linked.pendingDraft || {}) as any;
+        const photos = Array.isArray(draft.photos) ? draft.photos : [];
+        const title = draft.title?.trim() || 'Dokumentasi Kegiatan Desa';
+
+        if (photos.length === 0) {
+          await answerTelegramCallbackQuery(queryId, 'Belum ada foto yang diunggah!', true);
+          return NextResponse.json({ ok: true });
+        }
+
+        await answerTelegramCallbackQuery(queryId, 'Menerbitkan Galeri...');
+        const coverImageUrl = photos[0].url;
+        const mediaUrls = photos.map((p: any, idx: number) => ({
+          type: 'IMAGE',
+          url: p.url,
+          caption: p.caption || (idx === 0 ? 'Foto Utama' : `Dokumentasi ${idx + 1}`),
+        }));
+
+        await prisma.galleryItem.create({
+          data: {
+            tenantId: tenant.id,
+            title,
+            imageUrl: coverImageUrl,
+            category: 'Kegiatan',
+            caption: title,
+            authorName,
+            mediaType: photos.length > 1 ? 'ALBUM' : 'IMAGE',
+            mediaUrls,
+            takenAt: new Date(),
+          },
+        });
+
+        await resetSubscriberConversation(from.id);
+        await sendTelegramMessage(
+          chatId,
+          `🎉 <b>Alhamdulillah! Album Galeri Berhasil Diterbitkan!</b>\n\n` +
+          `• <b>Judul:</b> ${title}\n` +
+          `• <b>Total Foto:</b> ${photos.length} Foto di Album\n` +
+          `• <b>Desa:</b> ${tenant.namaDesa}\n` +
+          `• <b>Penanggung Jawab:</b> ${authorName}\n\n` +
+          `🔗 <b>Lihat di Website:</b>\nhttps://${primaryDomain}/galeri`,
+          { reply_markup: getMainMenuKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // E. Terbitkan Berita dari Draft
+      if (data === 'publish_article') {
+        const draft = (linked.pendingDraft || {}) as any;
+        const photos = Array.isArray(draft.photos) ? draft.photos : [];
+        const title = draft.title?.trim() || 'Warta Kegiatan Desa';
+        const articleContent = draft.content?.trim() || title;
+
+        await answerTelegramCallbackQuery(queryId, 'Menerbitkan Berita...');
+        const coverImageUrl = photos.length > 0 ? photos[0].url : '/images/desa_irigasi_pertanian.jpg';
+        const galleryUrls = photos.map((p: any, idx: number) => ({
+          url: p.url,
+          caption: idx === 0 ? 'Foto Utama' : `Dokumentasi ${idx + 1}`,
+        }));
+
+        let category = await prisma.category.findFirst({
+          where: { tenantId: tenant.id, slug: 'warta-desa' },
+        });
+        if (!category) {
+          category = await prisma.category.create({
+            data: { tenantId: tenant.id, name: 'Warta Desa', slug: 'warta-desa' },
+          });
+        }
+
+        let baseSlug = title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+        if (!baseSlug) baseSlug = `berita-${Date.now()}`;
+        let articleSlug = baseSlug;
+        let counter = 1;
+        while (await prisma.article.findFirst({ where: { tenantId: tenant.id, slug: articleSlug } })) {
+          articleSlug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+
+        const htmlContent = articleContent.split('\n\n').map((p: string) => `<p>${p}</p>`).join('');
+
+        const article = await prisma.article.create({
+          data: {
+            tenantId: tenant.id,
+            categoryId: category.id,
+            title,
+            slug: articleSlug,
+            summary: articleContent.slice(0, 160) + '...',
+            content: htmlContent,
+            coverImageUrl,
+            galleryUrls,
+            authorName,
+            status: 'PUBLISHED',
+            publishedAt: new Date(),
+          },
+        });
+
+        await resetSubscriberConversation(from.id);
+        const articlePublicUrl = `https://${primaryDomain}/berita/${article.slug}?tenant=${tenant.slug}`;
+        await sendTelegramMessage(
+          chatId,
+          `📰 <b>Artikel Berita Berhasil Diterbitkan!</b>\n\n` +
+          `• <b>Judul:</b> ${article.title}\n` +
+          `• <b>Desa:</b> ${tenant.namaDesa}\n` +
+          `• <b>Penulis:</b> ${authorName}\n` +
+          `• <b>Total Foto:</b> ${photos.length} Foto\n\n` +
+          `🔗 <b>Buka Artikel di Website:</b>\n<a href="${articlePublicUrl}">${articlePublicUrl}</a>`,
+          { reply_markup: getMainMenuKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
+    // =========================================================================
+    // 2. PENANGANAN PESAN TEKS & FOTO
+    // =========================================================================
+    const message = update.message;
     if (!message) {
       return NextResponse.json({ ok: true, note: 'No message in update' });
     }
@@ -73,8 +256,8 @@ export async function POST(request: NextRequest) {
     const caption = (message.caption || '').trim();
     const photos = message.photo;
 
-    // 1. Perintah /start atau /help
-    if (text.startsWith('/start') || text.startsWith('/help')) {
+    // Perintah /start, /help, atau /menu
+    if (text.startsWith('/start') || text.startsWith('/help') || text === '/menu') {
       const linked = await getLinkedTenantForTelegramUser(from.id);
 
       if (!linked) {
@@ -90,7 +273,7 @@ export async function POST(request: NextRequest) {
           `<code>/login Sinjai Tengah rahasia123</code>\n\n` +
           `<i>Contoh dengan slug:</i>\n` +
           `<code>/login sinjai-tengah rahasia123</code>\n\n` +
-          `💡 <i>Admin desa dapat melihat atau mengganti kode pairing kapan saja di menu <b>Identitas Desa</b> pada dashboard admin.</i>`
+          `💡 <i>Admin desa dapat melihat atau mengganti kode pairing kapan saja di menu <b>Bot Telegram</b> pada dashboard admin.</i>`
         );
         return NextResponse.json({ ok: true });
       }
@@ -98,25 +281,19 @@ export async function POST(request: NextRequest) {
       const tenant = linked.tenant;
       await sendTelegramMessage(
         chatId,
-        `🏛️ <b>Anda Terhubung ke: Desa ${tenant.namaDesa}</b> (<code>${tenant.slug}</code>)\n\n` +
-        `<b>Cara Publikasi Cepat dari Telegram:</b>\n\n` +
-        `📰 <b>1. Terbitkan Berita Kegiatan:</b>\n` +
-        `Kirim foto kegiatan dari HP dengan <i>caption</i>:\n` +
-        `<code>Judul Berita\n` +
-        `Isi ringkasan atau penjelasan berita secara lengkap...</code>\n\n` +
-        `🖼️ <b>2. Tambah Galeri Foto:</b>\n` +
-        `Kirim foto dengan caption diawali:\n` +
-        `<code>/galeri Judul Dokumentasi Foto</code>\n\n` +
-        `📢 <b>3. Buat Pengumuman Warga:</b>\n` +
-        `Ketik:\n` +
-        `<code>/pengumuman Isi pengumuman penting untuk warga...</code>\n\n` +
-        `ℹ️ <i>Ketik /status untuk melihat ringkasan desa atau /logout untuk melepas tautan akun ini.</i>`
+        `🏛️ <b>Halo, ${linked.officialName ? `${linked.officialName} (${linked.officialPosition})` : 'Pamong Desa'}!</b>\n` +
+        `Anda terhubung ke <b>Desa ${tenant.namaDesa}</b> (<code>${tenant.slug}</code>).\n\n` +
+        `Pilih menu di tombol keyboard bawah untuk mempublikasikan konten:\n` +
+        `• <b>📰 Tulis Berita:</b> Panduan langkah demi langkah menulis berita & upload foto.\n` +
+        `• <b>🖼️ Galeri Kegiatan:</b> Masukkan judul kegiatan lalu kirim foto-fotonya.\n` +
+        `• <b>📢 Buat Pengumuman:</b> Menerbitkan pengumuman resmi ke portal warga.\n` +
+        `• <b>❌ Batal / Menu Utama:</b> Membatalkan draft yang sedang berjalan.`,
+        { reply_markup: getMainMenuKeyboard() }
       );
       return NextResponse.json({ ok: true });
     }
 
-    // 2. Perintah /login [nama_atau_slug_desa] [token]
-    // Mendukung nama desa ber-spasi, misal: /login Sinjai Tengah rahasia123
+    // Perintah /login [nama_atau_slug_desa] [token]
     if (text.startsWith('/login')) {
       const parts = text.split(/\s+/);
       if (parts.length < 3) {
@@ -127,14 +304,12 @@ export async function POST(request: NextRequest) {
           `<code>/login [nama_atau_slug_desa] [kode_rahasia]</code>\n\n` +
           `<i>Contoh dengan spasi:</i> <code>/login Sinjai Tengah rahasia123</code>\n` +
           `<i>Contoh dengan slug:</i> <code>/login sinjai-tengah rahasia123</code>\n\n` +
-          `💡 <i>Kode pairing rahasia desa dapat dilihat atau diubah di menu <b>Identitas Desa</b> pada panel admin.</i>`
+          `💡 <i>Kode pairing rahasia desa dapat dilihat atau diubah di menu <b>Bot Telegram</b> pada panel admin.</i>`
         );
         return NextResponse.json({ ok: true });
       }
 
-      // Kata terakhir adalah token pairing
       const pairingToken = parts[parts.length - 1];
-      // Kata di antara /login dan token digabung kembali menjadi nama/slug desa
       const targetIdentifier = parts.slice(1, -1).join(' ');
 
       const pairResult = await pairTelegramUserWithTenant({
@@ -154,12 +329,13 @@ export async function POST(request: NextRequest) {
         chatId,
         `🎉 <b>Selamat! Akun Telegram Anda Berhasil Terhubung.</b>\n\n` +
         `Anda sekarang dapat mempublikasikan Berita, Galeri, dan Pengumuman langsung ke website resmi <b>Desa ${pairResult.tenant.namaDesa}</b>.\n\n` +
-        `Coba kirim foto kegiatan sekarang dengan caption berita! 📸`
+        `Gunakan menu tombol di bawah ini untuk memulai publikasi! 👇`,
+        { reply_markup: getMainMenuKeyboard() }
       );
       return NextResponse.json({ ok: true });
     }
 
-    // 3. Perintah /logout
+    // Perintah /logout
     if (text.startsWith('/logout')) {
       await unlinkTelegramUser(from.id);
       await sendTelegramMessage(
@@ -187,12 +363,13 @@ export async function POST(request: NextRequest) {
       : (from.first_name || 'Operator Desa');
     const primaryDomain = tenant.domains?.find((d: any) => d.isPrimary)?.domain || `${tenant.slug}.desdig.id`;
 
-    // 4. Perintah /status
+    // Perintah /status
     if (text.startsWith('/status')) {
-      const [articleCount, residentCount, officialCount] = await Promise.all([
+      const [articleCount, residentCount, officialCount, galleryCount] = await Promise.all([
         prisma.article.count({ where: { tenantId: tenant.id } }),
         prisma.resident.count({ where: { tenantId: tenant.id } }),
         prisma.villageOfficial.count({ where: { tenantId: tenant.id, isActive: true } }),
+        prisma.galleryItem.count({ where: { tenantId: tenant.id } }),
       ]);
 
       await sendTelegramMessage(
@@ -204,50 +381,15 @@ export async function POST(request: NextRequest) {
         `• <b>Kepala Desa:</b> ${tenant.kepalaDesa || '-'}\n` +
         `• <b>Total Warga:</b> ${residentCount.toLocaleString('id-ID')} Jiwa\n` +
         `• <b>Total Berita:</b> ${articleCount} Artikel\n` +
+        `• <b>Total Galeri:</b> ${galleryCount} Album\n` +
         `• <b>Pamong Aktif:</b> ${officialCount} Aparatur\n\n` +
-        `🌐 <b>Portal Website:</b> https://${primaryDomain}`
+        `🌐 <b>Portal Website:</b> https://${primaryDomain}`,
+        { reply_markup: getMainMenuKeyboard() }
       );
       return NextResponse.json({ ok: true });
     }
 
-    // 5. Perintah /pengumuman [isi]
-    if (text.startsWith('/pengumuman')) {
-      const announcementContent = text.replace(/^\/pengumuman\s*/i, '').trim();
-      if (!announcementContent) {
-        await sendTelegramMessage(
-          chatId,
-          `ℹ️ Tuliskan isi pengumuman setelah perintah.\nContoh: <code>/pengumuman Besok pagi jam 08.00 kerja bakti di Dusun 1.</code>`
-        );
-        return NextResponse.json({ ok: true });
-      }
-
-      // Ambil baris pertama sebagai judul (maksimal 80 karakter)
-      const firstLine = announcementContent.split('\n')[0].trim();
-      const title = firstLine.length > 80 ? firstLine.slice(0, 77) + '...' : firstLine;
-
-      await prisma.announcement.create({
-        data: {
-          tenantId: tenant.id,
-          title,
-          content: announcementContent,
-          status: 'PUBLISHED',
-          isPinned: true,
-          authorName,
-        },
-      });
-
-      await sendTelegramMessage(
-        chatId,
-        `📢 <b>Pengumuman Resmi Berhasil Diterbitkan!</b>\n\n` +
-        `<b>Judul:</b> ${title}\n` +
-        `<b>Desa:</b> ${tenant.namaDesa}\n` +
-        `<b>Diumumkan Oleh:</b> ${authorName}\n\n` +
-        `Pengumuman sudah langsung tayang di papan pengumuman portal warga: https://${primaryDomain}`
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // 6. Proteksi Berkas Non-Foto: Batasi hanya menerima foto agar hemat ruang penyimpanan R2
+    // Proteksi Berkas Non-Foto: Batasi hanya menerima foto agar hemat ruang penyimpanan R2
     if (message.document || message.video || message.audio || message.voice || message.video_note) {
       await sendTelegramMessage(
         chatId,
@@ -258,7 +400,288 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // 7. Pengunggahan Foto (Artikel Berita atau Galeri - Mendukung Multi-Foto / Album & Kompresi WebP)
+    // =========================================================================
+    // 3. KONTROL MENU & PERINTAH DIALOG INTERAKTIF
+    // =========================================================================
+
+    // A. Batal / Reset
+    if (text === '❌ Batal / Menu Utama' || text === '/batal' || text === '/reset') {
+      await resetSubscriberConversation(from.id);
+      await sendTelegramMessage(
+        chatId,
+        `🔄 <b>Mode dialog dibatalkan.</b> Kembali ke menu utama.\n\nSilakan pilih salah satu tombol menu di bawah:`,
+        { reply_markup: getMainMenuKeyboard() }
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    // B. Masuk Mode Galeri Kegiatan
+    if (text === '🖼️ Galeri Kegiatan' || text === '/galeri') {
+      await setSubscriberConversation(from.id, 'AWAITING_GALLERY_TITLE', { photos: [] });
+      await sendTelegramMessage(
+        chatId,
+        `🖼️ <b>Mode Galeri Kegiatan Aktif</b>\n\n` +
+        `Silakan ketikkan <b>Judul / Nama Kegiatan</b> untuk album galeri ini:\n` +
+        `<i>(Contoh: Kerja Bakti Saluran Irigasi Dusun 2)</i>\n\n` +
+        `Ketik <code>/batal</code> jika ingin membatalkan.`,
+        { reply_markup: getMainMenuKeyboard() }
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    // C. Masuk Mode Tulis Berita
+    if (text === '📰 Tulis Berita' || text === '/berita') {
+      await setSubscriberConversation(from.id, 'AWAITING_ARTICLE_TEXT', { photos: [] });
+      await sendTelegramMessage(
+        chatId,
+        `📰 <b>Mode Tulis Berita Aktif</b>\n\n` +
+        `Silakan kirimkan <b>Teks Berita</b> Anda:\n` +
+        `<i>(Tips: Baris pertama otomatis menjadi Judul Berita, baris berikutnya adalah isi penjelasan berita)</i>\n\n` +
+        `Ketik <code>/batal</code> jika ingin membatalkan.`,
+        { reply_markup: getMainMenuKeyboard() }
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    // D. Masuk Mode Pengumuman Warga
+    if (text === '📢 Buat Pengumuman' || text === '/pengumuman') {
+      await setSubscriberConversation(from.id, 'AWAITING_ANNOUNCEMENT_TEXT');
+      await sendTelegramMessage(
+        chatId,
+        `📢 <b>Mode Pengumuman Warga Aktif</b>\n\n` +
+        `Silakan ketikkan <b>Teks Pengumuman</b> yang ingin diterbitkan di portal desa:\n\n` +
+        `Ketik <code>/batal</code> jika ingin membatalkan.`,
+        { reply_markup: getMainMenuKeyboard() }
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    // E. Selesai & Terbitkan (Perintah /selesai)
+    if (text === '/selesai') {
+      if (linked.conversationState === 'COLLECTING_GALLERY_PHOTOS') {
+        const draft = (linked.pendingDraft || {}) as any;
+        const photos = Array.isArray(draft.photos) ? draft.photos : [];
+        const title = draft.title?.trim() || 'Dokumentasi Kegiatan Desa';
+
+        if (photos.length === 0) {
+          await sendTelegramMessage(
+            chatId,
+            `⚠️ Anda belum mengirimkan foto untuk galeri "<b>${title}</b>". Silakan kirim minimal 1 foto terlebih dahulu.`
+          );
+          return NextResponse.json({ ok: true });
+        }
+
+        const coverImageUrl = photos[0].url;
+        const mediaUrls = photos.map((p: any, idx: number) => ({
+          type: 'IMAGE',
+          url: p.url,
+          caption: p.caption || (idx === 0 ? 'Foto Utama' : `Dokumentasi ${idx + 1}`),
+        }));
+
+        await prisma.galleryItem.create({
+          data: {
+            tenantId: tenant.id,
+            title,
+            imageUrl: coverImageUrl,
+            category: 'Kegiatan',
+            caption: title,
+            authorName,
+            mediaType: photos.length > 1 ? 'ALBUM' : 'IMAGE',
+            mediaUrls,
+            takenAt: new Date(),
+          },
+        });
+
+        await resetSubscriberConversation(from.id);
+        await sendTelegramMessage(
+          chatId,
+          `🎉 <b>Alhamdulillah! Album Galeri Berhasil Diterbitkan!</b>\n\n` +
+          `• <b>Judul:</b> ${title}\n` +
+          `• <b>Total Foto:</b> ${photos.length} Foto di Album\n` +
+          `• <b>Desa:</b> ${tenant.namaDesa}\n` +
+          `• <b>Penanggung Jawab:</b> ${authorName}\n\n` +
+          `🔗 <b>Lihat di Website:</b>\nhttps://${primaryDomain}/galeri`,
+          { reply_markup: getMainMenuKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      if (linked.conversationState === 'COLLECTING_ARTICLE_PHOTOS') {
+        const draft = (linked.pendingDraft || {}) as any;
+        const photos = Array.isArray(draft.photos) ? draft.photos : [];
+        const title = draft.title?.trim() || 'Warta Kegiatan Desa';
+        const articleContent = draft.content?.trim() || title;
+
+        const coverImageUrl = photos.length > 0 ? photos[0].url : '/images/desa_irigasi_pertanian.jpg';
+        const galleryUrls = photos.map((p: any, idx: number) => ({
+          url: p.url,
+          caption: idx === 0 ? 'Foto Utama' : `Dokumentasi ${idx + 1}`,
+        }));
+
+        let category = await prisma.category.findFirst({
+          where: { tenantId: tenant.id, slug: 'warta-desa' },
+        });
+        if (!category) {
+          category = await prisma.category.create({
+            data: { tenantId: tenant.id, name: 'Warta Desa', slug: 'warta-desa' },
+          });
+        }
+
+        let baseSlug = title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+        if (!baseSlug) baseSlug = `berita-${Date.now()}`;
+        let articleSlug = baseSlug;
+        let counter = 1;
+        while (await prisma.article.findFirst({ where: { tenantId: tenant.id, slug: articleSlug } })) {
+          articleSlug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+
+        const htmlContent = articleContent.split('\n\n').map((p: string) => `<p>${p}</p>`).join('');
+
+        const article = await prisma.article.create({
+          data: {
+            tenantId: tenant.id,
+            categoryId: category.id,
+            title,
+            slug: articleSlug,
+            summary: articleContent.slice(0, 160) + '...',
+            content: htmlContent,
+            coverImageUrl,
+            galleryUrls,
+            authorName,
+            status: 'PUBLISHED',
+            publishedAt: new Date(),
+          },
+        });
+
+        await resetSubscriberConversation(from.id);
+        const articlePublicUrl = `https://${primaryDomain}/berita/${article.slug}?tenant=${tenant.slug}`;
+        await sendTelegramMessage(
+          chatId,
+          `📰 <b>Artikel Berita Berhasil Diterbitkan!</b>\n\n` +
+          `• <b>Judul:</b> ${article.title}\n` +
+          `• <b>Desa:</b> ${tenant.namaDesa}\n` +
+          `• <b>Penulis:</b> ${authorName}\n` +
+          `• <b>Total Foto:</b> ${photos.length} Foto\n\n` +
+          `🔗 <b>Buka Artikel di Website:</b>\n<a href="${articlePublicUrl}">${articlePublicUrl}</a>`,
+          { reply_markup: getMainMenuKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      await sendTelegramMessage(
+        chatId,
+        `ℹ️ Tidak ada draft yang sedang aktif. Silakan pilih menu di bawah untuk mulai memposting:`,
+        { reply_markup: getMainMenuKeyboard() }
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    // =========================================================================
+    // 4. PENANGANAN INPUT TEKS DALAM STATE DIALOG
+    // =========================================================================
+    if (text && (!photos || photos.length === 0)) {
+      // A. Menunggu Judul Galeri
+      if (linked.conversationState === 'AWAITING_GALLERY_TITLE') {
+        const title = text.trim();
+        const currentDraft = (linked.pendingDraft || {}) as any;
+        const existingPhotos = Array.isArray(currentDraft.photos) ? currentDraft.photos : [];
+
+        await setSubscriberConversation(from.id, 'COLLECTING_GALLERY_PHOTOS', {
+          ...currentDraft,
+          title,
+        });
+
+        if (existingPhotos.length > 0) {
+          await sendTelegramMessage(
+            chatId,
+            `✅ Judul dicatat: <b>${title}</b>\n\n` +
+            `Saat ini sudah ada <b>${existingPhotos.length} foto</b> tersimpan di draft album ini.\n` +
+            `Anda dapat mengirim foto tambahan lagi, atau klik tombol di bawah untuk langsung menerbitkan album:`,
+            { reply_markup: getGalleryActionKeyboard() }
+          );
+        } else {
+          await sendTelegramMessage(
+            chatId,
+            `✅ Judul dicatat: <b>${title}</b>\n\n` +
+            `📸 Sekarang silakan kirimkan foto-foto dokumentasinya!\n` +
+            `<i>(Anda bisa mengirim 1, 2, atau banyak foto sekaligus dari galeri HP)</i>\n\n` +
+            `Setelah selesai, klik tombol di bawah atau ketik <code>/selesai</code>.`,
+            { reply_markup: getGalleryActionKeyboard() }
+          );
+        }
+        return NextResponse.json({ ok: true });
+      }
+
+      // B. Menunggu Teks Berita
+      if (linked.conversationState === 'AWAITING_ARTICLE_TEXT') {
+        const lines = text.trim().split('\n').filter(Boolean);
+        const title = lines[0]?.slice(0, 150) || 'Warta Kegiatan Desa';
+        const content = lines.length > 1 ? lines.slice(1).join('\n\n') : text.trim();
+        const currentDraft = (linked.pendingDraft || {}) as any;
+        const existingPhotos = Array.isArray(currentDraft.photos) ? currentDraft.photos : [];
+
+        await setSubscriberConversation(from.id, 'COLLECTING_ARTICLE_PHOTOS', {
+          ...currentDraft,
+          title,
+          content,
+        });
+
+        if (existingPhotos.length > 0) {
+          await sendTelegramMessage(
+            chatId,
+            `✅ Berita dicatat: <b>${title}</b>\n\n` +
+            `Saat ini sudah ada <b>${existingPhotos.length} foto</b> tersimpan.\n` +
+            `Anda dapat mengirim foto tambahan lagi, atau klik tombol di bawah untuk langsung menerbitkan berita:`,
+            { reply_markup: getArticleActionKeyboard() }
+          );
+        } else {
+          await sendTelegramMessage(
+            chatId,
+            `✅ Teks berita dicatat: <b>${title}</b>\n\n` +
+            `📸 Sekarang silakan kirimkan foto dokumentasinya!\n` +
+            `<i>(Foto pertama otomatis dijadikan cover utama berita)</i>\n\n` +
+            `Setelah selesai, klik tombol di bawah atau ketik <code>/selesai</code>.`,
+            { reply_markup: getArticleActionKeyboard() }
+          );
+        }
+        return NextResponse.json({ ok: true });
+      }
+
+      // C. Menunggu Teks Pengumuman
+      if (linked.conversationState === 'AWAITING_ANNOUNCEMENT_TEXT') {
+        const announcementContent = text.trim();
+        const firstLine = announcementContent.split('\n')[0].trim();
+        const title = firstLine.length > 80 ? firstLine.slice(0, 77) + '...' : firstLine;
+
+        await prisma.announcement.create({
+          data: {
+            tenantId: tenant.id,
+            title,
+            content: announcementContent,
+            status: 'PUBLISHED',
+            isPinned: true,
+            authorName,
+          },
+        });
+
+        await resetSubscriberConversation(from.id);
+        await sendTelegramMessage(
+          chatId,
+          `📢 <b>Pengumuman Resmi Berhasil Diterbitkan!</b>\n\n` +
+          `<b>Judul:</b> ${title}\n` +
+          `<b>Desa:</b> ${tenant.namaDesa}\n` +
+          `<b>Diumumkan Oleh:</b> ${authorName}\n\n` +
+          `Pengumuman sudah langsung tayang di papan pengumuman portal warga: https://${primaryDomain}`,
+          { reply_markup: getMainMenuKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+    }
+
+    // =========================================================================
+    // 5. PENANGANAN PENGUNGGAHAN FOTO (DENGAN KOMPRESI SHARP WEBP KE R2)
+    // =========================================================================
     if (photos && photos.length > 0) {
       const highestResPhoto = photos[photos.length - 1];
       const fileId = highestResPhoto.file_id;
@@ -266,9 +689,6 @@ export async function POST(request: NextRequest) {
 
       let fileIdsToProcess: string[] = [];
       let finalCaption = caption.trim();
-      let isSubsequentAlbumPhoto = false;
-      let existingArticleForGroup: any = null;
-      let existingGalleryForGroup: any = null;
 
       if (mediaGroupId) {
         // Multi-photo album (dikirim bersamaan oleh Telegram)
@@ -281,17 +701,14 @@ export async function POST(request: NextRequest) {
           fileId,
         });
 
-        // Jeda waktu 2200ms agar seluruh foto dalam album dari request paralel lain sempat ter-buffer di DB
+        // Jeda waktu 2200ms agar seluruh foto dalam album sempat ter-buffer
         await new Promise((resolve) => setTimeout(resolve, 2200));
 
-        // Klaim grup secara atomik
         const claimed = await claimTelegramMediaGroup(mediaGroupId);
         if (!claimed) {
-          // Worker lain yang menang claim atau semua file sudah diproses
           return NextResponse.json({ ok: true });
         }
 
-        // Ambil data final grup yang sudah lengkap
         const groupData = await getTelegramMediaGroup(mediaGroupId);
         if (!groupData) return NextResponse.json({ ok: true });
 
@@ -306,486 +723,12 @@ export async function POST(request: NextRequest) {
         if (groupData.caption) {
           finalCaption = groupData.caption.trim();
         }
-
-        if (groupData.articleId) {
-          existingArticleForGroup = await prisma.article.findUnique({
-            where: { id: groupData.articleId },
-          });
-          if (existingArticleForGroup) {
-            isSubsequentAlbumPhoto = true;
-          }
-        }
-
-        if ((groupData as any).galleryId) {
-          existingGalleryForGroup = await prisma.galleryItem.findUnique({
-            where: { id: (groupData as any).galleryId },
-          });
-          if (existingGalleryForGroup) {
-            isSubsequentAlbumPhoto = true;
-          }
-        } else if (groupData.targetType === 'GALLERY' && groupData.articleId) {
-          existingGalleryForGroup = await prisma.galleryItem.findUnique({
-            where: { id: groupData.articleId },
-          });
-          if (existingGalleryForGroup) {
-            isSubsequentAlbumPhoto = true;
-          }
-        }
       } else {
-        // Foto tunggal (single photo tanpa media_group_id)
         fileIdsToProcess = [fileId];
       }
 
-      // Validasi & Penanganan Cerdas Foto Tanpa Keterangan (Single Photo)
-      const attachWindowMinutes = (tenant as any).telegramAttachWindowMinutes ?? 5;
-      if (!finalCaption && !mediaGroupId) {
-        if (attachWindowMinutes > 0) {
-          const thresholdTime = new Date(Date.now() - attachWindowMinutes * 60 * 1000);
-
-          // Cari postingan terbaru (artikel warta ATAU album galeri) milik pamong (atau umum) dalam jendela aktif
-          const authorFilter = authorName ? { authorName } : {};
-
-          const [recentArticle, recentGallery] = await Promise.all([
-            prisma.article.findFirst({
-              where: {
-                tenantId: tenant.id,
-                ...authorFilter,
-                createdAt: { gte: thresholdTime },
-              },
-              orderBy: { createdAt: 'desc' },
-            }),
-            prisma.galleryItem.findFirst({
-              where: {
-                tenantId: tenant.id,
-                ...authorFilter,
-                createdAt: { gte: thresholdTime },
-              },
-              orderBy: { createdAt: 'desc' },
-            }),
-          ]);
-
-          // Tentukan target: prioritaskan postingan yang paling baru dibuat
-          const isGalleryTarget =
-            recentGallery && (!recentArticle || recentGallery.createdAt > recentArticle.createdAt);
-
-          // KASUS A: Target adalah Galeri Kegiatan yang baru saja dibuat -> SEMATKAN KE DALAM ALBUM YANG SAMA (TIDAK BUAT GALERI BARU)
-          if (isGalleryTarget && recentGallery) {
-            await sendTelegramMessage(
-              chatId,
-              `⏳ <i>Sedang mengompresi WebP & menyematkan foto ke Album Galeri "${recentGallery.title}"...</i>`
-            );
-
-            const fileInfo = await getTelegramFileInfo(fileId);
-            if (fileInfo?.file_path) {
-              const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
-              if (fileBuffer) {
-                let optimizedBuffer = fileBuffer;
-                try {
-                  const pipeline = sharp(fileBuffer).rotate();
-                  const meta = await pipeline.metadata();
-                  if ((meta.width && meta.width > 1920) || (meta.height && meta.height > 1920)) {
-                    pipeline.resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true });
-                  }
-                  optimizedBuffer = await pipeline.webp({ quality: 80, effort: 4 }).toBuffer();
-                } catch (e) {
-                  console.warn('Gagal kompresi foto galeri susulan:', e);
-                }
-
-                const filename = `galeri_${Date.now()}_lampiran.webp`;
-                const uploadRes = await uploadFile({
-                  buffer: optimizedBuffer,
-                  filename,
-                  mimeType: 'image/webp',
-                  tenantSlug: tenant.slug,
-                  folder: 'galeri',
-                });
-
-                let currentMedia: any[] = [];
-                if (Array.isArray(recentGallery.mediaUrls)) {
-                  currentMedia = recentGallery.mediaUrls;
-                } else if (typeof recentGallery.mediaUrls === 'string') {
-                  try {
-                    currentMedia = JSON.parse(recentGallery.mediaUrls);
-                  } catch (_) {}
-                }
-                if (currentMedia.length === 0 && recentGallery.imageUrl) {
-                  currentMedia = [{ type: 'IMAGE', url: recentGallery.imageUrl, caption: recentGallery.title }];
-                }
-
-                const updatedMedia = [
-                  ...currentMedia,
-                  {
-                    type: 'IMAGE',
-                    url: uploadRes.url,
-                    caption: `Dokumentasi ${currentMedia.length + 1}`,
-                  },
-                ];
-
-                await prisma.galleryItem.update({
-                  where: { id: recentGallery.id },
-                  data: {
-                    mediaUrls: updatedMedia,
-                    mediaType: 'ALBUM',
-                  },
-                });
-
-                await sendTelegramMessage(
-                  chatId,
-                  `🖼️ <b>Foto Dokumentasi Berhasil Disematkan ke Galeri!</b>\n\n` +
-                  `Foto otomatis disematkan ke album galeri:\n` +
-                  `<b>${recentGallery.title}</b>\n\n` +
-                  `• <b>Total Foto di Album:</b> ${updatedMedia.length} Foto\n` +
-                  `• <b>Penanggung Jawab:</b> ${authorName}\n` +
-                  `• <b>Desa:</b> ${tenant.namaDesa}\n\n` +
-                  `🔗 https://${primaryDomain}/galeri\n\n` +
-                  `💡 <i>Kirim foto baru dengan caption <code>/galeri [Judul]</code> jika ingin membuat album galeri baru terpisah.</i>`
-                );
-                return NextResponse.json({ ok: true });
-              }
-            }
-          }
-
-          // KASUS B: Target adalah Artikel Berita
-          if (recentArticle) {
-            // Lampirkan otomatis foto ini ke galeri artikel
-            await sendTelegramMessage(
-              chatId,
-              `⏳ <i>Sedang mengompresi WebP & menambahkan foto ke dokumentasi artikel "${recentArticle.title}"...</i>`
-            );
-
-            const fileInfo = await getTelegramFileInfo(fileId);
-            if (fileInfo?.file_path) {
-              const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
-              if (fileBuffer) {
-                let optimizedBuffer = fileBuffer;
-                try {
-                  const pipeline = sharp(fileBuffer).rotate();
-                  const meta = await pipeline.metadata();
-                  if ((meta.width && meta.width > 1920) || (meta.height && meta.height > 1920)) {
-                    pipeline.resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true });
-                  }
-                  optimizedBuffer = await pipeline.webp({ quality: 80, effort: 4 }).toBuffer();
-                } catch (e) {
-                  console.warn('Gagal kompresi foto lampiran:', e);
-                }
-
-                const filename = `berita_${Date.now()}_lampiran.webp`;
-                const uploadRes = await uploadFile({
-                  buffer: optimizedBuffer,
-                  filename,
-                  mimeType: 'image/webp',
-                  tenantSlug: tenant.slug,
-                  folder: 'artikel',
-                });
-
-                const currentGallery = Array.isArray(recentArticle.galleryUrls)
-                  ? (recentArticle.galleryUrls as any[])
-                  : [];
-                const updatedGallery = [
-                  ...currentGallery,
-                  { url: uploadRes.url, caption: `Dokumentasi ${currentGallery.length + 1}` },
-                ];
-
-                await prisma.article.update({
-                  where: { id: recentArticle.id },
-                  data: { galleryUrls: updatedGallery },
-                });
-
-                const articlePublicUrl = `https://${primaryDomain}/berita/${recentArticle.slug}?tenant=${tenant.slug}`;
-                await sendTelegramMessage(
-                  chatId,
-                  `📸 <b>Foto Dokumentasi Berhasil Ditambahkan!</b>\n\n` +
-                  `Foto otomatis disematkan ke album berita:\n` +
-                  `<b>${recentArticle.title}</b>\n\n` +
-                  `• <b>Total Foto:</b> ${updatedGallery.length} Foto di Album\n` +
-                  `• <b>Penanggung Jawab:</b> ${authorName}\n\n` +
-                  `🔗 <a href="${articlePublicUrl}">Buka Artikel di Website</a>\n\n` +
-                  `💡 <i>Kirim foto baru dengan caption jika ingin membuat artikel berita baru terpisah.</i>`
-                );
-                return NextResponse.json({ ok: true });
-              }
-            }
-          }
-        }
-
-        // Cek C: Jika di luar jendela waktu atau dinonaktifkan (0 menit), baru tampilkan panduan ramah
-        await sendTelegramMessage(
-          chatId,
-          `ℹ️ <b>Foto Diterima Tanpa Keterangan</b>\n\n` +
-          `Untuk mempublikasikan ke website desa, silakan kirim foto dengan keterangan (caption):\n` +
-          `• <b>Artikel Berita:</b> Tuliskan judul dan isi berita pada keterangan foto.\n` +
-          `• <b>Galeri Desa:</b> Awali keterangan dengan <code>/galeri [Judul Foto]</code>.\n\n` +
-          `💡 <i>Tips Praktis: Anda dapat memilih 2 hingga 10 foto sekaligus dari galeri HP untuk dikirim bersamaan!</i>`
-        );
-        return NextResponse.json({ ok: true });
-      }
-
-      // Penanganan Foto Susulan pada Media Group yang Galerinya Sudah Terbit
-      if (isSubsequentAlbumPhoto && existingGalleryForGroup) {
-        const newUploadedPhotos: { url: string; storage: string }[] = [];
-        for (let i = 0; i < fileIdsToProcess.length; i++) {
-          const fId = fileIdsToProcess[i];
-          const fileInfo = await getTelegramFileInfo(fId);
-          if (!fileInfo || !fileInfo.file_path) continue;
-
-          const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
-          if (!fileBuffer) continue;
-
-          let optimizedBuffer = fileBuffer;
-          try {
-            const pipeline = sharp(fileBuffer).rotate();
-            const meta = await pipeline.metadata();
-            if ((meta.width && meta.width > 1920) || (meta.height && meta.height > 1920)) {
-              pipeline.resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true });
-            }
-            optimizedBuffer = await pipeline.webp({ quality: 80, effort: 4 }).toBuffer();
-          } catch (e) {
-            console.warn(e);
-          }
-
-          const filename = `galeri_${Date.now()}_${i + 1}.webp`;
-          const uploadRes = await uploadFile({
-            buffer: optimizedBuffer,
-            filename,
-            mimeType: 'image/webp',
-            tenantSlug: tenant.slug,
-            folder: 'galeri',
-          });
-          newUploadedPhotos.push(uploadRes);
-        }
-
-        if (newUploadedPhotos.length > 0) {
-          let currentMedia: any[] = [];
-          if (Array.isArray(existingGalleryForGroup.mediaUrls)) {
-            currentMedia = existingGalleryForGroup.mediaUrls;
-          } else if (typeof existingGalleryForGroup.mediaUrls === 'string') {
-            try {
-              currentMedia = JSON.parse(existingGalleryForGroup.mediaUrls);
-            } catch (_) {}
-          }
-          if (currentMedia.length === 0 && existingGalleryForGroup.imageUrl) {
-            currentMedia = [{ type: 'IMAGE', url: existingGalleryForGroup.imageUrl, caption: existingGalleryForGroup.title }];
-          }
-
-          const updatedMedia = [
-            ...currentMedia,
-            ...newUploadedPhotos.map((p, idx) => ({
-              type: 'IMAGE',
-              url: p.url,
-              caption: `Dokumentasi ${currentMedia.length + idx + 1}`,
-            })),
-          ];
-
-          await prisma.galleryItem.update({
-            where: { id: existingGalleryForGroup.id },
-            data: {
-              mediaUrls: updatedMedia,
-              mediaType: 'ALBUM',
-            },
-          });
-
-          if (mediaGroupId) {
-            await recordProcessedMediaGroupFiles({
-              mediaGroupId,
-              newProcessedFiles: fileIdsToProcess,
-              galleryId: existingGalleryForGroup.id,
-              targetType: 'GALLERY',
-            });
-          }
-
-          await sendTelegramMessage(
-            chatId,
-            `🖼️ <b>${newUploadedPhotos.length} Foto Tambahan Disematkan ke Album Galeri!</b>\n\n` +
-            `<b>Judul:</b> ${existingGalleryForGroup.title}\n` +
-            `<b>Total Foto:</b> ${updatedMedia.length} Foto di Album\n\n` +
-            `🔗 https://${primaryDomain}/galeri`
-          );
-        }
-        return NextResponse.json({ ok: true });
-      }
-
-      // Penanganan Foto Susulan pada Media Group yang Artikelnya Sudah Terbit
-      if (isSubsequentAlbumPhoto && existingArticleForGroup) {
-        const newUploadedPhotos: { url: string; storage: string }[] = [];
-        for (let i = 0; i < fileIdsToProcess.length; i++) {
-          const fId = fileIdsToProcess[i];
-          const fileInfo = await getTelegramFileInfo(fId);
-          if (!fileInfo || !fileInfo.file_path) continue;
-
-          const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
-          if (!fileBuffer) continue;
-
-          let optimizedBuffer = fileBuffer;
-          try {
-            const pipeline = sharp(fileBuffer).rotate();
-            const meta = await pipeline.metadata();
-            if ((meta.width && meta.width > 1920) || (meta.height && meta.height > 1920)) {
-              pipeline.resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true });
-            }
-            optimizedBuffer = await pipeline.webp({ quality: 80, effort: 4 }).toBuffer();
-          } catch (e) {
-            console.warn(e);
-          }
-
-          const filename = `berita_${Date.now()}_${i + 1}.webp`;
-          const uploadRes = await uploadFile({
-            buffer: optimizedBuffer,
-            filename,
-            mimeType: 'image/webp',
-            tenantSlug: tenant.slug,
-            folder: 'artikel',
-          });
-          newUploadedPhotos.push(uploadRes);
-        }
-
-        if (newUploadedPhotos.length > 0) {
-          const currentGallery = Array.isArray(existingArticleForGroup.galleryUrls)
-            ? (existingArticleForGroup.galleryUrls as any[])
-            : [];
-          const updatedGallery = [
-            ...currentGallery,
-            ...newUploadedPhotos.map((p, idx) => ({
-              url: p.url,
-              caption: `Dokumentasi ${currentGallery.length + idx + 1}`,
-            })),
-          ];
-
-          await prisma.article.update({
-            where: { id: existingArticleForGroup.id },
-            data: { galleryUrls: updatedGallery },
-          });
-
-          if (mediaGroupId) {
-            await recordProcessedMediaGroupFiles({
-              mediaGroupId,
-              newProcessedFiles: fileIdsToProcess,
-              articleId: existingArticleForGroup.id,
-              targetType: 'ARTICLE',
-            });
-          }
-
-          const articlePublicUrl = `https://${primaryDomain}/berita/${existingArticleForGroup.slug}?tenant=${tenant.slug}`;
-          await sendTelegramMessage(
-            chatId,
-            `📸 <b>${newUploadedPhotos.length} Foto Tambahan Disematkan ke Album!</b>\n\n` +
-            `<b>Artikel:</b> ${existingArticleForGroup.title}\n` +
-            `<b>Total Album:</b> ${updatedGallery.length} Foto\n\n` +
-            `🔗 <a href="${articlePublicUrl}">Buka Berita di Website</a>`
-          );
-        }
-        return NextResponse.json({ ok: true });
-      }
-
-      // Tentukan tujuan: Galeri atau Berita
-      const isGallery =
-        finalCaption.startsWith('/galeri') ||
-        finalCaption.startsWith('/album') ||
-        (!finalCaption && fileIdsToProcess.length > 1); // Banyak foto tanpa caption otomatis diarahkan ke Galeri
-
-      // A. ALUR GALERI FOTO (Bisa 1 atau banyak foto sekaligus dengan kompresi WebP -> 1 ITEM ALBUM TUNGGAL)
-      if (isGallery) {
-        const baseTitle = finalCaption.replace(/^\/(?:galeri|album)\s*/i, '').trim() || 'Dokumentasi Kegiatan Desa';
-
-        await sendTelegramMessage(
-          chatId,
-          `⏳ <i>Sedang mengompresi WebP & memproses ${fileIdsToProcess.length} foto ke Album Galeri Desa ${tenant.namaDesa}...</i>`
-        );
-
-        const uploadedPhotos: { url: string; storage: string }[] = [];
-        for (let i = 0; i < fileIdsToProcess.length; i++) {
-          const fId = fileIdsToProcess[i];
-          const fileInfo = await getTelegramFileInfo(fId);
-          if (!fileInfo || !fileInfo.file_path) continue;
-
-          const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
-          if (!fileBuffer) continue;
-
-          // Kompresi Sharp otomatis ke WebP ringan
-          let optimizedBuffer = fileBuffer;
-          try {
-            const pipeline = sharp(fileBuffer).rotate();
-            const meta = await pipeline.metadata();
-            if ((meta.width && meta.width > 1920) || (meta.height && meta.height > 1920)) {
-              pipeline.resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true });
-            }
-            optimizedBuffer = await pipeline.webp({ quality: 80, effort: 4 }).toBuffer();
-          } catch (compErr) {
-            console.warn('Gagal kompresi Sharp WebP galeri:', compErr);
-          }
-
-          const filename = `galeri_${Date.now()}_${i + 1}.webp`;
-          const uploadRes = await uploadFile({
-            buffer: optimizedBuffer,
-            filename,
-            mimeType: 'image/webp',
-            tenantSlug: tenant.slug,
-            folder: 'galeri',
-          });
-          uploadedPhotos.push(uploadRes);
-        }
-
-        if (uploadedPhotos.length === 0) {
-          await sendTelegramMessage(chatId, `❌ Gagal mengunggah foto ke Galeri. Silakan coba kembali.`);
-          return NextResponse.json({ ok: true });
-        }
-
-        const coverImageUrl = uploadedPhotos[0].url;
-        const mediaUrls = uploadedPhotos.map((p, idx) => ({
-          type: 'IMAGE',
-          url: p.url,
-          caption: idx === 0 ? 'Foto Utama' : `Dokumentasi ${idx + 1}`,
-        }));
-
-        // BUAT TEPAT 1 ALBUM GALERI TUNGGAL DI DATABASE, BUKAN MEMBUAT BANYAK ITEM TERPISAH
-        const galleryItem = await prisma.galleryItem.create({
-          data: {
-            tenantId: tenant.id,
-            title: baseTitle,
-            imageUrl: coverImageUrl,
-            category: 'Kegiatan',
-            caption: baseTitle,
-            authorName,
-            mediaType: uploadedPhotos.length > 1 ? 'ALBUM' : 'IMAGE',
-            mediaUrls,
-            takenAt: new Date(),
-          },
-        });
-
-        if (mediaGroupId) {
-          await recordProcessedMediaGroupFiles({
-            mediaGroupId,
-            newProcessedFiles: fileIdsToProcess,
-            galleryId: galleryItem.id,
-            targetType: 'GALLERY',
-          });
-        }
-
-        await sendTelegramMessage(
-          chatId,
-          `🖼️ <b>${uploadedPhotos.length > 1 ? `${uploadedPhotos.length} Foto Berhasil Disimpan ke Album Galeri!` : 'Foto Berhasil Disimpan ke Galeri!'}</b>\n\n` +
-          `<b>Judul:</b> ${baseTitle}\n` +
-          `<b>Desa:</b> ${tenant.namaDesa}\n` +
-          `<b>Diunggah Oleh:</b> ${authorName}\n` +
-          `<b>Total Foto:</b> ${uploadedPhotos.length} Foto (Terkompresi WebP Ringan)\n` +
-          `<b>Format:</b> Album Dokumentasi Desa\n` +
-          `<b>Penyimpanan:</b> Cloud Storage R2\n\n` +
-          `🔗 <b>Lihat di Galeri Desa:</b>\n` +
-          `https://${primaryDomain}/galeri`
-        );
-        return NextResponse.json({ ok: true });
-      }
-
-      // B. ALUR ARTIKEL BERITA (Bisa 1 atau banyak foto sekaligus dengan kompresi WebP)
-      const lines = finalCaption.split('\n').map((l: string) => l.trim()).filter(Boolean);
-      const title = lines[0]?.slice(0, 150) || 'Warta Kegiatan Desa';
-      const articleContent = lines.length > 1 ? lines.slice(1).join('\n\n') : finalCaption;
-
-      await sendTelegramMessage(
-        chatId,
-        `⏳ <i>Sedang mengompresi WebP & menerbitkan berita dengan ${fileIdsToProcess.length} foto...</i>`
-      );
-
-      const uploadedPhotos: { url: string; storage: string }[] = [];
+      // Unggah & kompresi seluruh berkas foto ke WebP di Cloudflare R2
+      const newUploadedPhotos: { url: string; storage: string }[] = [];
       for (let i = 0; i < fileIdsToProcess.length; i++) {
         const fId = fileIdsToProcess[i];
         const fileInfo = await getTelegramFileInfo(fId);
@@ -794,7 +737,6 @@ export async function POST(request: NextRequest) {
         const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
         if (!fileBuffer) continue;
 
-        // Kompresi Sharp otomatis ke WebP ringan
         let optimizedBuffer = fileBuffer;
         try {
           const pipeline = sharp(fileBuffer).rotate();
@@ -803,112 +745,206 @@ export async function POST(request: NextRequest) {
             pipeline.resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true });
           }
           optimizedBuffer = await pipeline.webp({ quality: 80, effort: 4 }).toBuffer();
-        } catch (compErr) {
-          console.warn('Gagal kompresi Sharp WebP artikel:', compErr);
+        } catch (e) {
+          console.warn('Gagal kompresi Sharp WebP:', e);
         }
 
-        const filename = `berita_${Date.now()}_${i + 1}.webp`;
+        const filename = `media_${Date.now()}_${i + 1}.webp`;
         const uploadRes = await uploadFile({
           buffer: optimizedBuffer,
           filename,
           mimeType: 'image/webp',
           tenantSlug: tenant.slug,
-          folder: 'artikel',
+          folder: 'galeri',
         });
-        uploadedPhotos.push(uploadRes);
+        newUploadedPhotos.push(uploadRes);
       }
 
-      if (uploadedPhotos.length === 0) {
-        await sendTelegramMessage(chatId, `❌ Gagal mengunggah foto artikel. Silakan coba kembali.`);
+      if (newUploadedPhotos.length === 0) {
+        await sendTelegramMessage(chatId, `❌ Gagal memproses foto. Silakan coba kembali.`);
         return NextResponse.json({ ok: true });
       }
-
-      // Foto pertama adalah cover artikel
-      const coverImageUrl = uploadedPhotos[0].url;
-
-      // Seluruh foto masuk ke galleryUrls artikel
-      const galleryUrls = uploadedPhotos.map((p, idx) => ({
-        url: p.url,
-        caption: idx === 0 ? 'Foto Utama' : `Dokumentasi ${idx + 1}`,
-      }));
-
-      // Format konten dengan paragraf HTML
-      const htmlContent = articleContent
-        .split('\n\n')
-        .map((p: string) => `<p>${p}</p>`)
-        .join('');
-
-      // Cari atau buat kategori "Warta Desa"
-      let category = await prisma.category.findFirst({
-        where: { tenantId: tenant.id, slug: 'warta-desa' },
-      });
-      if (!category) {
-        category = await prisma.category.create({
-          data: {
-            tenantId: tenant.id,
-            name: 'Warta Desa',
-            slug: 'warta-desa',
-          },
-        });
-      }
-
-      // Generate slug artikel
-      let baseSlug = title
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .trim()
-        .replace(/\s+/g, '-');
-      if (!baseSlug) baseSlug = `berita-${Date.now()}`;
-
-      let articleSlug = baseSlug;
-      let counter = 1;
-      while (
-        await prisma.article.findFirst({
-          where: { tenantId: tenant.id, slug: articleSlug },
-        })
-      ) {
-        articleSlug = `${baseSlug}-${counter}`;
-        counter++;
-      }
-
-      const article = await prisma.article.create({
-        data: {
-          tenantId: tenant.id,
-          categoryId: category.id,
-          title,
-          slug: articleSlug,
-          summary: articleContent.slice(0, 160) + '...',
-          content: htmlContent,
-          coverImageUrl,
-          galleryUrls,
-          authorName,
-          status: 'PUBLISHED',
-          publishedAt: new Date(),
-        },
-      });
 
       if (mediaGroupId) {
         await recordProcessedMediaGroupFiles({
           mediaGroupId,
           newProcessedFiles: fileIdsToProcess,
-          articleId: article.id,
-          targetType: 'ARTICLE',
         });
       }
 
-      const articlePublicUrl = `https://${primaryDomain}/berita/${article.slug}?tenant=${tenant.slug}`;
+      // KASUS 1: Subscriber sedang dalam mode pengumpulan foto galeri
+      if (linked.conversationState === 'COLLECTING_GALLERY_PHOTOS') {
+        const currentDraft = (linked.pendingDraft || {}) as any;
+        const existingPhotos = Array.isArray(currentDraft.photos) ? currentDraft.photos : [];
+        const updatedPhotos = [...existingPhotos, ...newUploadedPhotos];
+
+        await setSubscriberConversation(from.id, 'COLLECTING_GALLERY_PHOTOS', {
+          ...currentDraft,
+          photos: updatedPhotos,
+        });
+
+        await sendTelegramMessage(
+          chatId,
+          `📸 <b>${newUploadedPhotos.length} Foto Diterima!</b>\n` +
+          `Total saat ini: <b>${updatedPhotos.length} foto</b> di album '<i>${currentDraft.title || 'Galeri Kegiatan'}</i>'.\n\n` +
+          `Kirim foto tambahan lagi jika ada, atau klik tombol di bawah untuk menerbitkan:`,
+          { reply_markup: getGalleryActionKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // KASUS 2: Subscriber sedang dalam mode pengumpulan foto berita
+      if (linked.conversationState === 'COLLECTING_ARTICLE_PHOTOS') {
+        const currentDraft = (linked.pendingDraft || {}) as any;
+        const existingPhotos = Array.isArray(currentDraft.photos) ? currentDraft.photos : [];
+        const updatedPhotos = [...existingPhotos, ...newUploadedPhotos];
+
+        await setSubscriberConversation(from.id, 'COLLECTING_ARTICLE_PHOTOS', {
+          ...currentDraft,
+          photos: updatedPhotos,
+        });
+
+        await sendTelegramMessage(
+          chatId,
+          `📸 <b>${newUploadedPhotos.length} Foto Berita Diterima!</b>\n` +
+          `Total: <b>${updatedPhotos.length} foto</b> untuk berita '<i>${currentDraft.title || 'Warta Desa'}</i>'.\n\n` +
+          `Kirim foto tambahan lagi jika ada, atau klik tombol di bawah untuk menerbitkan:`,
+          { reply_markup: getArticleActionKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // KASUS 3: Subscriber sedang menunggu pilihan jenis postingan (AWAITING_CHOICE)
+      if (linked.conversationState === 'AWAITING_CHOICE') {
+        const currentDraft = (linked.pendingDraft || {}) as any;
+        const existingPhotos = Array.isArray(currentDraft.photos) ? currentDraft.photos : [];
+        const updatedPhotos = [...existingPhotos, ...newUploadedPhotos];
+
+        await setSubscriberConversation(from.id, 'AWAITING_CHOICE', {
+          ...currentDraft,
+          photos: updatedPhotos,
+        });
+
+        await sendTelegramMessage(
+          chatId,
+          `📸 <b>Foto Tambahan Diterima!</b> (Total: <b>${updatedPhotos.length} foto</b> tersimpan di draft sementara).\n\n` +
+          `Ingin dipublikasikan sebagai apa? Silakan pilih tombol di bawah:`,
+          { reply_markup: getPhotoChoiceKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // KASUS 4: Foto dikirim saat IDLE (Tidak dalam mode aktif)
+      // Cek apakah ada caption eksplisit perintah
+      if (finalCaption.startsWith('/galeri') || finalCaption.startsWith('/album')) {
+        const baseTitle = finalCaption.replace(/^\/(?:galeri|album)\s*/i, '').trim() || 'Dokumentasi Kegiatan Desa';
+        const coverImageUrl = newUploadedPhotos[0].url;
+        const mediaUrls = newUploadedPhotos.map((p, idx) => ({
+          type: 'IMAGE',
+          url: p.url,
+          caption: idx === 0 ? 'Foto Utama' : `Dokumentasi ${idx + 1}`,
+        }));
+
+        await prisma.galleryItem.create({
+          data: {
+            tenantId: tenant.id,
+            title: baseTitle,
+            imageUrl: coverImageUrl,
+            category: 'Kegiatan',
+            caption: baseTitle,
+            authorName,
+            mediaType: newUploadedPhotos.length > 1 ? 'ALBUM' : 'IMAGE',
+            mediaUrls,
+            takenAt: new Date(),
+          },
+        });
+
+        await sendTelegramMessage(
+          chatId,
+          `🖼️ <b>${newUploadedPhotos.length > 1 ? `${newUploadedPhotos.length} Foto Berhasil Disimpan ke Album Galeri!` : 'Foto Berhasil Disimpan ke Galeri!'}</b>\n\n` +
+          `<b>Judul:</b> ${baseTitle}\n` +
+          `<b>Desa:</b> ${tenant.namaDesa}\n` +
+          `<b>Diunggah Oleh:</b> ${authorName}\n` +
+          `<b>Total Foto:</b> ${newUploadedPhotos.length} Foto (WebP Terkompresi)\n\n` +
+          `🔗 <b>Lihat di Galeri Desa:</b>\nhttps://${primaryDomain}/galeri`,
+          { reply_markup: getMainMenuKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // Cek apakah ada caption teks berita lengkap (multi-line)
+      if (finalCaption && !finalCaption.startsWith('/')) {
+        const lines = finalCaption.split('\n').map((l: string) => l.trim()).filter(Boolean);
+        const title = lines[0]?.slice(0, 150) || 'Warta Kegiatan Desa';
+        const articleContent = lines.length > 1 ? lines.slice(1).join('\n\n') : finalCaption;
+
+        const coverImageUrl = newUploadedPhotos[0].url;
+        const galleryUrls = newUploadedPhotos.map((p, idx) => ({
+          url: p.url,
+          caption: idx === 0 ? 'Foto Utama' : `Dokumentasi ${idx + 1}`,
+        }));
+
+        let category = await prisma.category.findFirst({
+          where: { tenantId: tenant.id, slug: 'warta-desa' },
+        });
+        if (!category) {
+          category = await prisma.category.create({
+            data: { tenantId: tenant.id, name: 'Warta Desa', slug: 'warta-desa' },
+          });
+        }
+
+        let baseSlug = title.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
+        if (!baseSlug) baseSlug = `berita-${Date.now()}`;
+        let articleSlug = baseSlug;
+        let counter = 1;
+        while (await prisma.article.findFirst({ where: { tenantId: tenant.id, slug: articleSlug } })) {
+          articleSlug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+
+        const htmlContent = articleContent.split('\n\n').map((p: string) => `<p>${p}</p>`).join('');
+
+        const article = await prisma.article.create({
+          data: {
+            tenantId: tenant.id,
+            categoryId: category.id,
+            title,
+            slug: articleSlug,
+            summary: articleContent.slice(0, 160) + '...',
+            content: htmlContent,
+            coverImageUrl,
+            galleryUrls,
+            authorName,
+            status: 'PUBLISHED',
+            publishedAt: new Date(),
+          },
+        });
+
+        const articlePublicUrl = `https://${primaryDomain}/berita/${article.slug}?tenant=${tenant.slug}`;
+        await sendTelegramMessage(
+          chatId,
+          `📰 <b>Artikel Berita Berhasil Diterbitkan!</b>\n\n` +
+          `<b>Judul:</b> ${article.title}\n` +
+          `<b>Desa:</b> ${tenant.namaDesa}\n` +
+          `<b>Penulis:</b> ${authorName}\n` +
+          `<b>Total Foto:</b> ${newUploadedPhotos.length} Foto\n\n` +
+          `🔗 <b>Baca Berita Sekarang:</b>\n<a href="${articlePublicUrl}">${articlePublicUrl}</a>`,
+          { reply_markup: getMainMenuKeyboard() }
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // KASUS 5: Foto dikirim langsung TANPA caption dan tanpa mode aktif -> TANYA PENGGUNA VIA TOMBOL INTERAKTIF!
+      await setSubscriberConversation(from.id, 'AWAITING_CHOICE', {
+        photos: newUploadedPhotos,
+      });
 
       await sendTelegramMessage(
         chatId,
-        `📰 <b>Artikel Berita Berhasil Diterbitkan!</b>\n\n` +
-        `<b>Judul:</b> ${article.title}\n` +
-        `<b>Desa:</b> ${tenant.namaDesa}\n` +
-        `<b>Penulis / Penanggung Jawab:</b> ${authorName}\n` +
-        `<b>Kategori:</b> ${category.name}\n` +
-        `<b>Foto:</b> ${uploadedPhotos.length} Foto (WebP Terkompresi)\n` +
-        `<b>Status:</b> 🟢 Live di Website Resmi\n\n` +
-        `🔗 <b>Baca Berita Sekarang:</b>\n` +
-        `<a href="${articlePublicUrl}">${articlePublicUrl}</a>`
+        `📸 <b>${newUploadedPhotos.length} Foto Diterima!</b>\n\n` +
+        `Ingin dipublikasikan sebagai apa?\n` +
+        `Silakan pilih salah satu opsi tombol di bawah ini:`,
+        { reply_markup: getPhotoChoiceKeyboard() }
       );
       return NextResponse.json({ ok: true });
     }
@@ -917,11 +953,13 @@ export async function POST(request: NextRequest) {
     if (text) {
       await sendTelegramMessage(
         chatId,
-        `💡 <b>Perintah Tidak Dikenali</b>\n\n` +
-        `• Untuk memposting berita: <b>Kirim Foto + Caption teks berita</b>\n` +
-        `• Untuk menambah galeri: <b>Kirim Foto + Caption /galeri [Judul]</b>\n` +
-        `• Untuk pengumuman: <code>/pengumuman [Isi Pengumuman]</code>\n` +
-        `• Cek status desa: <code>/status</code>`
+        `💡 <b>Pilih Menu Publikasi</b>\n\n` +
+        `Gunakan tombol menu di bawah layar untuk memulai publikasi:\n` +
+        `• <b>📰 Tulis Berita</b>\n` +
+        `• <b>🖼️ Galeri Kegiatan</b>\n` +
+        `• <b>📢 Buat Pengumuman</b>\n` +
+        `• <b>❌ Batal / Menu Utama</b>`,
+        { reply_markup: getMainMenuKeyboard() }
       );
     }
 
@@ -934,4 +972,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 }
-
