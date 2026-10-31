@@ -264,8 +264,8 @@ export default async function ArticleDetailPage({ params, searchParams }: PagePr
               dangerouslySetInnerHTML={{ __html: formatArticleContent(article.content) }}
             />
 
-            {/* Album Foto Dokumentasi (Jika Ada Lebih Dari 2 Foto) */}
-            {albumPhotos.length > 0 && (
+            {/* Album Foto Dokumentasi (Tampil jika ada 2 atau lebih foto) */}
+            {albumPhotos.length > 1 && (
               <ArticleGalleryView photos={albumPhotos} articleTitle={article.title} />
             )}
 

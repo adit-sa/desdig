@@ -16,7 +16,7 @@ interface ArticleGalleryViewProps {
 export default function ArticleGalleryView({ photos, articleTitle }: ArticleGalleryViewProps) {
   const [activePhotoIndex, setActivePhotoIndex] = useState<number | null>(null);
 
-  if (!photos || photos.length === 0) return null;
+  if (!photos || photos.length <= 1) return null;
 
   const currentPhoto = activePhotoIndex !== null ? photos[activePhotoIndex] : null;
 

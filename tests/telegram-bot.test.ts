@@ -279,6 +279,111 @@ describe('desDig Telegram Bot Multi-Tenant Publishing Tests', () => {
     await prisma.villageOfficial.delete({ where: { id: official.id } });
   });
 
+  it('11. Incremental Multi-Foto Processing: Menjamin foto susulan pada album tetap terproses tanpa hilang', async () => {
+    const {
+      appendPhotoToMediaGroup,
+      claimTelegramMediaGroup,
+      getTelegramMediaGroup,
+      recordProcessedMediaGroupFiles,
+    } = await import('../lib/telegram');
+    const testGroupId = 'mg_test_incremental_123';
+
+    // Bersihkan data lama
+    await prisma.telegramMediaGroup.deleteMany({ where: { mediaGroupId: testGroupId } });
+
+    // Tahap 1: Foto 1 & Foto 2 tiba
+    await appendPhotoToMediaGroup({
+      mediaGroupId: testGroupId,
+      tenantId: testTenantId,
+      telegramId: testTelegramId,
+      chatId: '12345',
+      caption: 'Berita Musrenbang Akbar',
+      fileId: 'file_foto_1',
+    });
+    await appendPhotoToMediaGroup({
+      mediaGroupId: testGroupId,
+      tenantId: testTenantId,
+      telegramId: testTelegramId,
+      chatId: '12345',
+      fileId: 'file_foto_2',
+    });
+
+    // Worker 1 mengklaim dan memproses 2 foto pertama
+    const claimed1 = await claimTelegramMediaGroup(testGroupId);
+    expect(claimed1).toBe(true);
+
+    const groupStep1 = await getTelegramMediaGroup(testGroupId);
+    expect(groupStep1).not.toBeNull();
+    const filesStep1 = Array.isArray(groupStep1?.fileIds) ? (groupStep1?.fileIds as string[]) : [];
+    expect(filesStep1.length).toBe(2);
+
+    // Simulasi pembuatan artikel untuk 2 foto pertama
+    const article = await prisma.article.create({
+      data: {
+        tenantId: testTenantId,
+        title: 'Berita Musrenbang Akbar',
+        slug: 'musrenbang-akbar-test-incremental',
+        content: '<p>Isi berita</p>',
+        status: 'PUBLISHED',
+        coverImageUrl: '/uploads/test/foto1.webp',
+        galleryUrls: [
+          { url: '/uploads/test/foto1.webp', caption: 'Foto Utama' },
+          { url: '/uploads/test/foto2.webp', caption: 'Dokumentasi 2' },
+        ],
+      },
+    });
+
+    // Catat bahwa foto 1 dan 2 sudah selesai diproses
+    await recordProcessedMediaGroupFiles({
+      mediaGroupId: testGroupId,
+      newProcessedFiles: ['file_foto_1', 'file_foto_2'],
+      articleId: article.id,
+      targetType: 'ARTICLE',
+    });
+
+    // Tahap 2: Foto 3 tiba terlambat (misal karena delay jaringan Telegram)
+    await appendPhotoToMediaGroup({
+      mediaGroupId: testGroupId,
+      tenantId: testTenantId,
+      telegramId: testTelegramId,
+      chatId: '12345',
+      fileId: 'file_foto_3_late',
+    });
+
+    // Worker 2 harus bisa mengklaim ulang grup karena ada foto baru yang belum diproses!
+    const claimed2 = await claimTelegramMediaGroup(testGroupId);
+    expect(claimed2).toBe(true);
+
+    const groupStep2 = await getTelegramMediaGroup(testGroupId);
+    expect(groupStep2).not.toBeNull();
+    expect(groupStep2?.articleId).toBe(article.id);
+
+    const allFilesStep2 = Array.isArray(groupStep2?.fileIds) ? (groupStep2?.fileIds as string[]) : [];
+    const processedFilesStep2 = Array.isArray(groupStep2?.processedFiles) ? (groupStep2?.processedFiles as string[]) : [];
+    const unprocessedStep2 = allFilesStep2.filter((f) => !processedFilesStep2.includes(f));
+
+    // Memastikan hanya foto 3 yang masuk ke antrean belum diproses
+    expect(unprocessedStep2.length).toBe(1);
+    expect(unprocessedStep2[0]).toBe('file_foto_3_late');
+
+    // Catat foto 3 selesai diproses
+    await recordProcessedMediaGroupFiles({
+      mediaGroupId: testGroupId,
+      newProcessedFiles: ['file_foto_3_late'],
+      articleId: article.id,
+      targetType: 'ARTICLE',
+    });
+
+    // Verifikasi status final grup: semua 3 foto tercatat lengkap dan processed = true
+    const finalGroup = await getTelegramMediaGroup(testGroupId);
+    expect(finalGroup?.processed).toBe(true);
+    expect((finalGroup?.processedFiles as string[]).length).toBe(3);
+
+    // Bersihkan data uji
+    await prisma.article.delete({ where: { id: article.id } });
+    await prisma.telegramMediaGroup.deleteMany({ where: { mediaGroupId: testGroupId } });
+  });
+
   afterAll(async () => {
     await prisma.telegramSubscriber.deleteMany({
       where: { telegramId: testTelegramId },

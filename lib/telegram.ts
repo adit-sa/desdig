@@ -305,8 +305,8 @@ export async function appendPhotoToMediaGroup({
 }) {
   const cleanCaption = caption?.trim();
 
-  // Coba hingga 3 kali untuk mengantisipasi race-condition P2002 jika 2 request pertama tiba di milidetik yang sama
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // Coba hingga 5 kali untuk mengantisipasi race-condition P2002 jika request tiba di milidetik yang sama
+  for (let attempt = 0; attempt < 5; attempt++) {
     try {
       const existing = await prisma.telegramMediaGroup.findUnique({
         where: { mediaGroupId },
@@ -321,6 +321,7 @@ export async function appendPhotoToMediaGroup({
             chatId,
             caption: cleanCaption || null,
             fileIds: [fileId],
+            processedFiles: [],
             processed: false,
           },
         });
@@ -332,11 +333,19 @@ export async function appendPhotoToMediaGroup({
         if (!currentFiles.includes(fileId)) {
           currentFiles.push(fileId);
         }
+
+        const processedFiles = Array.isArray(existing.processedFiles)
+          ? (existing.processedFiles as string[])
+          : [];
+        // Jika ada fileId baru yang belum ada di processedFiles, reset processed = false agar diklaim oleh worker
+        const hasUnprocessed = currentFiles.some((f) => !processedFiles.includes(f));
+
         await prisma.telegramMediaGroup.update({
           where: { mediaGroupId },
           data: {
             fileIds: currentFiles,
             ...(cleanCaption && { caption: cleanCaption }),
+            ...(hasUnprocessed && { processed: false }),
           },
         });
         return;
@@ -353,10 +362,22 @@ export async function appendPhotoToMediaGroup({
 }
 
 /**
- * Mengklaim grup media Telegram secara atomik.
- * Menjamin hanya TEPAT 1 proses (worker) yang memproses album sehingga tidak terjadi duplikasi artikel / galeri.
+ * Mengklaim grup media Telegram secara atomik dan cerdas.
+ * Mengembalikan daftar fileId yang BELUM diproses sehingga foto susulan tetap diproses tanpa ada yang hilang.
  */
 export async function claimTelegramMediaGroup(mediaGroupId: string): Promise<boolean> {
+  const group = await prisma.telegramMediaGroup.findUnique({
+    where: { mediaGroupId },
+  });
+
+  if (!group) return false;
+
+  const allFiles = Array.isArray(group.fileIds) ? (group.fileIds as string[]) : [];
+  const processedFiles = Array.isArray(group.processedFiles) ? (group.processedFiles as string[]) : [];
+  const unprocessed = allFiles.filter((f) => !processedFiles.includes(f));
+
+  if (unprocessed.length === 0) return false;
+
   const res = await prisma.telegramMediaGroup.updateMany({
     where: {
       mediaGroupId,
@@ -366,6 +387,7 @@ export async function claimTelegramMediaGroup(mediaGroupId: string): Promise<boo
       processed: true,
     },
   });
+
   return res.count > 0;
 }
 
@@ -375,6 +397,43 @@ export async function claimTelegramMediaGroup(mediaGroupId: string): Promise<boo
 export async function getTelegramMediaGroup(mediaGroupId: string) {
   return prisma.telegramMediaGroup.findUnique({
     where: { mediaGroupId },
+  });
+}
+
+/**
+ * Mencatat daftar berkas foto yang telah berhasil diproses / diunggah ke storage
+ */
+export async function recordProcessedMediaGroupFiles({
+  mediaGroupId,
+  newProcessedFiles,
+  articleId,
+  targetType,
+}: {
+  mediaGroupId: string;
+  newProcessedFiles: string[];
+  articleId?: string;
+  targetType?: 'ARTICLE' | 'GALLERY';
+}) {
+  const group = await prisma.telegramMediaGroup.findUnique({
+    where: { mediaGroupId },
+  });
+  if (!group) return null;
+
+  const currentProcessed = Array.isArray(group.processedFiles)
+    ? (group.processedFiles as string[])
+    : [];
+  const allProcessed = Array.from(new Set([...currentProcessed, ...newProcessedFiles]));
+  const allFiles = Array.isArray(group.fileIds) ? (group.fileIds as string[]) : [];
+  const allDone = allFiles.every((f) => allProcessed.includes(f));
+
+  return prisma.telegramMediaGroup.update({
+    where: { mediaGroupId },
+    data: {
+      processedFiles: allProcessed,
+      ...(articleId && { articleId }),
+      ...(targetType && { targetType }),
+      processed: allDone,
+    },
   });
 }
 

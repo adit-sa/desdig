@@ -8,6 +8,17 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 
 ## [Unreleased]
 
+### Fixed
+- **Penyempurnaan Pemrosesan Multi-Foto & Album Telegram (`TelegramMediaGroup`, `lib/telegram.ts`, `/api/telegram/webhook`)**:
+  - Mengatasi akar masalah kegagalan pengiriman 2 atau lebih foto di mana hanya 1 foto yang tercatat/tampil:
+    - **Penyebab Awal**: Timer tunggu 1.2 detik terlalu cepat bagi Telegram yang sering kali mengirimkan foto-foto dalam album dengan jeda 2 hingga 6 detik melalui request webhook paralel, sehingga worker pertama mengklaim status `processed: true` saat foto kedua belum selesai tiba di server.
+    - **Solusi Cerdas**: Mengimplementasikan antrean bertahap berkesinambungan (*Incremental Multi-Photo Queue*) pada model `TelegramMediaGroup` (`processedFiles`, `articleId`, `targetType`).
+    - Foto susulan pada album yang sama tidak lagi dibatalkan; worker berikutnya otomatis mengenali berkas yang belum diproses (`unprocessedFiles`), mengunggahnya ke Cloudflare R2, dan langsung menyematkannya (*append*) ke dalam album artikel (`galleryUrls`) maupun galeri kegiatan desa.
+  - **Penyematan Foto Dokumentasi Susulan Tanpa Caption (Sequential Photo Attachment)**:
+    - Pengguna kini dapat memposting foto berita atau galeri secara fleksibel: baik memilih 2-10 foto sekaligus sebagai album di HP, maupun mengirim 1 foto bertuliskan judul berita lalu disusul foto-foto berikutnya tanpa caption dalam waktu 5 menit. Foto susulan otomatis masuk ke album berita tersebut tanpa ditolak sistem.
+  - **Penghapusan Tampilan Redundan 1 Foto pada Galeri Artikel (`ArticleGalleryView.tsx`, `app/berita/[slug]/page.tsx`)**:
+    - Komponen album dokumentasi di bawah isi berita kini hanya ditampilkan jika artikel memiliki 2 atau lebih foto (`albumPhotos.length > 1`), menghindari duplikasi tampilan foto tunggal yang sudah menjadi cover headline di atasnya.
+
 ### Added
 - **Halaman Khusus Integrasi Bot Telegram desDig (`/admin/telegram`, `/api/telegram/officials`, `lib/admin-menu.ts`)**:
   - Halaman manajemen lengkap berformat list/tabel untuk mengelola token pairing rahasia per pamong desa maupun token umum desa.
