@@ -9,6 +9,23 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 ## [Unreleased]
 
 ### Added
+- **desDig Official Model Context Protocol (MCP) Server (`mcp/server.ts` & `npm run mcp`)**:
+  - Implementasi resmi MCP Server berbasis `@modelcontextprotocol/sdk` dan transport STDIO untuk mengoperasikan seluruh sistem desDig secara otonom melalui AI Assistant (Antigravity, Claude Desktop, Cursor, dll.).
+  - Menyediakan 12 Tool terstandarisasi dengan isolasi multi-tenant yang ketat:
+    - `desdig_list_villages`: Melihat seluruh desa terdaftar SaaS beserta ringkasan statistik.
+    - `desdig_create_village`: Pendaftaran desa baru multi-tenant (otomatis tema, modul, domain, & akun admin).
+    - `desdig_get_village`: Ringkasan profil, kependudukan (L/P/KK), pamong, warta, & APBDes.
+    - `desdig_update_village`: Perbarui Kades, Visi, Misi, Kontak, Logo, Banner Hero, & Tema.
+    - `desdig_add_resident`: Menambah 1 warga baru ke Buku Induk Penduduk dengan validasi NIK/KK.
+    - `desdig_batch_import_residents`: Import massal puluhan/ratusan data warga sekaligus.
+    - `desdig_create_article`: Menerbitkan berita/warta desa ke portal warga publik.
+    - `desdig_create_announcement`: Menayangkan pengumuman resmi desa (reguler, urgent, critical).
+    - `desdig_add_village_official`: Mendaftarkan aparatur pamong desa ke bagan pemerintahan.
+    - `desdig_add_development_project`: Mencatat proyek fisik pembangunan APBDes & progres %.
+    - `desdig_cleanup_orphan_media`: Membersihkan berkas media yatim di Cloudflare R2 otomatis.
+    - `desdig_list_media_files`: Memeriksa arsip file media desa beserta status integrasi DB.
+  - Dokumentasi panduan konfigurasi lengkap pada `mcp/README.md`.
+  - Suite pengujian integrasi otomatis `tests/mcp-server.test.ts` (4 uji Vitest).
 - **Pustaka Media Server Cloudflare R2 & Audit Integrasi Berkas (`/admin/media`, `/api/media`, `lib/media.ts`)**:
   - Halaman admin baru **Pustaka Media** (`/admin/media`) yang terdaftar di grup menu `Informasi` untuk memanajemen seluruh aset foto/video milik desa secara terisolasi.
   - Pemindaian berkas hybrid Cloudflare R2 (`ListObjectsV2Command`) dan disk lokal dengan paginasi berkinerja tinggi.
