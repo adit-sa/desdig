@@ -112,6 +112,23 @@ export async function getTelegramWebhookInfo() {
 }
 
 /**
+ * Mengambil informasi bot saat ini (username, nama)
+ */
+export async function getTelegramBotMe(): Promise<{ id: number; is_bot: boolean; first_name: string; username?: string } | null> {
+  if (!isTelegramConfigured()) return null;
+  try {
+    const res = await fetch(`${TELEGRAM_API_BASE}/getMe`);
+    const data = await res.json();
+    if (data.ok && data.result) {
+      return data.result;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Mencari data desa yang tertaut dengan akun Telegram ini
  */
 export async function getLinkedTenantForTelegramUser(telegramId: string | number) {
@@ -124,13 +141,14 @@ export async function getLinkedTenantForTelegramUser(telegramId: string | number
           domains: true,
         },
       },
+      villageOfficial: true,
     },
   });
 }
 
 /**
  * Menautkan (Pairing) akun Telegram ke suatu desa dengan verifikasi token rahasia
- * Mendukung pencarian cerdas berdasarkan slug, nama desa dengan spasi, maupun awalan "Desa"
+ * Mendukung verifikasi token khusus Pamong/Perangkat Desa maupun token umum desa
  */
 export async function pairTelegramUserWithTenant({
   telegramId,
@@ -144,7 +162,7 @@ export async function pairTelegramUserWithTenant({
   firstName?: string;
   tenantSlug: string;
   token: string;
-}): Promise<{ success: boolean; message: string; tenant?: any }> {
+}): Promise<{ success: boolean; message: string; tenant?: any; official?: any }> {
   const rawIdentifier = tenantSlug.trim();
   const cleanLower = rawIdentifier.toLowerCase();
   const slugified = cleanLower.replace(/\s+/g, '-');
@@ -179,26 +197,44 @@ export async function pairTelegramUserWithTenant({
     };
   }
 
-  // Verifikasi token pairing desa
-  // Kunci bisa berasal dari:
-  // 1. tenant.telegramToken jika sudah dibuat oleh admin desa di menu Identitas Desa
-  // 2. Kunci rahasia master TELEGRAM_MASTER_KEY di .env
-  // 3. Fallback default: 6 karakter terakhir id desa jika token khusus belum dibuat
-  const masterKey = process.env.TELEGRAM_MASTER_KEY?.trim() || '';
-  const validToken = tenant.telegramToken || tenant.id.slice(-6);
+  // 1. Cek apakah token cocok dengan token khusus salah satu Pamong/Perangkat Desa
+  const matchedOfficial = await prisma.villageOfficial.findFirst({
+    where: {
+      tenantId: tenant.id,
+      isActive: true,
+      telegramToken: { equals: cleanToken, mode: 'insensitive' },
+    },
+  });
 
-  const isTokenValid =
-    (masterKey && cleanToken === masterKey) ||
-    (cleanToken.toLowerCase() === validToken.toLowerCase());
+  let officialId: string | null = null;
+  let officialName: string | null = null;
+  let officialPosition: string | null = null;
 
-  if (!isTokenValid) {
-    return {
-      success: false,
-      message: `Kunci rahasia pairing salah untuk Desa <b>${tenant.namaDesa}</b>. Silakan periksa atau atur token pairing di menu <b>Identitas Desa</b> pada dashboard admin.`,
-    };
+  if (matchedOfficial) {
+    officialId = matchedOfficial.id;
+    officialName = matchedOfficial.name;
+    officialPosition = matchedOfficial.position;
+  } else {
+    // 2. Jika bukan token pamong, cek token umum desa / master key
+    const masterKey = process.env.TELEGRAM_MASTER_KEY?.trim() || '';
+    const validGeneralToken = tenant.telegramToken || tenant.id.slice(-6);
+
+    const isGeneralTokenValid =
+      (masterKey && cleanToken === masterKey) ||
+      (cleanToken.toLowerCase() === validGeneralToken.toLowerCase());
+
+    if (!isGeneralTokenValid) {
+      return {
+        success: false,
+        message: `Kunci rahasia pairing salah untuk Desa <b>${tenant.namaDesa}</b>. Silakan periksa atau atur token pairing di menu <b>Bot Telegram</b> pada dashboard admin.`,
+      };
+    }
+
+    officialName = 'Operator Desa';
+    officialPosition = 'Staf Publikasi';
   }
 
-  // Upsert subscriber Telegram
+  // Upsert subscriber Telegram dengan identitas pamong penanggung jawab
   const tid = telegramId.toString();
   await prisma.telegramSubscriber.upsert({
     where: { telegramId: tid },
@@ -206,19 +242,30 @@ export async function pairTelegramUserWithTenant({
       tenantId: tenant.id,
       username: username || null,
       firstName: firstName || null,
+      villageOfficialId: officialId,
+      officialName,
+      officialPosition,
     },
     create: {
       telegramId: tid,
       tenantId: tenant.id,
       username: username || null,
       firstName: firstName || null,
+      villageOfficialId: officialId,
+      officialName,
+      officialPosition,
     },
   });
 
+  const identityGreeting = officialId
+    ? `Bapak/Ibu <b>${officialName}</b> (${officialPosition})`
+    : `Operator Desa ${tenant.namaDesa}`;
+
   return {
     success: true,
-    message: `Berhasil terhubung ke Desa <b>${tenant.namaDesa}</b>!`,
+    message: `Berhasil terhubung ke Desa <b>${tenant.namaDesa}</b> sebagai ${identityGreeting}!`,
     tenant,
+    official: matchedOfficial || null,
   };
 }
 

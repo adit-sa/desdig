@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Building2,
   Save,
@@ -29,6 +30,7 @@ import {
   Copy,
   Check,
   RefreshCw,
+  ChevronRight,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 import { maskKodeKemendagriInput, formatKodeKemendagri } from '@/lib/formatters';
@@ -774,7 +776,14 @@ export default function IdentitasDesaPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link
+                href="/admin/telegram"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-xs font-bold transition"
+              >
+                <span>Kelola Pamong & Token Bot</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 {formData.telegramSubscribersCount} Akun Pamong Terhubung

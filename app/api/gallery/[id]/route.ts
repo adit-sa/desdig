@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireTenantManagerApi } from '@/lib/auth/rbac';
+import { deleteTenantMediaFiles } from '@/lib/media';
 
 export async function DELETE(
   request: NextRequest,
@@ -8,24 +9,34 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const existing = await prisma.$queryRaw<any[]>`
-      SELECT gi."id", gi."tenantId", t."slug" as "tenantSlug"
-      FROM "GalleryItem" gi
-      JOIN "Tenant" t ON gi."tenantId" = t."id"
-      WHERE gi."id" = ${id}
-    `;
+    const existing = await prisma.galleryItem.findUnique({
+      where: { id },
+      include: { tenant: true },
+    });
 
-    if (!existing || existing.length === 0) {
+    if (!existing) {
       return NextResponse.json({ error: 'Dokumentasi tidak ditemukan' }, { status: 404 });
     }
 
-    const auth = requireTenantManagerApi(request, existing[0].tenantSlug);
+    const auth = requireTenantManagerApi(request, existing.tenant.slug);
     if (!auth.authorized) {
       return auth.response!;
     }
 
-    await prisma.$executeRaw`DELETE FROM "GalleryItem" WHERE "id" = ${id}`;
-    return NextResponse.json({ success: true, message: 'Dokumentasi berhasil dihapus dari galeri' });
+    // Hapus foto dari Cloudflare R2 / storage lokal jika ada
+    if (existing.imageUrl) {
+      try {
+        await deleteTenantMediaFiles(existing.tenant.slug, [existing.imageUrl]);
+      } catch (e) {
+        console.warn('Gagal menghapus berkas foto galeri dari storage:', e);
+      }
+    }
+
+    await prisma.galleryItem.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true, message: 'Dokumentasi dan berkas foto berhasil dihapus dari galeri' });
   } catch (error: any) {
     console.error('Error deleting photo:', error);
     return NextResponse.json({ error: error.message || 'Gagal menghapus dokumentasi' }, { status: 500 });

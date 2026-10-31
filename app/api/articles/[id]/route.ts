@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { articleSchema } from '@/lib/validations/cms';
 import { requireTenantManagerApi } from '@/lib/auth/rbac';
+import { deleteTenantMediaFiles } from '@/lib/media';
 
 export async function DELETE(
   request: NextRequest,
@@ -24,11 +25,31 @@ export async function DELETE(
       return auth.response!;
     }
 
+    // Hapus berkas foto cover & album di Cloudflare R2 dan storage disk
+    const filesToDelete: string[] = [];
+    if (article.coverImageUrl) {
+      filesToDelete.push(article.coverImageUrl);
+    }
+    if (Array.isArray(article.galleryUrls)) {
+      article.galleryUrls.forEach((item: any) => {
+        if (typeof item === 'string' && item) filesToDelete.push(item);
+        else if (item && typeof item === 'object' && item.url) filesToDelete.push(item.url);
+      });
+    }
+
+    if (filesToDelete.length > 0) {
+      try {
+        await deleteTenantMediaFiles(article.tenant.slug, filesToDelete);
+      } catch (e) {
+        console.warn('Gagal menghapus beberapa berkas media artikel dari storage:', e);
+      }
+    }
+
     await prisma.article.delete({
       where: { id },
     });
 
-    return NextResponse.json({ success: true, message: 'Artikel berhasil dihapus' });
+    return NextResponse.json({ success: true, message: 'Artikel dan berkas foto berhasil dihapus' });
   } catch (error: any) {
     console.error('Error deleting article:', error);
     return NextResponse.json({ error: error.message || 'Gagal menghapus artikel' }, { status: 500 });

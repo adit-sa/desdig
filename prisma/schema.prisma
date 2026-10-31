@@ -244,6 +244,7 @@ model Article {
   author           User?         @relation(fields: [authorId], references: [id], onDelete: SetNull)
   authorResidentId String?
   authorResident   Resident?     @relation(fields: [authorResidentId], references: [id], onDelete: SetNull)
+  authorName       String?
   categoryId       String?
   category         Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   title            String
@@ -273,6 +274,7 @@ model Announcement {
   content     String        @db.Text
   isPinned    Boolean       @default(false)
   status      ContentStatus @default(PUBLISHED)
+  authorName  String?
   expiresAt   DateTime?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -314,6 +316,8 @@ model VillageOfficial {
   updatedAt   DateTime  @updatedAt
 
   attendances OfficialAttendance[]
+  telegramToken String?
+  telegramUsers TelegramSubscriber[]
 
   @@index([tenantId, orderIndex])
   @@index([tenantId, residentId])
@@ -369,6 +373,7 @@ model GalleryItem {
   caption     String?   @db.Text
   category    String    @default("Kegiatan")
   mediaType   String    @default("IMAGE")
+  authorName  String?
   videoUrl    String?
   mediaUrls   Json?
   takenAt     DateTime? @default(now())
@@ -592,16 +597,21 @@ model KioskDevice {
 
 // 17. Telegram Bot Multi-Tenant Publishing
 model TelegramSubscriber {
-  id            String    @id @default(cuid())
-  telegramId    String    @unique
-  username      String?
-  firstName     String?
-  tenantId      String
-  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  pairedAt      DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                String          @id @default(cuid())
+  telegramId        String          @unique
+  username          String?
+  firstName         String?
+  tenantId          String
+  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  villageOfficialId String?
+  villageOfficial   VillageOfficial? @relation(fields: [villageOfficialId], references: [id], onDelete: SetNull)
+  officialName      String?
+  officialPosition  String?
+  pairedAt          DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
   @@index([tenantId])
+  @@index([villageOfficialId])
 }
 
 // 18. Telegram Bot Media Group Staging Buffer (Atomic Album Processing)

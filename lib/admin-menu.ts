@@ -24,6 +24,7 @@ import {
   Monitor,
   Shield,
   Image as ImageIcon,
+  Bot,
   LucideIcon,
 } from 'lucide-react';
 
@@ -191,6 +192,14 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         icon: ShoppingBag,
         badge: 'Lapak',
         allowedRoles: ['VILLAGE_ADMIN', 'EDITOR'],
+      },
+      {
+        href: '/admin/telegram',
+        label: 'Bot Telegram',
+        icon: Bot,
+        badge: 'Mobile',
+        description: 'Integrasi posting artikel, pengumuman & galeri via Telegram',
+        allowedRoles: ['VILLAGE_ADMIN', 'EDITOR', 'AUTHOR'],
       },
     ],
   },

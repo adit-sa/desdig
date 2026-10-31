@@ -133,7 +133,7 @@ export default function ModernEditorialTheme({ tenant, data }: ThemeProps) {
               </h2>
 
               <div className="flex flex-wrap items-center gap-4 text-xs text-stone-500 pb-2 border-b border-stone-200">
-                <span className="font-bold text-stone-900">Penulis: {featuredArticle.author?.name || 'Redaksi Desa'}</span>
+                <span className="font-bold text-stone-900">Penulis: {featuredArticle.authorName || featuredArticle.author?.name || 'Redaksi Desa'}</span>
                 <span>•</span>
                 <span>{new Date(featuredArticle.publishedAt || featuredArticle.createdAt).toLocaleDateString('id-ID', { dateStyle: 'full' })}</span>
                 <span>•</span>

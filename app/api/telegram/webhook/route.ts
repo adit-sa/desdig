@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import sharp from 'sharp';
 import { prisma } from '@/lib/prisma';
 import { uploadFile } from '@/lib/storage';
 import {
@@ -180,6 +181,9 @@ export async function POST(request: NextRequest) {
     }
 
     const tenant = linked.tenant;
+    const authorName = linked.officialName
+      ? (linked.officialPosition ? `${linked.officialName} (${linked.officialPosition})` : linked.officialName)
+      : (from.first_name || 'Operator Desa');
     const primaryDomain = tenant.domains?.find((d: any) => d.isPrimary)?.domain || `${tenant.slug}.desdig.id`;
 
     // 4. Perintah /status
@@ -193,6 +197,7 @@ export async function POST(request: NextRequest) {
       await sendTelegramMessage(
         chatId,
         `🏛️ <b>Profil Desa: ${tenant.namaDesa}</b>\n\n` +
+        `• <b>Petugas Login:</b> ${authorName}\n` +
         `• <b>Kecamatan:</b> ${tenant.kecamatan}\n` +
         `• <b>Kabupaten:</b> ${tenant.kabupaten}\n` +
         `• <b>Kepala Desa:</b> ${tenant.kepalaDesa || '-'}\n` +
@@ -226,6 +231,7 @@ export async function POST(request: NextRequest) {
           content: announcementContent,
           status: 'PUBLISHED',
           isPinned: true,
+          authorName,
         },
       });
 
@@ -233,13 +239,25 @@ export async function POST(request: NextRequest) {
         chatId,
         `📢 <b>Pengumuman Resmi Berhasil Diterbitkan!</b>\n\n` +
         `<b>Judul:</b> ${title}\n` +
-        `<b>Desa:</b> ${tenant.namaDesa}\n\n` +
-        `Pengumuman sudah langsung tayang di beranda portal warga: https://${primaryDomain}`
+        `<b>Desa:</b> ${tenant.namaDesa}\n` +
+        `<b>Diumumkan Oleh:</b> ${authorName}\n\n` +
+        `Pengumuman sudah langsung tayang di papan pengumuman portal warga: https://${primaryDomain}`
       );
       return NextResponse.json({ ok: true });
     }
 
-    // 6. Pengunggahan Foto (Artikel Berita atau Galeri - Mendukung Multi-Foto / Album)
+    // 6. Proteksi Berkas Non-Foto: Batasi hanya menerima foto agar hemat ruang penyimpanan R2
+    if (message.document || message.video || message.audio || message.voice || message.video_note) {
+      await sendTelegramMessage(
+        chatId,
+        `⚠️ <b>Format Berkas Belum Didukung</b>\n\n` +
+        `Untuk menghemat kuota dan kapasitas penyimpanan server desa, bot saat ini hanya menerima berkas <b>Foto / Gambar</b> (JPG, PNG, WebP).\n\n` +
+        `Silakan kirimkan dokumentasi kegiatan dalam bentuk foto biasa.`
+      );
+      return NextResponse.json({ ok: true });
+    }
+
+    // 7. Pengunggahan Foto (Artikel Berita atau Galeri - Mendukung Multi-Foto / Album & Kompresi WebP)
     if (photos && photos.length > 0) {
       const highestResPhoto = photos[photos.length - 1];
       const fileId = highestResPhoto.file_id;
@@ -284,7 +302,7 @@ export async function POST(request: NextRequest) {
         fileIdsToProcess = [fileId];
       }
 
-      // 1. Validasi jika foto tunggal tidak memiliki keterangan sama sekali
+      // Validasi jika foto tunggal tidak memiliki keterangan sama sekali
       if (!finalCaption && fileIdsToProcess.length === 1) {
         await sendTelegramMessage(
           chatId,
@@ -297,19 +315,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      // 2. Tentukan tujuan: Galeri atau Berita
+      // Tentukan tujuan: Galeri atau Berita
       const isGallery =
         finalCaption.startsWith('/galeri') ||
         finalCaption.startsWith('/album') ||
         (!finalCaption && fileIdsToProcess.length > 1); // Banyak foto tanpa caption otomatis diarahkan ke Galeri
 
-      // A. ALUR GALERI FOTO (Bisa 1 atau banyak foto sekaligus)
+      // A. ALUR GALERI FOTO (Bisa 1 atau banyak foto sekaligus dengan kompresi WebP)
       if (isGallery) {
         const baseTitle = finalCaption.replace(/^\/(?:galeri|album)\s*/i, '').trim() || 'Dokumentasi Kegiatan Desa';
 
         await sendTelegramMessage(
           chatId,
-          `⏳ <i>Sedang mengunduh & memproses ${fileIdsToProcess.length} foto ke Galeri Desa ${tenant.namaDesa}...</i>`
+          `⏳ <i>Sedang mengompresi WebP & memproses ${fileIdsToProcess.length} foto ke Galeri Desa ${tenant.namaDesa}...</i>`
         );
 
         const savedItems = [];
@@ -321,11 +339,24 @@ export async function POST(request: NextRequest) {
           const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
           if (!fileBuffer) continue;
 
-          const filename = `galeri_${Date.now()}_${i + 1}.jpg`;
+          // Kompresi Sharp otomatis ke WebP ringan
+          let optimizedBuffer = fileBuffer;
+          try {
+            const pipeline = sharp(fileBuffer).rotate();
+            const meta = await pipeline.metadata();
+            if ((meta.width && meta.width > 1920) || (meta.height && meta.height > 1920)) {
+              pipeline.resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true });
+            }
+            optimizedBuffer = await pipeline.webp({ quality: 80, effort: 4 }).toBuffer();
+          } catch (compErr) {
+            console.warn('Gagal kompresi Sharp WebP galeri:', compErr);
+          }
+
+          const filename = `galeri_${Date.now()}_${i + 1}.webp`;
           const uploadRes = await uploadFile({
-            buffer: fileBuffer,
+            buffer: optimizedBuffer,
             filename,
-            mimeType: 'image/jpeg',
+            mimeType: 'image/webp',
             tenantSlug: tenant.slug,
             folder: 'galeri',
           });
@@ -338,6 +369,7 @@ export async function POST(request: NextRequest) {
               imageUrl: uploadRes.url,
               category: 'Kegiatan',
               caption: baseTitle,
+              authorName,
               takenAt: new Date(),
             },
           });
@@ -354,7 +386,8 @@ export async function POST(request: NextRequest) {
           `🖼️ <b>${savedItems.length} Foto Berhasil Disimpan ke Galeri!</b>\n\n` +
           `<b>Judul:</b> ${baseTitle}\n` +
           `<b>Desa:</b> ${tenant.namaDesa}\n` +
-          `<b>Total Tersimpan:</b> ${savedItems.length} Foto Dokumentasi\n` +
+          `<b>Diunggah Oleh:</b> ${authorName}\n` +
+          `<b>Total Foto:</b> ${savedItems.length} Foto (Terkompresi WebP Ringan)\n` +
           `<b>Penyimpanan:</b> Cloud Storage R2\n\n` +
           `🔗 <b>Lihat di Galeri Desa:</b>\n` +
           `https://${primaryDomain}/galeri`
@@ -362,14 +395,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
-      // B. ALUR ARTIKEL BERITA (Bisa 1 atau banyak foto sekaligus)
+      // B. ALUR ARTIKEL BERITA (Bisa 1 atau banyak foto sekaligus dengan kompresi WebP)
       const lines = finalCaption.split('\n').map((l: string) => l.trim()).filter(Boolean);
       const title = lines[0]?.slice(0, 150) || 'Warta Kegiatan Desa';
       const articleContent = lines.length > 1 ? lines.slice(1).join('\n\n') : finalCaption;
 
       await sendTelegramMessage(
         chatId,
-        `⏳ <i>Sedang memproses penerbitan artikel dengan ${fileIdsToProcess.length} foto...</i>`
+        `⏳ <i>Sedang mengompresi WebP & menerbitkan berita dengan ${fileIdsToProcess.length} foto...</i>`
       );
 
       const uploadedPhotos: { url: string; storage: string }[] = [];
@@ -381,11 +414,24 @@ export async function POST(request: NextRequest) {
         const fileBuffer = await downloadTelegramFileBuffer(fileInfo.file_path);
         if (!fileBuffer) continue;
 
-        const filename = `berita_${Date.now()}_${i + 1}.jpg`;
+        // Kompresi Sharp otomatis ke WebP ringan
+        let optimizedBuffer = fileBuffer;
+        try {
+          const pipeline = sharp(fileBuffer).rotate();
+          const meta = await pipeline.metadata();
+          if ((meta.width && meta.width > 1920) || (meta.height && meta.height > 1920)) {
+            pipeline.resize({ width: 1920, height: 1920, fit: 'inside', withoutEnlargement: true });
+          }
+          optimizedBuffer = await pipeline.webp({ quality: 80, effort: 4 }).toBuffer();
+        } catch (compErr) {
+          console.warn('Gagal kompresi Sharp WebP artikel:', compErr);
+        }
+
+        const filename = `berita_${Date.now()}_${i + 1}.webp`;
         const uploadRes = await uploadFile({
-          buffer: fileBuffer,
+          buffer: optimizedBuffer,
           filename,
-          mimeType: 'image/jpeg',
+          mimeType: 'image/webp',
           tenantSlug: tenant.slug,
           folder: 'artikel',
         });
@@ -473,6 +519,7 @@ export async function POST(request: NextRequest) {
           content: htmlContent,
           coverImageUrl,
           galleryUrls,
+          authorName,
           status: 'PUBLISHED',
           publishedAt: new Date(),
         },
@@ -485,8 +532,9 @@ export async function POST(request: NextRequest) {
         `📰 <b>Artikel Berita Berhasil Diterbitkan!</b>\n\n` +
         `<b>Judul:</b> ${article.title}\n` +
         `<b>Desa:</b> ${tenant.namaDesa}\n` +
+        `<b>Penulis / Penanggung Jawab:</b> ${authorName}\n` +
         `<b>Kategori:</b> ${category.name}\n` +
-        `<b>Foto Dokumentasi:</b> ${uploadedPhotos.length} Foto (Cover + Album Berita)\n` +
+        `<b>Foto:</b> ${uploadedPhotos.length} Foto (WebP Terkompresi)\n` +
         `<b>Status:</b> 🟢 Live di Website Resmi\n\n` +
         `🔗 <b>Baca Berita Sekarang:</b>\n` +
         `<a href="${articlePublicUrl}">${articlePublicUrl}</a>`

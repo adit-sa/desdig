@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, ArrowRight, ChevronRight, Eye, Megaphone, Clock, Sparkles, MessageSquare, BookOpen } from 'lucide-react';
+import { Calendar, ArrowRight, ChevronRight, Eye, Megaphone, Clock, Sparkles, MessageSquare, BookOpen, X } from 'lucide-react';
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { ThemeData, SectionOrderFn, getPengaduanUrl } from './shared';
 import LapakWidget from './LapakWidget';
@@ -25,6 +25,7 @@ export default function NewsSection({
   isSectionVisible: (sectionId: string) => boolean;
   getSectionOrder: SectionOrderFn;
 }) {
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<any | null>(null);
   const displayedArticles = data.articles.slice(0, articleCount);
   const featuredArticle = displayedArticles.length > 0 ? displayedArticles[0] : null;
   const regularArticles = displayedArticles.slice(1);
@@ -53,16 +54,16 @@ export default function NewsSection({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Kolom Berita */}
         <div className={`${isSectionVisible('pengumuman') && hasAnnouncements ? 'lg:col-span-8' : 'lg:col-span-12'} space-y-6`}>
-          {/* 1. Berita Utama (Headline Article) */}
+          {/* 1. Berita Utama (Headline Article - Terproteksi dari foto portrait vertikal tinggi) */}
           {featuredArticle && (
-            <article className="scroll-reveal bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col sm:flex-row">
-              <div className="sm:w-1/2 h-56 sm:h-auto relative overflow-hidden bg-slate-900">
+            <article className="scroll-reveal bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col sm:flex-row sm:max-h-[380px]">
+              <div className="relative aspect-[16/10] sm:aspect-auto sm:w-1/2 sm:self-stretch min-h-[220px] max-h-[280px] sm:max-h-none overflow-hidden bg-slate-900 flex-shrink-0">
                 <img
                   loading="lazy"
                   decoding="async"
                   src={featuredArticle.coverImageUrl || defaultCover}
                   alt={featuredArticle.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = defaultCover;
                   }}
@@ -71,7 +72,7 @@ export default function NewsSection({
                   Berita Utama
                 </span>
               </div>
-              <div className="sm:w-1/2 p-6 flex flex-col justify-between space-y-4">
+              <div className="sm:w-1/2 p-6 flex flex-col justify-between space-y-4 overflow-hidden">
                 <div>
                   <div className="flex items-center gap-3 text-xs text-slate-400 mb-2">
                     <span className="flex items-center gap-1 font-medium text-[11px] text-slate-500">
@@ -95,12 +96,12 @@ export default function NewsSection({
                   </p>
                 </div>
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <span className="text-slate-400 font-medium">
-                    Oleh {featuredArticle.author?.name || 'Redaksi SID'}
+                  <span className="text-slate-400 font-medium truncate max-w-[140px]">
+                    Oleh {featuredArticle.authorName || featuredArticle.author?.name || 'Redaksi SID'}
                   </span>
                   <Link
                     href={`/berita/${featuredArticle.slug}?tenant=${tenant.slug}`}
-                    className="text-emerald-700 font-bold flex items-center gap-1 group-hover:translate-x-1 transition"
+                    className="text-emerald-700 font-bold flex items-center gap-1 group-hover:translate-x-1 transition flex-shrink-0"
                   >
                     Baca Selengkapnya <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
@@ -153,10 +154,12 @@ export default function NewsSection({
                     </p>
                   </div>
                   <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span className="text-slate-400 font-medium">Oleh {art.author?.name || 'Redaksi'}</span>
+                    <span className="text-slate-400 font-medium truncate max-w-[140px]">
+                      Oleh {art.authorName || art.author?.name || 'Redaksi'}
+                    </span>
                     <Link
                       href={`/berita/${art.slug}?tenant=${tenant.slug}`}
-                      className="text-emerald-700 font-bold flex items-center gap-1 group-hover:translate-x-1 transition"
+                      className="text-emerald-700 font-bold flex items-center gap-1 group-hover:translate-x-1 transition flex-shrink-0"
                     >
                       Baca Berita <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
@@ -223,26 +226,40 @@ export default function NewsSection({
               <div className="space-y-3.5">
                 {data.announcements
                   .filter((ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now())
-                  .map((ann: any) => (
-                  <div
-                    key={ann.id}
-                    className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/70 text-slate-800 space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between text-[10px] font-bold text-amber-800 uppercase tracking-wider">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-amber-600" />
-                        {formatAnnouncementDateTime(ann.createdAt, tenant?.provinsi)}
-                      </span>
-                      {ann.isPinned && (
-                        <span className="bg-amber-200/80 text-amber-900 px-1.5 py-0.5 rounded text-[9px] font-black">
-                          Prioritas
-                        </span>
-                      )}
-                    </div>
-                    <h5 className="font-extrabold text-sm text-slate-900 leading-snug">{ann.title}</h5>
-                    <p className="text-xs text-slate-600 leading-relaxed line-clamp-3">{ann.content}</p>
-                  </div>
-                ))}
+                  .map((ann: any) => {
+                    const isLong = (ann.content || '').length > 100 || (ann.content || '').includes('\n');
+                    return (
+                      <div
+                        key={ann.id}
+                        className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/70 text-slate-800 space-y-1.5"
+                      >
+                        <div className="flex items-center justify-between text-[10px] font-bold text-amber-800 uppercase tracking-wider">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-amber-600" />
+                            {formatAnnouncementDateTime(ann.createdAt, tenant?.provinsi)}
+                          </span>
+                          {ann.isPinned && (
+                            <span className="bg-amber-200/80 text-amber-900 px-1.5 py-0.5 rounded text-[9px] font-black">
+                              Prioritas
+                            </span>
+                          )}
+                        </div>
+                        <h5 className="font-extrabold text-sm text-slate-900 leading-snug">{ann.title}</h5>
+                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 whitespace-pre-line">{ann.content}</p>
+
+                        {isLong && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAnnouncement(ann)}
+                            className="inline-flex items-center gap-1 text-[11px] font-extrabold text-amber-800 hover:text-amber-950 underline underline-offset-2 pt-1 transition"
+                          >
+                            <span>Pengumuman Lengkap</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
 
                 {data.announcements.length === 0 && (
                   <p className="text-xs text-slate-400 italic text-center py-6">Tidak ada pengumuman baru.</p>
@@ -284,6 +301,63 @@ export default function NewsSection({
           )}
         </div>
       </div>
+
+      {/* Modal Pengumuman Lengkap */}
+      {selectedAnnouncement && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in"
+          onClick={() => setSelectedAnnouncement(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-lg w-full p-6 sm:p-7 border border-slate-200 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="p-2 rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
+                  <Megaphone className="w-4 h-4" />
+                </span>
+                <div>
+                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">
+                    {formatAnnouncementDateTime(selectedAnnouncement.createdAt, tenant?.provinsi)}
+                  </span>
+                  {selectedAnnouncement.authorName && (
+                    <span className="text-[11px] text-slate-500">
+                      Diterbitkan oleh: <strong>{selectedAnnouncement.authorName}</strong>
+                    </span>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedAnnouncement(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <h3 className="text-lg font-black text-slate-900 leading-snug">
+              {selectedAnnouncement.title}
+            </h3>
+
+            <div className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line bg-amber-50/40 p-4 rounded-xl border border-amber-100/80">
+              {selectedAnnouncement.content}
+            </div>
+
+            <div className="flex items-center justify-between pt-2 text-xs text-slate-400">
+              <span>Pemerintah Desa {tenant.namaDesa}</span>
+              <button
+                type="button"
+                onClick={() => setSelectedAnnouncement(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition text-xs"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

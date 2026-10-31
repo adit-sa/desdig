@@ -51,6 +51,7 @@ export interface GalleryItem {
   videoUrl: string | null;
   mediaUrls: MediaItem[] | null;
   takenAt: string | null;
+  authorName?: string | null;
   createdAt: string;
 }
 
@@ -685,6 +686,13 @@ export default function GaleriAdminPage() {
                       <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
                         {p.caption}
                       </p>
+                    )}
+                    {p.authorName && (
+                      <div className="pt-1">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50 px-2 py-0.5 rounded-md border border-sky-200/50">
+                          Oleh: {p.authorName}
+                        </span>
+                      </div>
                     )}
                   </div>
                 </div>

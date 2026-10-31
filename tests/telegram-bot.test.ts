@@ -198,6 +198,87 @@ describe('desDig Telegram Bot Multi-Tenant Publishing Tests', () => {
     await prisma.telegramMediaGroup.deleteMany({ where: { mediaGroupId: testGroupId } });
   });
 
+  it('10. Pamong-specific token pairing: Menautkan token khusus pamong dan mengikat identitas nama/jabatan', async () => {
+    const pamongTelegramId = '888777666';
+
+    // 1. Buat Aparatur Desa uji dengan token khusus pamong
+    const official = await prisma.villageOfficial.create({
+      data: {
+        tenantId: testTenantId,
+        name: 'Drs. H. Mulyadi',
+        position: 'Kepala Seksi Pemerintahan',
+        nip: '197505102005011002',
+        telegramToken: 'PMG-MULYADI',
+        orderIndex: 2,
+        isActive: true,
+      },
+    });
+
+    // 2. Lakukan pairing akun Telegram dengan token pamong
+    const res = await pairTelegramUserWithTenant({
+      telegramId: pamongTelegramId,
+      username: 'mulyadi_pamong',
+      firstName: 'Mulyadi',
+      tenantSlug: testSlug,
+      token: 'PMG-MULYADI',
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.official).not.toBeNull();
+    expect(res.official?.name).toBe('Drs. H. Mulyadi');
+    expect(res.message).toContain('Drs. H. Mulyadi');
+
+    // 3. Verifikasi subscriber terikat langsung ke villageOfficialId
+    const subscriber = await getLinkedTenantForTelegramUser(pamongTelegramId);
+    expect(subscriber).not.toBeNull();
+    expect(subscriber?.villageOfficialId).toBe(official.id);
+    expect(subscriber?.officialName).toBe('Drs. H. Mulyadi');
+    expect(subscriber?.officialPosition).toBe('Kepala Seksi Pemerintahan');
+
+    // 4. Verifikasi bahwa posting artikel mencatat authorName pamong
+    const article = await prisma.article.create({
+      data: {
+        tenantId: testTenantId,
+        title: 'Musrenbang Desa 2026',
+        slug: 'musrenbang-desa-2026-test',
+        content: 'Isi warta musrenbang desa.',
+        status: 'PUBLISHED',
+        authorName: subscriber?.officialName,
+      },
+    });
+    expect(article.authorName).toBe('Drs. H. Mulyadi');
+
+    // 5. Verifikasi pengumuman mencatat authorName pamong
+    const announcement = await prisma.announcement.create({
+      data: {
+        tenantId: testTenantId,
+        title: 'Jadwal Gotong Royong',
+        content: 'Gotong royong serentak.',
+        status: 'PUBLISHED',
+        authorName: subscriber?.officialName,
+      },
+    });
+    expect(announcement.authorName).toBe('Drs. H. Mulyadi');
+
+    // 6. Verifikasi galeri mencatat authorName pamong
+    const gallery = await prisma.galleryItem.create({
+      data: {
+        tenantId: testTenantId,
+        title: 'Dokumentasi Kerja Bakti',
+        imageUrl: '/uploads/test/sample.webp',
+        authorName: subscriber?.officialName,
+      },
+    });
+    expect(gallery.authorName).toBe('Drs. H. Mulyadi');
+
+    // Bersihkan data uji
+    await prisma.article.delete({ where: { id: article.id } });
+    await prisma.announcement.delete({ where: { id: announcement.id } });
+    await prisma.galleryItem.delete({ where: { id: gallery.id } });
+    await prisma.telegramSubscriber.deleteMany({ where: { telegramId: pamongTelegramId } });
+    await prisma.villageOfficial.delete({ where: { id: official.id } });
+  });
+
   afterAll(async () => {
     await prisma.telegramSubscriber.deleteMany({
       where: { telegramId: testTelegramId },

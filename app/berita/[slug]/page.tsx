@@ -217,12 +217,12 @@ export default async function ArticleDetailPage({ params, searchParams }: PagePr
               <div className="flex flex-wrap items-center justify-between gap-3 border-y border-slate-100 py-3.5 text-xs text-slate-500">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs border border-emerald-200 flex-shrink-0">
-                    {article.author?.name ? article.author.name.charAt(0).toUpperCase() : 'P'}
+                    {(article.authorName || article.author?.name) ? (article.authorName || article.author?.name)!.charAt(0).toUpperCase() : 'P'}
                   </div>
                   <div>
                     <span className="block text-[11px] text-slate-400 font-medium">Penulis / Redaksi:</span>
                     <strong className="text-slate-800 font-bold">
-                      {article.author?.name || `Pemerintah Desa ${tenant.namaDesa}`}
+                      {article.authorName || article.author?.name || `Pemerintah Desa ${tenant.namaDesa}`}
                     </strong>
                   </div>
                 </div>

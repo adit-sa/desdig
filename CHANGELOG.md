@@ -9,6 +9,35 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 ## [Unreleased]
 
 ### Added
+- **Halaman Khusus Integrasi Bot Telegram desDig (`/admin/telegram`, `/api/telegram/officials`, `lib/admin-menu.ts`)**:
+  - Halaman manajemen lengkap berformat list/tabel untuk mengelola token pairing rahasia per pamong desa maupun token umum desa.
+  - Kartu KPI ringkasan: Total Pamong Desa, Pamong Terhubung, Pamong Belum Terhubung, dan Sesi Operator Umum Aktif.
+  - Panduan cepat & format perintah interaktif (`/login`, `/pengumuman`, `/galeri`, berita foto) yang dapat dibuka/tutup.
+  - Tabel pamong desa dengan foto, nama, jabatan, NIP, status pairing Telegram (dengan username/nama akun), token pairing, tombol acak token (`PMG-XXXX`), modal edit token manual, tombol salin perintah login (`/login [desa] [token]`), tombol kirim instruksi otomatis via WhatsApp API, serta tombol pemutusan sambungan (unlink).
+  - Manajemen sesi operator umum desa dengan kemampuan pemutusan sesi akun secara terisolasi per tenant.
+  - Pendaftaran menu `Bot Telegram` pada navigasi sidebar admin di bawah grup `Informasi` dengan ikon `Bot` dan badge `Mobile`.
+- **Tracking Penulis Konten & Token Khusus Pamong Desa (`prisma/schema.prisma`, `lib/telegram.ts`, `/api/telegram/webhook`)**:
+  - Penambahan kolom `telegramToken` pada model `VillageOfficial` dan relasi ke `TelegramSubscriber`.
+  - Penambahan kolom `authorName` pada model `Article`, `Announcement`, dan `GalleryItem`.
+  - Saat pamong desa login menggunakan kode token khususnya, akun Telegram otomatis terikat dengan profil pamong tersebut (`villageOfficialId`, `officialName`, `officialPosition`).
+  - Setiap kali pamong memposting artikel berita, papan pengumuman, atau galeri kegiatan via Telegram, sistem otomatis mencatat nama pamong tersebut sebagai penulis resmi (`authorName`), meningkatkan transparansi dan tanggung jawab publikasi.
+  - Penampilan nama penulis pamong di portal warga (berita utama, daftar berita, halaman detail berita, pengumuman warga) serta di halaman dashboard admin (`/admin/berita`, `/admin/pengumuman`, `/admin/galeri`).
+- **Pembersihan Berkas Media Otomatis saat Artikel / Galeri Dihapus (`/api/articles/[id]`, `/api/gallery/[id]`, `lib/media.ts`)**:
+  - Integrasi fungsi `deleteTenantMediaFiles` pada handler `DELETE /api/articles/[id]`: saat artikel berita dihapus, berkas cover image utama dan seluruh foto album pendukung (`galleryUrls`) otomatis dihapus permanen dari Cloudflare R2 bucket dan disk penyimpanan lokal untuk menghemat kapasitas storage.
+  - Integrasi fungsi `deleteTenantMediaFiles` pada handler `DELETE /api/gallery/[id]`: saat dokumentasi galeri dihapus, berkas foto utama otomatis dihapus dari Cloudflare R2 dan disk lokal.
+- **Optimasi & Filter Berkas Foto Bot Telegram (`/api/telegram/webhook`)**:
+  - Pembatasan tipe berkas Telegram: bot kini khusus menerima berkas foto (JPG, PNG, WebP) dan secara otomatis menolak dokumen PDF, video, audio, voice note, atau video note dengan pesan edukatif ramah guna mencegah pemborosan kuota penyimpanan cloud.
+  - Kompresi gambar otomatis berbasis Sharp sebelum diunggah ke Cloudflare R2: gambar di-resize proporsional dan dikonversi ke format WebP berkualitas tinggi dengan kompresi optimal, menghemat ruang penyimpanan hingga 70-85%.
+- **Fitur Modal Popup "Pengumuman Lengkap" (`components/themes/modern-government/NewsSection.tsx`)**:
+  - Tampilan papan pengumuman pada beranda tema pemerintahan modern kini membatasi teks yang panjang dengan rapi dan menyediakan tombol *"Pengumuman Lengkap"*.
+  - Modal popup responsif menampilkan teks maklumat lengkap, tanggal rilis, zona waktu dinamis desa (WIB/WITA/WIT), atribusi nama penerbit/pamong, dan tombol tutup ramah pengguna.
+- **Perbaikan Rasio & Responsivitas Foto Berita Utama / Headline (`components/themes/modern-government/NewsSection.tsx`)**:
+  - Penyesuaian container foto berita utama dengan aspect ratio `16/10` pada perangkat mobile dan batas ketinggian `max-h-[380px]` pada desktop.
+  - Menggunakan `object-cover object-center` dengan posisi absolut sehingga foto berorientasi portrait tidak lagi membuat kartu berita memanjang ke bawah dan merusak tata letak antarmuka.
+- **Suite Pengujian Vitest Tambahan (`tests/telegram-bot.test.ts`)**:
+  - Pengujian otomatis untuk penautan token khusus pamong desa, pencatatan identitas `officialName` pada subscriber, dan validasi rekaman `authorName` pada artikel, pengumuman, dan galeri kegiatan.
+
+### Changed
 - **Telegram Bot Multi-Tenant Publishing Engine (`lib/telegram.ts`, `/api/telegram/webhook`, `prisma/schema.prisma`)**:
   - Integrasi Bot Telegram resmi desDig untuk publikasi instan artikel warta desa, galeri kegiatan, dan pengumuman resmi langsung dari smartphone operator/kades tanpa perlu login ke dashboard web.
   - **Arsitektur Multi-Tenant Terisolasi (Single Bot - Multi-Tenant Mode)**:

@@ -30,6 +30,7 @@ interface AnnouncementItem {
   isPinned: boolean;
   status: string;
   expiresAt?: string | null;
+  authorName?: string | null;
   createdAt: string;
 }
 
@@ -510,12 +511,19 @@ export default function PengumumanAdminPage() {
 
                       {/* Card Footer */}
                       <div className="pt-3.5 mt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                        <div className="text-[11px] text-slate-400">
-                          {item.expiresAt ? (
-                            <span>Batas: {new Date(item.expiresAt).toLocaleDateString('id-ID')}</span>
-                          ) : (
-                            <span>Tanpa batas kedaluwarsa</span>
+                        <div className="text-[11px] text-slate-400 flex items-center gap-2 flex-wrap">
+                          {item.authorName && (
+                            <span className="inline-flex items-center gap-1 font-semibold text-sky-700 dark:text-sky-300 bg-sky-50 dark:bg-sky-950/50 px-2 py-0.5 rounded-md border border-sky-200/50">
+                              Oleh: {item.authorName}
+                            </span>
                           )}
+                          <span>
+                            {item.expiresAt ? (
+                              <span>Batas: {new Date(item.expiresAt).toLocaleDateString('id-ID')}</span>
+                            ) : (
+                              <span>Tanpa batas kedaluwarsa</span>
+                            )}
+                          </span>
                         </div>
 
                         <div className="flex items-center gap-1">

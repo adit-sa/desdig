@@ -62,6 +62,7 @@ interface ArticleItem {
   createdAt: string;
   category: { id: string; name: string } | null;
   author: { name: string; email: string } | null;
+  authorName?: string | null;
   authorResidentId?: string | null;
   authorResident?: {
     id: string;
@@ -718,6 +719,11 @@ export default function CmsBeritaPage() {
                                 <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
                                   <UserCheck className="w-3 h-3 text-emerald-600" />
                                   <span>{art.authorResident.nama}</span>
+                                </span>
+                              ) : art.authorName ? (
+                                <span className="inline-flex items-center gap-1 text-sky-600 dark:text-sky-400 font-bold">
+                                  <UserCheck className="w-3 h-3 text-sky-600" />
+                                  <span>{art.authorName}</span>
                                 </span>
                               ) : (
                                 <span>{art.author?.name || 'Operator'}</span>

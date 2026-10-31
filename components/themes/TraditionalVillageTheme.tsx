@@ -333,7 +333,7 @@ export default function TraditionalVillageTheme({ tenant, data }: ThemeProps) {
                     </div>
 
                     <div className="pt-3 border-t border-amber-100 flex items-center justify-between text-xs">
-                      <span className="text-stone-500 font-medium">{art.author?.name || 'Pamong Desa'}</span>
+                      <span className="text-stone-500 font-medium">{art.authorName || art.author?.name || 'Pamong Desa'}</span>
                       <Link
                         href={`/berita/${art.slug}?tenant=${tenant.slug}`}
                         className="text-amber-900 font-bold flex items-center gap-1 hover:underline"
