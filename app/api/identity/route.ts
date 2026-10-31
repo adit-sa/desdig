@@ -27,6 +27,10 @@ export async function GET(request: NextRequest) {
       twitter: rawSettings.twitter || '',
     };
 
+    const subscribersCount = await prisma.telegramSubscriber.count({
+      where: { tenantId: tenant.id },
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -50,6 +54,9 @@ export async function GET(request: NextRequest) {
           ? JSON.parse(tenant.misi)
           : [],
         visiPeriode: rawSettings.visiPeriode || '2026-2031',
+        telegramToken: tenant.telegramToken || tenant.id.slice(-6),
+        customTelegramToken: tenant.telegramToken || '',
+        telegramSubscribersCount: subscribersCount,
       },
     });
   } catch (error: any) {
@@ -85,9 +92,10 @@ export async function POST(request: NextRequest) {
       visi,
       misi,
       visiPeriode,
+      telegramToken,
     } = body;
 
-    // 1. Update data profil utama Tenant (termasuk Visi & Misi)
+    // 1. Update data profil utama Tenant (termasuk Visi & Misi & Token Telegram)
     const updatedTenant = await prisma.tenant.update({
       where: { id: tenant.id },
       data: {
@@ -99,6 +107,9 @@ export async function POST(request: NextRequest) {
         ...(kodeDesa !== undefined && { kodeDesa: kodeDesa ? formatKodeKemendagri(kodeDesa) : null }),
         ...(visi !== undefined && { visi }),
         ...(misi !== undefined && { misi: Array.isArray(misi) ? misi.filter(Boolean) : [] }),
+        ...(telegramToken !== undefined && {
+          telegramToken: telegramToken ? telegramToken.trim() : null,
+        }),
       },
     });
 

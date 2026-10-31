@@ -130,6 +130,7 @@ export async function getLinkedTenantForTelegramUser(telegramId: string | number
 
 /**
  * Menautkan (Pairing) akun Telegram ke suatu desa dengan verifikasi token rahasia
+ * Mendukung pencarian cerdas berdasarkan slug, nama desa dengan spasi, maupun awalan "Desa"
  */
 export async function pairTelegramUserWithTenant({
   telegramId,
@@ -144,26 +145,45 @@ export async function pairTelegramUserWithTenant({
   tenantSlug: string;
   token: string;
 }): Promise<{ success: boolean; message: string; tenant?: any }> {
-  const cleanSlug = tenantSlug.trim().toLowerCase();
+  const rawIdentifier = tenantSlug.trim();
+  const cleanLower = rawIdentifier.toLowerCase();
+  const slugified = cleanLower.replace(/\s+/g, '-');
+  const withoutDesaPrefix = cleanLower.replace(/^desa\s+|^desa-/i, '').trim();
+  const withoutDesaSlugified = withoutDesaPrefix.replace(/\s+/g, '-');
   const cleanToken = token.trim();
 
-  // Cari tenant berdasarkan slug
-  const tenant = await prisma.tenant.findUnique({
-    where: { slug: cleanSlug },
+  // Cari tenant secara cerdas dan fleksibel:
+  // 1. Slug exact
+  // 2. Slug yang dinormalisasi dengan tanda minus (contoh: "sinjai tengah" -> "sinjai-tengah")
+  // 3. Slug tanpa awalan desa (contoh: "desa sinjai tengah" -> "sinjai-tengah")
+  // 4. Nama desa exact (case-insensitive)
+  // 5. Nama desa tanpa kata "Desa"
+  // 6. Nama desa dengan awalan "Desa "
+  const tenant = await prisma.tenant.findFirst({
+    where: {
+      OR: [
+        { slug: cleanLower },
+        { slug: slugified },
+        { slug: withoutDesaSlugified },
+        { namaDesa: { equals: rawIdentifier, mode: 'insensitive' } },
+        { namaDesa: { equals: withoutDesaPrefix, mode: 'insensitive' } },
+        { namaDesa: { equals: `Desa ${withoutDesaPrefix}`, mode: 'insensitive' } },
+      ],
+    },
   });
 
   if (!tenant) {
     return {
       success: false,
-      message: `Desa dengan slug "<b>${cleanSlug}</b>" tidak ditemukan. Periksa kembali nama slug desa Anda.`,
+      message: `Desa "<b>${rawIdentifier}</b>" tidak ditemukan. Periksa kembali nama desa atau slug Anda.`,
     };
   }
 
   // Verifikasi token pairing desa
   // Kunci bisa berasal dari:
-  // 1. tenant.telegramToken jika sudah disetel
+  // 1. tenant.telegramToken jika sudah dibuat oleh admin desa di menu Identitas Desa
   // 2. Kunci rahasia master TELEGRAM_MASTER_KEY di .env
-  // 3. Fallback: 6 karakter awal id desa jika token belum pernah dibuat
+  // 3. Fallback default: 6 karakter terakhir id desa jika token khusus belum dibuat
   const masterKey = process.env.TELEGRAM_MASTER_KEY?.trim() || '';
   const validToken = tenant.telegramToken || tenant.id.slice(-6);
 
@@ -174,7 +194,7 @@ export async function pairTelegramUserWithTenant({
   if (!isTokenValid) {
     return {
       success: false,
-      message: `Kunci rahasia pairing salah untuk Desa <b>${tenant.namaDesa}</b>. Hubungi Administrator desa untuk mendapatkan kode pairing resmi.`,
+      message: `Kunci rahasia pairing salah untuk Desa <b>${tenant.namaDesa}</b>. Silakan periksa atau atur token pairing di menu <b>Identitas Desa</b> pada dashboard admin.`,
     };
   }
 

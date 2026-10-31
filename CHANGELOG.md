@@ -13,8 +13,12 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Integrasi Bot Telegram resmi desDig untuk publikasi instan artikel warta desa, galeri kegiatan, dan pengumuman resmi langsung dari smartphone operator/kades tanpa perlu login ke dashboard web.
   - **Arsitektur Multi-Tenant Terisolasi (Single Bot - Multi-Tenant Mode)**:
     - Satu bot Telegram terpusat melayani seluruh desa dengan isolasi data 100% ketat berdasarkan database Neon PostgreSQL.
-    - Sistem otentikasi & pairing aman melalui perintah `/login [slug_desa] [token_desa]`.
-    - Token pairing tersimpan pada model `Tenant.telegramToken` (dengan fallback 6 karakter unik ID desa atau master key).
+    - Sistem otentikasi & pairing aman melalui perintah `/login [nama_atau_slug_desa] [token_desa]`.
+    - **Dukungan Nama Desa Ber-Spasi**: Sistem cerdas mengenali nama desa dengan spasi (misal `/login Sinjai Tengah [token]`, `/login Desa Sinjai Tengah [token]`, maupun slug `/login sinjai-tengah [token]`) secara fleksibel dan akurat tanpa gagal parsing.
+    - **Pengelolaan Token Mandiri di Menu Identitas Desa (`/admin/identitas`, `/api/identity`)**:
+      - Admin masing-masing desa dapat melihat, membuat token khusus, mengacak (generate) token baru, dan menyalin perintah pairing secara mandiri di halaman admin desa tanpa perlu menghubungi tim superadmin pusat.
+      - Menampilkan jumlah akun pamong/kades yang saat ini aktif terhubung ke bot Telegram.
+    - Token pairing tersimpan pada model `Tenant.telegramToken` (dengan fallback otomatis 6 karakter unik ID desa jika belum diubah).
     - Relasi database model `TelegramSubscriber` mengikat `telegramId` dengan `tenantId` spesifik untuk menjamin tidak ada kebocoran konten antar-desa.
   - **Kapabilitas Publikasi Konten Cerdas**:
     - **Posting Berita/Warta Desa**: Cukup kirim foto dengan caption teks dari HP; bot otomatis mengonversi ke format WebP, mengunggah ke Cloudflare R2 folder `artikel/`, menerbitkan artikel baru dengan slug unik, dan membalas dengan URL publik artikel.
@@ -26,7 +30,7 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
     - Pengecekan info dan diagnostik webhook via HTTP GET.
     - Penanganan sinyal Next.js prerender bailout yang bersih tanpa error log di Vercel build.
   - **Pengujian Otomatis (`tests/telegram-bot.test.ts`)**:
-    - 5 skenario uji integrasi Vitest yang mencakup validasi token pairing, isolasi lintas-tenant, pemutusan koneksi (unlinking), dan pembalasan pesan bot.
+    - 7 skenario uji integrasi Vitest yang mencakup validasi token pairing, nama desa ber-spasi, perubahan token mandiri, isolasi lintas-tenant, pemutusan koneksi (unlinking), dan balasan pesan bot.
 
 - **desDig Official Model Context Protocol (MCP) Server (`mcp/server.ts` & `npm run mcp`)**:
   - Implementasi resmi MCP Server berbasis `@modelcontextprotocol/sdk` dan transport STDIO untuk mengoperasikan seluruh sistem desDig secara otonom melalui AI Assistant (Antigravity, Claude Desktop, Cursor, dll.).

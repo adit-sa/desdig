@@ -80,10 +80,12 @@ export async function POST(request: NextRequest) {
           `Bot ini memungkinkan Anda menerbitkan <b>Berita, Galeri Kegiatan, & Pengumuman</b> ke portal website desa langsung dari HP Anda.\n\n` +
           `🔐 <b>Langkah Awal: Hubungkan Bot dengan Desa Anda</b>\n` +
           `Ketik perintah:\n` +
-          `<code>/login [slug_desa] [kode_rahasia]</code>\n\n` +
-          `<i>Contoh:</i>\n` +
-          `<code>/login salupangkang rahasia123</code>\n\n` +
-          `<i>(Kode rahasia dapat dilihat di menu Pengaturan Identitas Desa pada panel admin)</i>`
+          `<code>/login [nama_atau_slug_desa] [kode_rahasia]</code>\n\n` +
+          `<i>Contoh dengan spasi:</i>\n` +
+          `<code>/login Sinjai Tengah rahasia123</code>\n\n` +
+          `<i>Contoh dengan slug:</i>\n` +
+          `<code>/login sinjai-tengah rahasia123</code>\n\n` +
+          `💡 <i>Admin desa dapat melihat atau mengganti kode pairing kapan saja di menu <b>Identitas Desa</b> pada dashboard admin.</i>`
         );
         return NextResponse.json({ ok: true });
       }
@@ -91,7 +93,7 @@ export async function POST(request: NextRequest) {
       const tenant = linked.tenant;
       await sendTelegramMessage(
         chatId,
-        `🏛️ <b>Anda Terhubung ke Desa: ${tenant.namaDesa}</b> (<code>${tenant.slug}</code>)\n\n` +
+        `🏛️ <b>Anda Terhubung ke: Desa ${tenant.namaDesa}</b> (<code>${tenant.slug}</code>)\n\n` +
         `<b>Cara Publikasi Cepat dari Telegram:</b>\n\n` +
         `📰 <b>1. Terbitkan Berita Kegiatan:</b>\n` +
         `Kirim foto kegiatan dari HP dengan <i>caption</i>:\n` +
@@ -108,7 +110,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // 2. Perintah /login [slug] [token]
+    // 2. Perintah /login [nama_atau_slug_desa] [token]
+    // Mendukung nama desa ber-spasi, misal: /login Sinjai Tengah rahasia123
     if (text.startsWith('/login')) {
       const parts = text.split(/\s+/);
       if (parts.length < 3) {
@@ -116,20 +119,24 @@ export async function POST(request: NextRequest) {
           chatId,
           `⚠️ <b>Format Login Salah</b>\n\n` +
           `Gunakan format:\n` +
-          `<code>/login [slug_desa] [kode_rahasia]</code>\n\n` +
-          `<i>Contoh:</i> <code>/login salupangkang rahasia123</code>`
+          `<code>/login [nama_atau_slug_desa] [kode_rahasia]</code>\n\n` +
+          `<i>Contoh dengan spasi:</i> <code>/login Sinjai Tengah rahasia123</code>\n` +
+          `<i>Contoh dengan slug:</i> <code>/login sinjai-tengah rahasia123</code>\n\n` +
+          `💡 <i>Kode pairing rahasia desa dapat dilihat atau diubah di menu <b>Identitas Desa</b> pada panel admin.</i>`
         );
         return NextResponse.json({ ok: true });
       }
 
-      const targetSlug = parts[1];
-      const pairingToken = parts[2];
+      // Kata terakhir adalah token pairing
+      const pairingToken = parts[parts.length - 1];
+      // Kata di antara /login dan token digabung kembali menjadi nama/slug desa
+      const targetIdentifier = parts.slice(1, -1).join(' ');
 
       const pairResult = await pairTelegramUserWithTenant({
         telegramId: from.id,
         username: from.username,
         firstName: from.first_name,
-        tenantSlug: targetSlug,
+        tenantSlug: targetIdentifier,
         token: pairingToken,
       });
 

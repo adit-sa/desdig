@@ -24,6 +24,11 @@ import {
   Trash2,
   ArrowUp,
   ArrowDown,
+  Bot,
+  KeyRound,
+  Copy,
+  Check,
+  RefreshCw,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 import { maskKodeKemendagriInput, formatKodeKemendagri } from '@/lib/formatters';
@@ -37,10 +42,12 @@ export default function IdentitasDesaPage() {
   const [uploading, setUploading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
     namaDesa: '',
+    slug: '',
     kecamatan: '',
     kabupaten: '',
     provinsi: '',
@@ -61,6 +68,8 @@ export default function IdentitasDesaPage() {
       tiktok: '',
       twitter: '',
     },
+    telegramToken: '',
+    telegramSubscribersCount: 0,
   });
 
   // Fetch current data
@@ -73,6 +82,7 @@ export default function IdentitasDesaPage() {
       if (json.success && json.data) {
         setFormData({
           namaDesa: json.data.namaDesa || '',
+          slug: json.data.slug || '',
           kecamatan: json.data.kecamatan || '',
           kabupaten: json.data.kabupaten || '',
           provinsi: json.data.provinsi || '',
@@ -100,6 +110,8 @@ export default function IdentitasDesaPage() {
             tiktok: json.data.socialMedia?.tiktok || '',
             twitter: json.data.socialMedia?.twitter || '',
           },
+          telegramToken: json.data.telegramToken || '',
+          telegramSubscribersCount: json.data.telegramSubscribersCount || 0,
         });
       }
     } catch (e: any) {
@@ -182,6 +194,26 @@ export default function IdentitasDesaPage() {
     } finally {
       setUploading(false);
     }
+  };
+
+  // Generate token acak untuk Bot Telegram
+  const generateRandomToken = () => {
+    const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+    let res = 'des-';
+    for (let i = 0; i < 6; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setFormData((prev) => ({ ...prev, telegramToken: res }));
+  };
+
+  // Salin perintah login Telegram
+  const copyLoginCommand = () => {
+    const villageParam = formData.namaDesa || formData.slug || 'nama-desa';
+    const tokenParam = formData.telegramToken || 'token-desa';
+    const textToCopy = `/login ${villageParam} ${tokenParam}`;
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
   };
 
   // Handle Save
@@ -716,6 +748,117 @@ export default function IdentitasDesaPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 6. INTEGRASI PUBLIKASI BOT TELEGRAM (@desdig_bot) */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4 mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                <Bot className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                    Integrasi Bot Telegram desDig
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-sky-100 text-sky-800 dark:bg-sky-900/60 dark:text-sky-300">
+                    Auto-Publish
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Publikasikan Berita Warta Desa, Galeri Kegiatan, dan Pengumuman langsung dari HP Kades & Pamong melalui Telegram.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                {formData.telegramSubscribersCount} Akun Pamong Terhubung
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Kolom Kiri: Pengaturan Token Desa */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">
+                  Kode / Token Rahasia Pairing Desa:
+                </label>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      value={formData.telegramToken}
+                      onChange={(e) => setFormData({ ...formData, telegramToken: e.target.value })}
+                      placeholder="Masukkan atau generate token rahasia..."
+                      className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-800 dark:text-slate-200 font-mono font-bold transition"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={generateRandomToken}
+                    className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition shrink-0"
+                    title="Buat token acak baru"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-sky-500" />
+                    <span>Acak</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                  Token ini dikelola mandiri oleh desa Anda. Bagikan kode ini hanya kepada Kades dan perangkat desa yang berhak memposting berita.
+                </p>
+              </div>
+
+              {/* Box Copy Perintah Cepat */}
+              <div className="p-3.5 rounded-xl bg-sky-50/60 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/60">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-[11px] font-bold text-sky-900 dark:text-sky-300">
+                    Perintah Pairing Telegram:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={copyLoginCommand}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold transition shadow-sm"
+                  >
+                    {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                    <span>{copied ? 'Tersalin!' : 'Salin Perintah'}</span>
+                  </button>
+                </div>
+                <code className="block p-2 rounded-lg bg-white dark:bg-slate-900 border border-sky-200 dark:border-sky-800 font-mono text-xs text-sky-800 dark:text-sky-300 break-all select-all">
+                  /login {formData.namaDesa || formData.slug || 'nama-desa'} {formData.telegramToken || 'token-desa'}
+                </code>
+              </div>
+            </div>
+
+            {/* Kolom Kanan: Panduan Operasional Mobile */}
+            <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-4 border border-slate-200 dark:border-slate-700 text-xs space-y-3">
+              <span className="font-bold text-slate-800 dark:text-slate-200 block">
+                📲 Cara Cepat Pakai dari HP:
+              </span>
+              <ol className="list-decimal list-inside space-y-1.5 text-slate-600 dark:text-slate-300 leading-relaxed">
+                <li>Buka bot Telegram resmi di HP Anda.</li>
+                <li>
+                  Ketik: <code>/login {formData.namaDesa || 'Nama Desa'} [token]</code>.
+                  <span className="text-slate-400 text-[11px] block ml-4">
+                    (Mendukung nama desa dengan spasi seperti <i>Sinjai Tengah</i> atau slug).
+                  </span>
+                </li>
+                <li>
+                  <strong>Kirim Foto + Keterangan</strong>: Langsung jadi Berita Warta Desa & tayang di portal.
+                </li>
+                <li>
+                  <strong>Kirim Foto + Caption <code>/galeri [Judul]</code></strong>: Otomatis masuk galeri foto desa.
+                </li>
+                <li>
+                  <strong>Ketik <code>/pengumuman [Isi]</code></strong>: Langsung tayang sebagai pengumuman warga.
+                </li>
+              </ol>
             </div>
           </div>
         </div>

@@ -98,6 +98,55 @@ describe('desDig Telegram Bot Multi-Tenant Publishing Tests', () => {
     expect(subscriber).toBeNull();
   });
 
+  it('6. Berhasil menautkan akun menggunakan nama desa ber-spasi ("Desa Uji Telegram")', async () => {
+    const res = await pairTelegramUserWithTenant({
+      telegramId: testTelegramId,
+      username: 'operator_spasi',
+      firstName: 'Ahmad',
+      tenantSlug: 'Desa Uji Telegram', // Menggunakan nama lengkap dengan spasi
+      token: 'tokenrahasia123',
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.tenant?.slug).toBe(testSlug);
+
+    const subscriber = await getLinkedTenantForTelegramUser(testTelegramId);
+    expect(subscriber).not.toBeNull();
+    expect(subscriber?.tenant.namaDesa).toBe('Desa Uji Telegram');
+  });
+
+  it('7. Admin desa dapat mengubah token mandiri dan token baru langsung berlaku', async () => {
+    // Simulasi admin desa mengubah token di menu Identitas Desa
+    const newToken = 'token-baru-kades-2026';
+    await prisma.tenant.update({
+      where: { id: testTenantId },
+      data: { telegramToken: newToken },
+    });
+
+    // Coba login dengan token lama -> harus gagal
+    const resOld = await pairTelegramUserWithTenant({
+      telegramId: '111222333',
+      tenantSlug: 'uji telegram', // variasi spasi tanpa kata Desa
+      token: 'tokenrahasia123', // token lama
+    });
+    expect(resOld.success).toBe(false);
+    expect(resOld.message).toContain('Kunci rahasia pairing salah');
+
+    // Coba login dengan token baru -> harus berhasil
+    const resNew = await pairTelegramUserWithTenant({
+      telegramId: '111222333',
+      tenantSlug: 'uji telegram',
+      token: newToken,
+    });
+    expect(resNew.success).toBe(true);
+    expect(resNew.tenant?.slug).toBe(testSlug);
+
+    // Bersihkan subscriber uji tambahan
+    await prisma.telegramSubscriber.deleteMany({
+      where: { telegramId: '111222333' },
+    });
+  });
+
   afterAll(async () => {
     await prisma.telegramSubscriber.deleteMany({
       where: { telegramId: testTelegramId },
