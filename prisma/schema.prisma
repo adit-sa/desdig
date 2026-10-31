@@ -114,6 +114,8 @@ model Tenant {
   customPages         CustomPage[]
   residents           Resident[]
   kioskDevices        KioskDevice[]
+  telegramToken       String?
+  telegramUsers       TelegramSubscriber[]
 
   @@index([slug])
 }
@@ -585,4 +587,18 @@ model KioskDevice {
   updatedAt   DateTime  @updatedAt
 
   @@index([tenantId, isActive])
+}
+
+// 17. Telegram Bot Multi-Tenant Publishing
+model TelegramSubscriber {
+  id            String    @id @default(cuid())
+  telegramId    String    @unique
+  username      String?
+  firstName     String?
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pairedAt      DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([tenantId])
 }

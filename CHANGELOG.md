@@ -9,6 +9,25 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 ## [Unreleased]
 
 ### Added
+- **Telegram Bot Multi-Tenant Publishing Engine (`lib/telegram.ts`, `/api/telegram/webhook`, `prisma/schema.prisma`)**:
+  - Integrasi Bot Telegram resmi desDig untuk publikasi instan artikel warta desa, galeri kegiatan, dan pengumuman resmi langsung dari smartphone operator/kades tanpa perlu login ke dashboard web.
+  - **Arsitektur Multi-Tenant Terisolasi (Single Bot - Multi-Tenant Mode)**:
+    - Satu bot Telegram terpusat melayani seluruh desa dengan isolasi data 100% ketat berdasarkan database Neon PostgreSQL.
+    - Sistem otentikasi & pairing aman melalui perintah `/login [slug_desa] [token_desa]`.
+    - Token pairing tersimpan pada model `Tenant.telegramToken` (dengan fallback 6 karakter unik ID desa atau master key).
+    - Relasi database model `TelegramSubscriber` mengikat `telegramId` dengan `tenantId` spesifik untuk menjamin tidak ada kebocoran konten antar-desa.
+  - **Kapabilitas Publikasi Konten Cerdas**:
+    - **Posting Berita/Warta Desa**: Cukup kirim foto dengan caption teks dari HP; bot otomatis mengonversi ke format WebP, mengunggah ke Cloudflare R2 folder `artikel/`, menerbitkan artikel baru dengan slug unik, dan membalas dengan URL publik artikel.
+    - **Posting Galeri Kegiatan**: Kirim foto dengan caption diawali `/galeri [Judul]` untuk otomatis mencatatnya ke galeri desa publik.
+    - **Posting Pengumuman Resmi**: Ketik `/pengumuman [Isi Pengumuman]` untuk menayangkan pengumuman warga seketika.
+    - **Manajemen Akun & Sesi**: Perintah `/status` untuk ringkasan profil desa yang terhubung, `/logout` untuk unpair, serta `/start` dan `/help` untuk panduan interaktif.
+  - **Endpoint Webhook Terpadu (`/api/telegram/webhook`)**:
+    - Registrasi webhook 1-klik dengan query parameter `?action=set&url=https://...`.
+    - Pengecekan info dan diagnostik webhook via HTTP GET.
+    - Penanganan sinyal Next.js prerender bailout yang bersih tanpa error log di Vercel build.
+  - **Pengujian Otomatis (`tests/telegram-bot.test.ts`)**:
+    - 5 skenario uji integrasi Vitest yang mencakup validasi token pairing, isolasi lintas-tenant, pemutusan koneksi (unlinking), dan pembalasan pesan bot.
+
 - **desDig Official Model Context Protocol (MCP) Server (`mcp/server.ts` & `npm run mcp`)**:
   - Implementasi resmi MCP Server berbasis `@modelcontextprotocol/sdk` dan transport STDIO untuk mengoperasikan seluruh sistem desDig secara otonom melalui AI Assistant (Antigravity, Claude Desktop, Cursor, dll.).
   - Menyediakan 12 Tool terstandarisasi dengan isolasi multi-tenant yang ketat:
