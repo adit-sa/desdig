@@ -506,6 +506,7 @@ export function getMainMenuKeyboard() {
     keyboard: [
       [{ text: '📰 Tulis Berita' }, { text: '🖼️ Galeri Kegiatan' }],
       [{ text: '📢 Buat Pengumuman' }, { text: '❌ Batal / Menu Utama' }],
+      [{ text: '🚪 Keluar / Logout' }],
     ],
     resize_keyboard: true,
     is_persistent: true,

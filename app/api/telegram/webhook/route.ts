@@ -287,7 +287,8 @@ export async function POST(request: NextRequest) {
         `• 📰 Tulis Berita: Panduan langkah demi langkah menulis berita & upload foto.\n` +
         `• 🖼️ Galeri Kegiatan: Masukkan judul kegiatan lalu kirim foto-fotonya.\n` +
         `• 📢 Buat Pengumuman: Menerbitkan pengumuman resmi ke portal warga.\n` +
-        `• ❌ Batal / Menu Utama: Membatalkan draft yang sedang berjalan.`,
+        `• ❌ Batal / Menu Utama: Membatalkan draft yang sedang berjalan.\n` +
+        `• 🚪 Keluar / Logout: Melepas tautan akun Telegram dari desa.`,
         { reply_markup: getMainMenuKeyboard() }
       );
       return NextResponse.json({ ok: true });
@@ -325,22 +326,34 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      const official = pairResult.official;
+      const pamongName = official?.name || from.first_name || 'Aparatur Desa';
+      const pamongPosition = official?.position ? ` (${official.position})` : '';
+      const villageName = pairResult.tenant?.namaDesa || 'Desa';
+
       await sendTelegramMessage(
         chatId,
-        `🎉 Selamat! Akun Telegram Anda Berhasil Terhubung.\n\n` +
-        `Anda sekarang dapat mempublikasikan Berita, Galeri, dan Pengumuman langsung ke website resmi Desa ${pairResult.tenant.namaDesa}.\n\n` +
-        `Gunakan menu tombol di bawah ini untuk memulai publikasi! 👇`,
+        `🎉 Selamat Datang, ${pamongName}!\n` +
+        `Akun Telegram Anda Berhasil Terhubung ke Desa ${villageName}.\n\n` +
+        `• Penanggung Jawab: ${pamongName}${pamongPosition}\n` +
+        `• Desa Resmi: ${villageName}\n` +
+        `• Status: Terautentikasi\n\n` +
+        `Anda sekarang dapat mempublikasikan Berita, Galeri, dan Pengumuman langsung ke website resmi Desa ${villageName}.\n\n` +
+        `Gunakan menu tombol di bawah ini untuk memulai publikasi, atau tekan tombol "🚪 Keluar / Logout" untuk keluar kapan saja! 👇`,
         { reply_markup: getMainMenuKeyboard() }
       );
       return NextResponse.json({ ok: true });
     }
 
-    // Perintah /logout
-    if (text.startsWith('/logout')) {
+    // Perintah /logout atau tombol Keluar
+    if (text.startsWith('/logout') || text === '🚪 Keluar / Logout' || text === '/keluar') {
       await unlinkTelegramUser(from.id);
       await sendTelegramMessage(
         chatId,
-        `👋 Akun Telegram Anda telah dilepas dari desa. Anda dapat menghubungkan kembali kapan saja menggunakan perintah /login.`
+        `👋 Akun Telegram Anda telah berhasil keluar (logout) dari desa.\n\n` +
+        `Anda dapat menghubungkan akun kembali kapan saja menggunakan perintah:\n` +
+        `/login [nama_desa] [kode_rahasia]`,
+        { reply_markup: { remove_keyboard: true } }
       );
       return NextResponse.json({ ok: true });
     }

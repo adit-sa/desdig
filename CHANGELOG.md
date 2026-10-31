@@ -18,6 +18,9 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Menetapkan batas validasi minimal 6 karakter alfanumerik untuk penulisan token kustom manual.
 
 ### Changed
+- **Penyempurnaan Pesan Sukses Login & Tombol Logout Bot Telegram (`app/api/telegram/webhook/route.ts`, `lib/telegram.ts`)**:
+  - Saat pamong berhasil login (`/login`), bot kini secara eksplisit menyapa dengan menyebutkan nama lengkap pamong, jabatannya, nama resmi desa, dan status autentikasi.
+  - Menambahkan tombol menu tetap `🚪 Keluar / Logout` pada reply keyboard di layar Telegram, serta merespon perintah `/logout` atau `/keluar` dengan menghapus sesi database dan membersihkan keyboard menu dari layar secara otomatis (`remove_keyboard: true`).
 - **Pembersihan & Simplifikasi Halaman Admin Telegram (`app/admin/telegram/page.tsx`)**:
   - Menghapus modul *"Token Akses Operator Umum Desa"* dan *"Jeda Waktu Penyematan Foto Susulan Otomatis"* yang sudah tidak lagi relevan usai transisi penuh ke pairing berbasis pamong desa resmi dan mode dialog wizard interaktif.
   - Merampingkan kartu KPI ringkasan menjadi 3 indikator akuntabilitas utama: Total Aparatur Pamong, Pamong Terhubung (Terautentikasi), dan Pamong Belum Terhubung (Belum Pairing).
