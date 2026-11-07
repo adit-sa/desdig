@@ -46,13 +46,24 @@ export const getTenantPublicHomeData = cache(async (tenantId: string) => {
     activeThemeConfig,
     rawPembangunan,
   ] = await Promise.all([
-    // 1. Artikel terkini yang sudah PUBLISHED
+    // 1. Artikel terkini yang sudah PUBLISHED (Hemat bandwidth: pilih kolom yang dibutuhkan saja, hindari transfer 'content' artikel penuh)
     prisma.article.findMany({
       where: {
         tenantId,
         status: ContentStatus.PUBLISHED,
       },
-      include: {
+      select: {
+        id: true,
+        tenantId: true,
+        title: true,
+        slug: true,
+        summary: true,
+        coverImageUrl: true,
+        viewCount: true,
+        publishedAt: true,
+        createdAt: true,
+        galleryUrls: true,
+        authorName: true,
         category: {
           select: { name: true, slug: true },
         },
@@ -246,6 +257,7 @@ export async function getTenantArticleListing(tenantId: string) {
         authorResident: { select: { nama: true } },
       },
       orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+      take: 60,
     }),
     prisma.category.findMany({
       where: { tenantId },
@@ -261,7 +273,7 @@ export async function getTenantArticleListing(tenantId: string) {
     title: a.title,
     slug: a.slug,
     summary: a.summary,
-    content: stripHtml(a.content),
+    content: a.summary || stripHtml(a.content).slice(0, 300),
     coverImageUrl: a.coverImageUrl,
     status: a.status,
     viewCount: a.viewCount,

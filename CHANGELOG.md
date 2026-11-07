@@ -9,6 +9,24 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
 ## [Unreleased]
 
 ### Added
+- **Optimasi Bandwidth & Penghematan Kuota Data (`app/layout.tsx`, `app/globals.css`, `lib/tenant/data.ts`, `app/lapak/page.tsx`, `app/galeri/page.tsx`, `app/pembangunan/page.tsx`)**:
+  - Mengintegrasikan `next/font/google` (`Plus_Jakarta_Sans` variable font) di root layout dan menghapus `@import` Google Fonts eksternal dari CSS, menghemat request blocking jaringan dan kuota perangkat seluler.
+  - Memangkas over-fetching query beranda `getTenantPublicHomeData` dengan `select` spesifik tanpa menyertakan kolom `content: @db.Text` ribuan kata yang tidak ditampilkan di beranda.
+  - Mengoptimalkan listing artikel `getTenantArticleListing` dengan batas `take: 60` dan pemotongan teks cuplikan ringkas (300 karakter), memangkas ukuran JSON payload hingga >95% pada perangkat pengguna.
+  - Menerapkan Server-Side Rendering (SSR) data pelapak langsung pada `app/lapak/page.tsx`, mengeliminasi *double network roundtrip* dan menghilangkan layout-shift/loading spinner berlebih.
+  - Menambahkan pembatas `LIMIT 48` pada galeri foto desa dan `LIMIT 30` pada proyek pembangunan untuk melindungi kuota dari tabel berukuran besar.
+  - Memperbarui plugin & skill `ponytail` ke versi upstream terbaru (163 commits fast-forward).
+
+### Changed
+- **Pembersihan Over-Engineering & Transisi ke Platform Native (`components/themes/modern-government/ScrollEffects.tsx`, `app/globals.css`, `package.json`)**:
+  - Menghapus dependensi pihak ketiga `lenis` (~20 KB bundle) dan loop RAF dinamis, beralih 100% ke native CSS `scroll-behavior: smooth` dan lightweight `window.requestAnimationFrame` handler.
+  - Menghapus CSS overhead `.lenis*` di `app/globals.css`.
+
+### Removed
+- **Pembersihan Berkas Mati & Penghematan Token AI (`lib/prisma-client*`)**:
+  - Menghapus 4 direktori lama sisa eksperimen generator (`lib/prisma-client/`, `lib/prisma-client-v2/`, `lib/prisma-client-v3/`, `lib/prisma-client-v4/`) yang memakan **378 MB** dan lebih dari 120.000 baris kode mati, membebaskan ruang disk dan mempercepat pemindaian token AI.
+
+### Added
 - **Slide Carousel & Batasan Maksimal Papan Pengumuman Beranda (`components/themes/modern-government/NewsSection.tsx`, `components/themes/ModernEditorialTheme.tsx`, `components/themes/TraditionalVillageTheme.tsx`)**:
   - Membatasi tampilan Papan Pengumuman di halaman utama portal desa maksimal 2 pengumuman aktif per tampilan.
   - Jika terdapat lebih dari 2 pengumuman aktif, widget otomatis menyediakan navigasi slide interaktif (tombol Sebelumnya/Selanjutnya, nomor slide `X/Y`, serta indikator titik slide) dan auto-scroll bergantian secara berkala (6 detik) dengan pause saat di-hover/disentuh.

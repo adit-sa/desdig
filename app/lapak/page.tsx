@@ -1,6 +1,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { headers } from 'next/headers';
+import { prisma } from '@/lib/prisma';
 import { resolveTenant } from '@/lib/tenant/resolver';
 import { getTenantNavMenus } from '@/lib/tenant/data';
 import LapakClientView from './LapakClientView';
@@ -54,12 +55,50 @@ export default async function LapakPage({ searchParams }: PageProps) {
     );
   }
 
-  const menus = await getTenantNavMenus(tenant.id);
+  const [menus, rawMerchants] = await Promise.all([
+    getTenantNavMenus(tenant.id),
+    prisma.merchant.findMany({
+      where: {
+        tenantId: tenant.id,
+        isActive: true,
+      },
+      include: {
+        resident: {
+          select: {
+            id: true,
+            nama: true,
+            dusun: true,
+            alamat: true,
+            telepon: true,
+          },
+        },
+        products: {
+          where: { isAvailable: true },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 24,
+    }),
+  ]);
+
+  const initialMerchants = rawMerchants.map((m) => ({
+    ...m,
+    createdAt: m.createdAt.toISOString(),
+    expiresAt: m.expiresAt ? m.expiresAt.toISOString() : null,
+    products: m.products.map((p) => ({
+      ...p,
+      price: Number(p.price),
+      createdAt: p.createdAt.toISOString(),
+      expiresAt: p.expiresAt ? p.expiresAt.toISOString() : null,
+    })),
+  }));
 
   return (
     <LapakClientView
       tenant={tenant}
       menus={menus}
+      initialMerchants={initialMerchants as any}
     />
   );
 }

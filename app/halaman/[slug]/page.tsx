@@ -289,7 +289,13 @@ export default async function PublicCustomPage({ params, searchParams }: PagePro
                       >
                         {art.coverImageUrl ? (
                           <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100 border border-slate-200">
-                            <img src={art.coverImageUrl} alt={art.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                            <img
+                              loading="lazy"
+                              decoding="async"
+                              src={art.coverImageUrl}
+                              alt={art.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                            />
                           </div>
                         ) : (
                           <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-400">

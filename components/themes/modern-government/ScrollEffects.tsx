@@ -4,9 +4,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
 
 /**
- * Lenis smooth scroll, progress bar baca, parallax hero, scroll-reveal & tombol kembali ke atas.
+ * Native smooth scroll, progress bar baca, parallax hero, scroll-reveal & tombol kembali ke atas.
+ * Menggunakan browser native scroll-behavior tanpa library eksternal (0 KB extra bundle).
  * Semua efek scroll ditulis langsung ke DOM (GPU transform) tanpa state React per frame.
- * Elemen parallax ditandai dengan atribut `data-parallax` di HeroSection.
  */
 export default function ScrollEffects({ revealKey }: { revealKey: unknown }) {
   const readingProgressRef = useRef<HTMLDivElement>(null);
@@ -17,15 +17,17 @@ export default function ScrollEffects({ revealKey }: { revealKey: unknown }) {
     const heroContent = document.querySelector<HTMLElement>('[data-parallax="hero-content"]');
     const heroPrompt = document.querySelector<HTMLElement>('[data-parallax="hero-prompt"]');
 
+    let ticking = false;
+
     const applyScroll = (y: number) => {
-      // Update Reading Progress Bar langsung ke GPU tanpa re-render React
+      // Update Reading Progress Bar langsung ke GPU
       if (readingProgressRef.current) {
         const docHeight = document.documentElement.scrollHeight - window.innerHeight;
         const progress = docHeight > 0 ? Math.min(1, Math.max(0, y / docHeight)) : 0;
         readingProgressRef.current.style.transform = `scaleX(${progress})`;
       }
 
-      // Parallax halus & ringan di Hero Section (hanya jika dalam viewport hero)
+      // Parallax halus di Hero Section
       if (y <= 750) {
         if (heroBg) heroBg.style.transform = `translate3d(0, ${y * 0.28}px, 0) scale(${1 + y * 0.0002})`;
         if (heroContent) {
@@ -35,61 +37,27 @@ export default function ScrollEffects({ revealKey }: { revealKey: unknown }) {
         if (heroPrompt) heroPrompt.style.opacity = `${Math.max(0, 1 - y / 120)}`;
       }
 
-      // Hanya ubah state ketika ambang batas 400px berubah
+      // Tampilkan tombol back-to-top jika lewat 400px
       const isOver = y > 400;
       setShowBackToTop((prev) => (prev !== isOver ? isOver : prev));
+      ticking = false;
     };
 
-    let lenis: any = null;
-    let rafId = 0;
-    let destroyed = false;
-
-    const initLenis = async () => {
-      try {
-        const { default: LenisClass } = await import('lenis');
-        if (destroyed) return;
-        lenis = new LenisClass({
-          duration: 0.85, // Ringan, responsif, dan lembut tanpa lag
-          easing: (t: number) => 1 - Math.pow(1 - t, 3), // Cubic ease-out
-          orientation: 'vertical',
-          smoothWheel: true,
-          wheelMultiplier: 1.0,
-          touchMultiplier: 1.6,
-        });
-
-        const raf = (time: number) => {
-          lenis?.raf(time);
-          rafId = requestAnimationFrame(raf);
-        };
-        rafId = requestAnimationFrame(raf);
-
-        lenis.on('scroll', (e: any) => applyScroll(typeof e.scroll === 'number' ? e.scroll : window.scrollY));
-      } catch (err) {
-        console.warn('Lenis fallback to native scroll:', err);
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => applyScroll(window.scrollY));
+        ticking = true;
       }
     };
 
-    // Lenis hanya untuk desktop (mouse wheel). Di HP/tablet scroll native sudah halus,
-    // dan loop RAF Lenis hanya membuang CPU/baterai.
-    const skipLenis =
-      window.matchMedia('(pointer: coarse)').matches ||
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!skipLenis) initLenis();
-
-    const handleNativeScroll = () => {
-      if (!lenis) applyScroll(window.scrollY);
-    };
-    window.addEventListener('scroll', handleNativeScroll, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
-      destroyed = true;
-      if (rafId) cancelAnimationFrame(rafId);
-      window.removeEventListener('scroll', handleNativeScroll);
-      lenis?.destroy();
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
-  // Buttery-smooth Scroll-triggered Reveal Animations
+  // Scroll-triggered Reveal Animations
   useEffect(() => {
     if (!('IntersectionObserver' in window)) return;
 
@@ -116,7 +84,6 @@ export default function ScrollEffects({ revealKey }: { revealKey: unknown }) {
     };
 
     observeElements();
-    // Pindai ulang sekali untuk elemen yang muncul belakangan (mis. widget lapak setelah fetch)
     const timer = setTimeout(observeElements, 600);
 
     return () => {
@@ -127,7 +94,7 @@ export default function ScrollEffects({ revealKey }: { revealKey: unknown }) {
 
   return (
     <>
-      {/* Top Scroll Reading Progress Indicator (GPU accelerated scaleX) */}
+      {/* Top Scroll Reading Progress Indicator */}
       <div
         ref={readingProgressRef}
         className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 z-50 origin-left pointer-events-none will-change-transform"

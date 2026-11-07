@@ -61,6 +61,7 @@ export default async function PembangunanPage({
       WHERE p."tenantId" = ${tenant.id} ${tahunFilter}
       GROUP BY p.id
       ORDER BY p."tahunAnggaran" DESC, p."createdAt" DESC
+      LIMIT 30
     `.catch(() => []),
     getTenantNavMenus(tenant.id),
   ]);

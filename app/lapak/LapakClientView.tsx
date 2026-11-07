@@ -68,11 +68,12 @@ const CATEGORIES = [
 interface LapakClientViewProps {
   tenant: ResolvedTenant;
   menus?: any[];
+  initialMerchants?: MerchantItem[];
 }
 
-export default function LapakClientView({ tenant, menus }: LapakClientViewProps) {
-  const [merchants, setMerchants] = useState<MerchantItem[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function LapakClientView({ tenant, menus, initialMerchants }: LapakClientViewProps) {
+  const [merchants, setMerchants] = useState<MerchantItem[]>(initialMerchants || []);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Semua Kategori');
   const [selectedMerchantId, setSelectedMerchantId] = useState<string>('ALL');
@@ -116,7 +117,9 @@ export default function LapakClientView({ tenant, menus }: LapakClientViewProps)
   };
 
   useEffect(() => {
-    fetchMerchants();
+    if (!initialMerchants || initialMerchants.length === 0) {
+      fetchMerchants();
+    }
   }, [tenant.slug]);
 
   // Flattened active products

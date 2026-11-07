@@ -70,6 +70,7 @@ export default async function GalleryPage({ searchParams }: PageProps) {
       FROM "GalleryItem"
       WHERE "tenantId" = ${tenant.id}
       ORDER BY "createdAt" DESC
+      LIMIT 48
     `.catch(() => [] as GalleryPhoto[]),
     getTenantNavMenus(tenant.id),
   ]);
