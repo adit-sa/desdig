@@ -30,6 +30,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 
@@ -495,6 +496,72 @@ export default function KependudukanPage() {
     setActiveTab('buku_induk');
   };
 
+  // Ekspor Seluruh Data Penduduk ke Format CSV / Excel Resmi
+  const handleExportCsv = () => {
+    if (residents.length === 0) {
+      alert('Tidak ada data penduduk untuk diekspor.');
+      return;
+    }
+
+    const headers = [
+      'No',
+      'NIK',
+      'No KK',
+      'Nama Lengkap',
+      'Jenis Kelamin',
+      'Tempat Lahir',
+      'Tanggal Lahir',
+      'Agama',
+      'Pendidikan',
+      'Pekerjaan',
+      'Status Kawin',
+      'Golongan Darah',
+      'Hubungan Keluarga',
+      'Dusun',
+      'RT',
+      'RW',
+      'Alamat',
+      'Telepon',
+      'Status Dasar',
+    ];
+
+    const rows = residents.map((r, idx) => [
+      idx + 1,
+      `'${r.nik || ''}`,
+      `'${r.noKk || ''}`,
+      `"${(r.nama || '').replace(/"/g, '""')}"`,
+      r.jenisKelamin === 'L' ? 'Laki-Laki' : 'Perempuan',
+      `"${(r.tempatLahir || '').replace(/"/g, '""')}"`,
+      r.tanggalLahir ? r.tanggalLahir.split('T')[0] : '',
+      r.agama || '',
+      `"${(r.pendidikan || '').replace(/"/g, '""')}"`,
+      `"${(r.pekerjaan || '').replace(/"/g, '""')}"`,
+      r.statusKawin || '',
+      r.golonganDarah || '',
+      r.hubunganKeluarga || '',
+      `"${(r.dusun || '').replace(/"/g, '""')}"`,
+      r.rt || '',
+      r.rw || '',
+      `"${(r.alamat || '').replace(/"/g, '""')}"`,
+      r.telepon || '',
+      r.statusDasar || 'Hidup',
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((row) => row.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute(
+      'download',
+      `Buku_Induk_Penduduk_Desa_${activeTenant.nama_desa || 'Digital'}_${new Date().toISOString().split('T')[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-4">
       {/* ======================================================== */}
@@ -524,6 +591,15 @@ export default function KependudukanPage() {
             >
               <Printer className="w-3.5 h-3.5 text-emerald-600" />
               <span>Cetak</span>
+            </button>
+
+            <button
+              onClick={handleExportCsv}
+              title="Ekspor Seluruh Data Penduduk ke File CSV/Excel"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold hover:bg-emerald-100 transition cursor-pointer"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Ekspor Excel</span>
             </button>
 
             <button

@@ -24,6 +24,7 @@ import {
   Share2,
 } from 'lucide-react';
 import SafeImage from '@/components/SafeImage';
+import DynamicQrCode from '@/components/DynamicQrCode';
 import { useOpenSIDStore } from '@/lib/store';
 import { SuratPermohonan } from '@/lib/types';
 
@@ -465,7 +466,7 @@ export default function SuratPage() {
                 Alamat: {activeTenant.alamat_kantor || 'Jalan Poros Desa ' + activeTenant.nama_desa} | Kode Pos: {activeTenant.kode_pos || '-'}
               </p>
               <p className="text-[11px] font-sans text-slate-700">
-                Email: {activeTenant.email || 'desa@desdig.id'} | Telepon: {activeTenant.telepon || '-'}
+                Email: {activeTenant.email || `desa@${process.env.NEXT_PUBLIC_APP_DOMAIN || 'adit.lt'}`} | Telepon: {activeTenant.telepon || '-'}
               </p>
             </div>
 
@@ -540,13 +541,23 @@ export default function SuratPage() {
 
             {/* TANDA TANGAN & LEGALISIR */}
             <div className="mt-10 flex justify-between items-end text-xs">
-              {/* QR Code Verifikasi Dokumen */}
+              {/* QR Code Verifikasi Dokumen Digital */}
               <div className="border border-slate-300 p-2.5 rounded-xl font-sans flex items-center gap-3">
-                <QrCode className="h-14 w-14 text-slate-800" />
+                <DynamicQrCode
+                  value={
+                    typeof window !== 'undefined'
+                      ? `${window.location.origin}/surat/verify/${selectedSurat.id}?tenant=${activeTenant.slug}&nomor=${encodeURIComponent(selectedSurat.nomor_surat)}&nama=${encodeURIComponent(selectedSurat.nama_pemohon)}&jenis=${encodeURIComponent(selectedSurat.jenis_surat)}&keperluan=${encodeURIComponent(selectedSurat.keperluan)}&tgl=${encodeURIComponent(selectedSurat.tanggal_cetak || selectedSurat.tanggal_permohonan)}&nik=${encodeURIComponent(selectedSurat.nik_pemohon)}`
+                      : `/surat/verify/${selectedSurat.id}?tenant=${activeTenant.slug}`
+                  }
+                  size={68}
+                  className="h-16 w-16 shrink-0"
+                  alt={`QR Verifikasi Surat ${selectedSurat.nomor_surat}`}
+                />
                 <div className="text-[10px] text-slate-600 leading-tight">
                   <p className="font-bold text-slate-900">VERIFIKASI DOKUMEN DIGITAL</p>
                   <p>Kode: {selectedSurat.nomor_surat}</p>
                   <p className="text-emerald-700 font-semibold">Tersertifikasi Pemdes {activeTenant.nama_desa}</p>
+                  <p className="text-[9px] text-slate-400 mt-0.5">Pindai QR untuk uji keaslian</p>
                 </div>
               </div>
 

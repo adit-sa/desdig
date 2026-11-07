@@ -20,6 +20,21 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
 ### Added
+- **Legalitas & Anti-Pemalsuan: Dynamic Verifiable QR Code & Public Letter Verification (`app/surat/page.tsx`, `components/DynamicQrCode.tsx`, `app/surat/verify/[id]/page.tsx`)**:
+  - Cetak surat keterangan permohonan warga kini menyematkan QR Code dinamis (`DynamicQrCode`) dengan tautan verifikasi digital resmi `/surat/verify/[id]?tenant=[slug]`.
+  - Halaman publik verifikasi `/surat/verify/[id]` yang menampilkan lencana keabsahan warkah desa "DOKUMEN RESMI TERVERIFIKASI", kop lambang resmi desa penerbit, nomor surat, jenis surat, keperluan, serta pernyataan keabsahan sesuai UU ITE No. 1/2024.
+  - Kepatuhan UU Perlindungan Data Pribadi (UU PDP No. 27/2022): NIK pemohon pada verifikasi publik disamarkan otomatis secara aman (`7606********0001`).
+- **Akuntabilitas & Transparansi UU Desa: Visualisasi Realisasi APBDes Sesuai Permendagri No. 20/2018 (`components/themes/modern-government/ApbdesSection.tsx`, `components/themes/modern-government/shared.ts`)**:
+  - Menghadirkan visualisasi transparansi keuangan desa berbasis 3 pilar: 1. Pendapatan Desa, 2. Belanja Desa (5 Bidang), dan 3. Neraca Kas Berjalan (Surplus/Defisit Berimbang & Pembiayaan Netto).
+  - Menyediakan sorotan khusus Dana Desa (DDS APBN) sebagai prioritas transfer nasional beserta pagu dan serapan anggarannya.
+  - Menyediakan dual view mode: Tampilan Kartu Rinci dengan persentase realisasi teranimasi dan Tampilan Tabel Rekapitulasi Standar Permendagri No. 20/2018 lengkap dengan pagu, realisasi, persentase serapan, serta sisa alokasi anggaran.
+  - Dilengkapi fitur pencarian real-time untuk menyaring uraian pos anggaran dan kode rekening APBDes secara instan tanpa reload.
+- **Fitur Operasional Favorit Admin Desa: Ekspor Excel / CSV Buku Induk Penduduk & Absensi (`app/kependudukan/page.tsx`)**:
+  - Menambahkan tombol ekspor Excel/CSV Buku Induk Penduduk berstandar Disdukcapil (NIK, No KK, Nama, Dusun, RT, RW, Jenis Kelamin, Agama, Pendidikan, Pekerjaan, Golongan Darah) dengan encoding UTF-8 BOM (`\uFEFF`) agar langsung terbaca rapi di Microsoft Excel.
+- **Ketahanan Database Serverless Cloud (`lib/prisma.ts`)**:
+  - Menerapkan fungsi resiliensi `withPrismaRetry<T>()` dengan strategi exponential backoff dan jitter untuk menangani cold start Neon PostgreSQL PgBouncer dan pemutusan koneksi sementara (`P1001`, `P2024`, `P1017`, `ConnectionReset`).
+- **Kesiapan Perangkat Kiosk Mandiri (`next.config.ts`)**:
+  - Memperbarui header `Permissions-Policy` ke `camera=(self)` agar perangkat Kiosk Desa dapat mengakses webcam pemindai wajah aparatur tanpa diblokir oleh kebijakan keamanan peramban.
 - **Cross-Request Caching & On-Demand Revalidation (`lib/tenant/data.ts`, `lib/tenant/cache-revalidate.ts`, `app/api/articles/*`, `app/api/announcements/*`, `app/api/gallery/*`, `app/api/telegram/webhook/*`)**:
   - Mengintegrasikan `unstable_cache` pada data beranda desa (`getTenantPublicHomeData`), menu navigasi (`getTenantNavMenus`), dan listing artikel (`getTenantArticleListing`) dengan revalidasi 1 jam dan sistem tagging tenant (`tenant-${tenantId}-home`).
   - Permintaan publik yang berulang kini dilayani dalam waktu <30ms dengan pemangkasan beban query database Neon PostgreSQL hingga 95%.
@@ -73,6 +88,21 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
 ### Added
+- **Legalitas & Anti-Pemalsuan: Dynamic Verifiable QR Code & Public Letter Verification (`app/surat/page.tsx`, `components/DynamicQrCode.tsx`, `app/surat/verify/[id]/page.tsx`)**:
+  - Cetak surat keterangan permohonan warga kini menyematkan QR Code dinamis (`DynamicQrCode`) dengan tautan verifikasi digital resmi `/surat/verify/[id]?tenant=[slug]`.
+  - Halaman publik verifikasi `/surat/verify/[id]` yang menampilkan lencana keabsahan warkah desa "DOKUMEN RESMI TERVERIFIKASI", kop lambang resmi desa penerbit, nomor surat, jenis surat, keperluan, serta pernyataan keabsahan sesuai UU ITE No. 1/2024.
+  - Kepatuhan UU Perlindungan Data Pribadi (UU PDP No. 27/2022): NIK pemohon pada verifikasi publik disamarkan otomatis secara aman (`7606********0001`).
+- **Akuntabilitas & Transparansi UU Desa: Visualisasi Realisasi APBDes Sesuai Permendagri No. 20/2018 (`components/themes/modern-government/ApbdesSection.tsx`, `components/themes/modern-government/shared.ts`)**:
+  - Menghadirkan visualisasi transparansi keuangan desa berbasis 3 pilar: 1. Pendapatan Desa, 2. Belanja Desa (5 Bidang), dan 3. Neraca Kas Berjalan (Surplus/Defisit Berimbang & Pembiayaan Netto).
+  - Menyediakan sorotan khusus Dana Desa (DDS APBN) sebagai prioritas transfer nasional beserta pagu dan serapan anggarannya.
+  - Menyediakan dual view mode: Tampilan Kartu Rinci dengan persentase realisasi teranimasi dan Tampilan Tabel Rekapitulasi Standar Permendagri No. 20/2018 lengkap dengan pagu, realisasi, persentase serapan, serta sisa alokasi anggaran.
+  - Dilengkapi fitur pencarian real-time untuk menyaring uraian pos anggaran dan kode rekening APBDes secara instan tanpa reload.
+- **Fitur Operasional Favorit Admin Desa: Ekspor Excel / CSV Buku Induk Penduduk & Absensi (`app/kependudukan/page.tsx`)**:
+  - Menambahkan tombol ekspor Excel/CSV Buku Induk Penduduk berstandar Disdukcapil (NIK, No KK, Nama, Dusun, RT, RW, Jenis Kelamin, Agama, Pendidikan, Pekerjaan, Golongan Darah) dengan encoding UTF-8 BOM (`\uFEFF`) agar langsung terbaca rapi di Microsoft Excel.
+- **Ketahanan Database Serverless Cloud (`lib/prisma.ts`)**:
+  - Menerapkan fungsi resiliensi `withPrismaRetry<T>()` dengan strategi exponential backoff dan jitter untuk menangani cold start Neon PostgreSQL PgBouncer dan pemutusan koneksi sementara (`P1001`, `P2024`, `P1017`, `ConnectionReset`).
+- **Kesiapan Perangkat Kiosk Mandiri (`next.config.ts`)**:
+  - Memperbarui header `Permissions-Policy` ke `camera=(self)` agar perangkat Kiosk Desa dapat mengakses webcam pemindai wajah aparatur tanpa diblokir oleh kebijakan keamanan peramban.
 - **Cross-Request Caching & On-Demand Revalidation (`lib/tenant/data.ts`, `lib/tenant/cache-revalidate.ts`, `app/api/articles/*`, `app/api/announcements/*`, `app/api/gallery/*`, `app/api/telegram/webhook/*`)**:
   - Mengintegrasikan `unstable_cache` pada data beranda desa (`getTenantPublicHomeData`), menu navigasi (`getTenantNavMenus`), dan listing artikel (`getTenantArticleListing`) dengan revalidasi 1 jam dan sistem tagging tenant (`tenant-${tenantId}-home`).
   - Permintaan publik yang berulang kini dilayani dalam waktu <30ms dengan pemangkasan beban query database Neon PostgreSQL hingga 95%.
@@ -151,6 +181,21 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
 ### Added
+- **Legalitas & Anti-Pemalsuan: Dynamic Verifiable QR Code & Public Letter Verification (`app/surat/page.tsx`, `components/DynamicQrCode.tsx`, `app/surat/verify/[id]/page.tsx`)**:
+  - Cetak surat keterangan permohonan warga kini menyematkan QR Code dinamis (`DynamicQrCode`) dengan tautan verifikasi digital resmi `/surat/verify/[id]?tenant=[slug]`.
+  - Halaman publik verifikasi `/surat/verify/[id]` yang menampilkan lencana keabsahan warkah desa "DOKUMEN RESMI TERVERIFIKASI", kop lambang resmi desa penerbit, nomor surat, jenis surat, keperluan, serta pernyataan keabsahan sesuai UU ITE No. 1/2024.
+  - Kepatuhan UU Perlindungan Data Pribadi (UU PDP No. 27/2022): NIK pemohon pada verifikasi publik disamarkan otomatis secara aman (`7606********0001`).
+- **Akuntabilitas & Transparansi UU Desa: Visualisasi Realisasi APBDes Sesuai Permendagri No. 20/2018 (`components/themes/modern-government/ApbdesSection.tsx`, `components/themes/modern-government/shared.ts`)**:
+  - Menghadirkan visualisasi transparansi keuangan desa berbasis 3 pilar: 1. Pendapatan Desa, 2. Belanja Desa (5 Bidang), dan 3. Neraca Kas Berjalan (Surplus/Defisit Berimbang & Pembiayaan Netto).
+  - Menyediakan sorotan khusus Dana Desa (DDS APBN) sebagai prioritas transfer nasional beserta pagu dan serapan anggarannya.
+  - Menyediakan dual view mode: Tampilan Kartu Rinci dengan persentase realisasi teranimasi dan Tampilan Tabel Rekapitulasi Standar Permendagri No. 20/2018 lengkap dengan pagu, realisasi, persentase serapan, serta sisa alokasi anggaran.
+  - Dilengkapi fitur pencarian real-time untuk menyaring uraian pos anggaran dan kode rekening APBDes secara instan tanpa reload.
+- **Fitur Operasional Favorit Admin Desa: Ekspor Excel / CSV Buku Induk Penduduk & Absensi (`app/kependudukan/page.tsx`)**:
+  - Menambahkan tombol ekspor Excel/CSV Buku Induk Penduduk berstandar Disdukcapil (NIK, No KK, Nama, Dusun, RT, RW, Jenis Kelamin, Agama, Pendidikan, Pekerjaan, Golongan Darah) dengan encoding UTF-8 BOM (`\uFEFF`) agar langsung terbaca rapi di Microsoft Excel.
+- **Ketahanan Database Serverless Cloud (`lib/prisma.ts`)**:
+  - Menerapkan fungsi resiliensi `withPrismaRetry<T>()` dengan strategi exponential backoff dan jitter untuk menangani cold start Neon PostgreSQL PgBouncer dan pemutusan koneksi sementara (`P1001`, `P2024`, `P1017`, `ConnectionReset`).
+- **Kesiapan Perangkat Kiosk Mandiri (`next.config.ts`)**:
+  - Memperbarui header `Permissions-Policy` ke `camera=(self)` agar perangkat Kiosk Desa dapat mengakses webcam pemindai wajah aparatur tanpa diblokir oleh kebijakan keamanan peramban.
 - **Cross-Request Caching & On-Demand Revalidation (`lib/tenant/data.ts`, `lib/tenant/cache-revalidate.ts`, `app/api/articles/*`, `app/api/announcements/*`, `app/api/gallery/*`, `app/api/telegram/webhook/*`)**:
   - Mengintegrasikan `unstable_cache` pada data beranda desa (`getTenantPublicHomeData`), menu navigasi (`getTenantNavMenus`), dan listing artikel (`getTenantArticleListing`) dengan revalidasi 1 jam dan sistem tagging tenant (`tenant-${tenantId}-home`).
   - Permintaan publik yang berulang kini dilayani dalam waktu <30ms dengan pemangkasan beban query database Neon PostgreSQL hingga 95%.
@@ -411,6 +456,21 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
 ### Added
+- **Legalitas & Anti-Pemalsuan: Dynamic Verifiable QR Code & Public Letter Verification (`app/surat/page.tsx`, `components/DynamicQrCode.tsx`, `app/surat/verify/[id]/page.tsx`)**:
+  - Cetak surat keterangan permohonan warga kini menyematkan QR Code dinamis (`DynamicQrCode`) dengan tautan verifikasi digital resmi `/surat/verify/[id]?tenant=[slug]`.
+  - Halaman publik verifikasi `/surat/verify/[id]` yang menampilkan lencana keabsahan warkah desa "DOKUMEN RESMI TERVERIFIKASI", kop lambang resmi desa penerbit, nomor surat, jenis surat, keperluan, serta pernyataan keabsahan sesuai UU ITE No. 1/2024.
+  - Kepatuhan UU Perlindungan Data Pribadi (UU PDP No. 27/2022): NIK pemohon pada verifikasi publik disamarkan otomatis secara aman (`7606********0001`).
+- **Akuntabilitas & Transparansi UU Desa: Visualisasi Realisasi APBDes Sesuai Permendagri No. 20/2018 (`components/themes/modern-government/ApbdesSection.tsx`, `components/themes/modern-government/shared.ts`)**:
+  - Menghadirkan visualisasi transparansi keuangan desa berbasis 3 pilar: 1. Pendapatan Desa, 2. Belanja Desa (5 Bidang), dan 3. Neraca Kas Berjalan (Surplus/Defisit Berimbang & Pembiayaan Netto).
+  - Menyediakan sorotan khusus Dana Desa (DDS APBN) sebagai prioritas transfer nasional beserta pagu dan serapan anggarannya.
+  - Menyediakan dual view mode: Tampilan Kartu Rinci dengan persentase realisasi teranimasi dan Tampilan Tabel Rekapitulasi Standar Permendagri No. 20/2018 lengkap dengan pagu, realisasi, persentase serapan, serta sisa alokasi anggaran.
+  - Dilengkapi fitur pencarian real-time untuk menyaring uraian pos anggaran dan kode rekening APBDes secara instan tanpa reload.
+- **Fitur Operasional Favorit Admin Desa: Ekspor Excel / CSV Buku Induk Penduduk & Absensi (`app/kependudukan/page.tsx`)**:
+  - Menambahkan tombol ekspor Excel/CSV Buku Induk Penduduk berstandar Disdukcapil (NIK, No KK, Nama, Dusun, RT, RW, Jenis Kelamin, Agama, Pendidikan, Pekerjaan, Golongan Darah) dengan encoding UTF-8 BOM (`\uFEFF`) agar langsung terbaca rapi di Microsoft Excel.
+- **Ketahanan Database Serverless Cloud (`lib/prisma.ts`)**:
+  - Menerapkan fungsi resiliensi `withPrismaRetry<T>()` dengan strategi exponential backoff dan jitter untuk menangani cold start Neon PostgreSQL PgBouncer dan pemutusan koneksi sementara (`P1001`, `P2024`, `P1017`, `ConnectionReset`).
+- **Kesiapan Perangkat Kiosk Mandiri (`next.config.ts`)**:
+  - Memperbarui header `Permissions-Policy` ke `camera=(self)` agar perangkat Kiosk Desa dapat mengakses webcam pemindai wajah aparatur tanpa diblokir oleh kebijakan keamanan peramban.
 - **Cross-Request Caching & On-Demand Revalidation (`lib/tenant/data.ts`, `lib/tenant/cache-revalidate.ts`, `app/api/articles/*`, `app/api/announcements/*`, `app/api/gallery/*`, `app/api/telegram/webhook/*`)**:
   - Mengintegrasikan `unstable_cache` pada data beranda desa (`getTenantPublicHomeData`), menu navigasi (`getTenantNavMenus`), dan listing artikel (`getTenantArticleListing`) dengan revalidasi 1 jam dan sistem tagging tenant (`tenant-${tenantId}-home`).
   - Permintaan publik yang berulang kini dilayani dalam waktu <30ms dengan pemangkasan beban query database Neon PostgreSQL hingga 95%.

@@ -4,9 +4,24 @@ import { prisma } from '@/lib/prisma';
 import { ContentStatus } from '@prisma/client';
 import { formatProjectTitle } from '@/lib/formatters';
 
+function safeCached<T>(
+  fn: () => Promise<T>,
+  keyParts: string[],
+  options: { revalidate?: number; tags?: string[] }
+): () => Promise<T> {
+  if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
+    return fn;
+  }
+  try {
+    return unstable_cache(fn, keyParts, options);
+  } catch {
+    return fn;
+  }
+}
+
 /** Menu navigasi header tenant (di-cache lintas request & otomatis divalidasi per tenant). */
 export const getTenantNavMenus = (tenantId: string): Promise<any[]> =>
-  unstable_cache(
+  safeCached(
     async () =>
       prisma.$queryRaw<any[]>`
         SELECT id, title, url, "parentId", "orderIndex", "isVisible", "isExternal"
@@ -225,7 +240,7 @@ async function fetchTenantPublicHomeDataInternal(tenantId: string) {
  * Data beranda portal publik desa (di-cache lintas request untuk kecepatan <30ms dan proteksi beban database).
  */
 export const getTenantPublicHomeData = (tenantId: string) =>
-  unstable_cache(
+  safeCached(
     () => fetchTenantPublicHomeDataInternal(tenantId),
     [`tenant-home-${tenantId}`],
     {
@@ -313,7 +328,7 @@ async function fetchTenantArticleListingInternal(tenantId: string) {
  * Data daftar artikel desa (di-cache lintas request untuk loading instan).
  */
 export const getTenantArticleListing = (tenantId: string) =>
-  unstable_cache(
+  safeCached(
     () => fetchTenantArticleListingInternal(tenantId),
     [`tenant-article-listing-${tenantId}`],
     {

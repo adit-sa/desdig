@@ -98,7 +98,8 @@ export async function POST(request: NextRequest) {
       const authorName = linked.officialName
         ? (linked.officialPosition ? `${linked.officialName} (${linked.officialPosition})` : linked.officialName)
         : (from.first_name || 'Operator Desa');
-      const primaryDomain = tenant.domains?.find((d: any) => d.isPrimary)?.domain || `${tenant.slug}.desdig.id`;
+      const baseDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'adit.lt';
+      const primaryDomain = tenant.domains?.find((d: any) => d.isPrimary)?.domain || `${tenant.slug}.${baseDomain}`;
 
       // A. Batalkan Draft
       if (data === 'cancel_draft') {
@@ -385,7 +386,8 @@ export async function POST(request: NextRequest) {
     const authorName = linked.officialName
       ? (linked.officialPosition ? `${linked.officialName} (${linked.officialPosition})` : linked.officialName)
       : (from.first_name || 'Operator Desa');
-    const primaryDomain = tenant.domains?.find((d: any) => d.isPrimary)?.domain || `${tenant.slug}.desdig.id`;
+    const baseDomain = process.env.NEXT_PUBLIC_APP_DOMAIN || 'adit.lt';
+    const primaryDomain = tenant.domains?.find((d: any) => d.isPrimary)?.domain || `${tenant.slug}.${baseDomain}`;
 
     // Perintah /status
     if (text.startsWith('/status')) {

@@ -138,7 +138,7 @@ server.tool(
         kepalaDesa: t.kepalaDesa || 'Belum diisi',
         temaAktif: t.activeThemeId,
         paket: t.plan?.name || 'Standard',
-        domainUtama: t.domains.find((d) => d.isPrimary)?.domain || `${t.slug}.desdig.id`,
+        domainUtama: t.domains.find((d) => d.isPrimary)?.domain || `${t.slug}.${process.env.NEXT_PUBLIC_APP_DOMAIN || 'adit.lt'}`,
         statistik: {
           totalPenduduk: t._count.residents,
           totalArtikel: t._count.articles,

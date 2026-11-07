@@ -85,12 +85,25 @@ const sumBy = (items: any[], category: string, field: 'realization' | 'budget') 
 
 const pct = (part: number, whole: number) => (whole > 0 ? Math.min(100, Math.round((part / whole) * 100)) : 0);
 
-/** Ringkasan APBDes dipakai bersama oleh StatsSection & ApbdesSection. */
+/** Ringkasan APBDes dipakai bersama oleh StatsSection & ApbdesSection sesuai standar Permendagri No. 20/2018. */
 export const summarizeApbdes = (apbdes: any[]) => {
   const totalPendapatan = sumBy(apbdes, 'Pendapatan', 'realization');
   const totalAnggaranPendapatan = sumBy(apbdes, 'Pendapatan', 'budget');
   const totalBelanja = sumBy(apbdes, 'Belanja', 'realization');
   const totalAnggaranBelanja = sumBy(apbdes, 'Belanja', 'budget');
+  const totalPembiayaan = sumBy(apbdes, 'Pembiayaan', 'realization');
+  const totalAnggaranPembiayaan = sumBy(apbdes, 'Pembiayaan', 'budget');
+
+  const surplusDefisitAnggaran = totalAnggaranPendapatan - totalAnggaranBelanja;
+  const surplusDefisitRealisasi = totalPendapatan - totalBelanja;
+
+  // Deteksi rincian Dana Desa (DDS) dari APBN
+  const danaDesaItem = apbdes.find((i) => 
+    (i.accountName || '').toLowerCase().includes('dana desa') ||
+    (i.accountCode || '').startsWith('4.2.1') ||
+    (i.accountCode || '').includes('DDS')
+  );
+
   return {
     totalPendapatan,
     totalAnggaranPendapatan,
@@ -98,7 +111,14 @@ export const summarizeApbdes = (apbdes: any[]) => {
     totalBelanja,
     totalAnggaranBelanja,
     persenTotalBelanja: pct(totalBelanja, totalAnggaranBelanja),
-    apbdesYear: apbdes.length > 0 ? apbdes[0].year : 2025,
+    totalPembiayaan,
+    totalAnggaranPembiayaan,
+    persenTotalPembiayaan: pct(totalPembiayaan, totalAnggaranPembiayaan),
+    surplusDefisitAnggaran,
+    surplusDefisitRealisasi,
+    danaDesaPagu: danaDesaItem?.budget || 0,
+    danaDesaRealisasi: danaDesaItem?.realization || 0,
+    apbdesYear: apbdes.length > 0 ? apbdes[0].year : 2026,
     countPendapatan: apbdes.filter((i) => i.category === 'Pendapatan').length,
     countBelanja: apbdes.filter((i) => i.category === 'Belanja').length,
     countPembiayaan: apbdes.filter((i) => i.category === 'Pembiayaan').length,
