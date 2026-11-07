@@ -352,14 +352,14 @@ export default function Sidebar() {
     <>
       {/* 1. Desktop Sidebar */}
       {!isDesktopHidden && (
-        <aside className="hidden lg:flex w-56 shrink-0 flex-col border-r border-slate-200 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-900/60 min-h-[calc(100vh-4rem)] transition-all">
+        <aside className="hidden lg:flex w-56 shrink-0 flex-col border-r border-slate-200 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-900/60 min-h-[calc(100vh-4rem)] transition-all print:hidden">
           {renderNavContent()}
         </aside>
       )}
 
       {/* 2. Mobile Drawer */}
       {isMobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden print:hidden">
           <div
             className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
             onClick={() => setIsMobileOpen(false)}

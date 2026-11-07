@@ -70,6 +70,24 @@ export function maskKodeKemendagriInput(val: string): string {
 }
 
 /**
+ * Format tanggal ke standar resmi bahasa Indonesia (contoh: '2026-10-18' -> '18 Oktober 2026')
+ */
+export function formatTanggalIndo(dateStr?: string | Date | null): string {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    const bulan = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return `${d.getDate()} ${bulan[d.getMonth()]} ${d.getFullYear()}`;
+  } catch {
+    return String(dateStr);
+  }
+}
+
+/**
  * Validasi apakah Kode Kemendagri valid (10 digit numerik)
  */
 export function isValidKodeKemendagri(val?: string | null): boolean {

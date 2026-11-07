@@ -7,6 +7,7 @@ import {
   Printer,
   PlusCircle,
   Search,
+  ArrowLeft,
   CheckCircle,
   Clock,
   QrCode,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import SafeImage from '@/components/SafeImage';
 import DynamicQrCode from '@/components/DynamicQrCode';
+import { formatTanggalIndo } from '@/lib/formatters';
 import { useOpenSIDStore } from '@/lib/store';
 import { SuratPermohonan } from '@/lib/types';
 
@@ -227,9 +229,20 @@ export default function SuratPage() {
     setPenghasilan('');
   };
 
+  // Pastikan ada surat yang terpilih untuk pratinjau cetak default
+  useEffect(() => {
+    if (!selectedSurat && suratList.length > 0) {
+      setSelectedSurat(suratList[0]);
+    }
+  }, [suratList, selectedSurat]);
+
   const handleCetak = (surat: SuratPermohonan) => {
+    setSelectedSurat(surat);
     updateStatusSurat(surat.id, 'Dicetak');
-    window.print();
+    setActiveTab('cetak');
+    setTimeout(() => {
+      window.print();
+    }, 150);
   };
 
   // Cari data lengkap pemohon dari daftar resident untuk keperluan pratinjau cetak
@@ -297,9 +310,8 @@ export default function SuratPage() {
       </div>
 
       {/* TAB 1: DAFTAR ARSIP SURAT */}
-      {activeTab === 'daftar' && (
-        <div className="print:hidden space-y-4">
-          {/* Controls: Search & Filter */}
+      <div className={activeTab === 'daftar' ? 'print:hidden space-y-4' : 'hidden'}>
+        {/* Controls: Search & Filter */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -367,7 +379,7 @@ export default function SuratPage() {
                         <td className="px-4 py-3.5 text-slate-600 dark:text-slate-300 max-w-xs truncate">
                           {surat.keperluan}
                         </td>
-                        <td className="px-4 py-3.5 text-slate-500 text-[11px]">{surat.tanggal_permohonan}</td>
+                        <td className="px-4 py-3.5 text-slate-500 text-[11px]">{formatTanggalIndo(surat.tanggal_permohonan)}</td>
                         <td className="px-4 py-3.5">
                           <span
                             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${surat.status === 'Dicetak'
@@ -411,26 +423,48 @@ export default function SuratPage() {
             </div>
           </div>
         </div>
-      )}
 
-      {/* TAB 2: FORMAT & PRATINJAU CETAK RESMI (LEMBAR A4 RESMI) */}
-      {activeTab === 'cetak' && selectedSurat && (
-        <div className="space-y-4">
-          {/* Action Bar (Hidden on Print) */}
-          <div className="print:hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800">
-            <div>
-              <p className="text-xs font-bold text-emerald-950 dark:text-emerald-200">
-                Dokumen Terpilih: <span className="underline">{selectedSurat.jenis_surat}</span> ({selectedSurat.nomor_surat})
-              </p>
-              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
-                Format resmi sesuai Permendagri dengan Kop Pemkab, validasi Kepala Desa, dan verifikasi digital.
-              </p>
+      {/* TAB 2 / LEMBAR CETAK RESMI: FORMAT & PRATINJAU CETAK A4 */}
+      {selectedSurat && (
+        <div className={activeTab === 'cetak' ? 'space-y-4' : 'hidden print:block'}>
+          {/* Action Bar Navigasi & Print Tools (Hidden on Print) */}
+          <div className="print:hidden flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveTab('daftar')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 text-xs font-bold transition cursor-pointer"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Kembali ke Daftar</span>
+              </button>
+
+              <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 font-medium">Pilih Dokumen:</span>
+                <select
+                  value={selectedSurat.id}
+                  onChange={(e) => {
+                    const found = suratList.find((s) => s.id === e.target.value);
+                    if (found) setSelectedSurat(found);
+                  }}
+                  className="text-xs font-bold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  {suratList.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.nomor_surat} - {s.nama_pemohon} ({s.kode_surat})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => handleCetak(selectedSurat)}
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-700 transition cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 transition cursor-pointer"
               >
                 <Printer className="h-4 w-4" />
                 <span>Cetak Lembar A4 (Ctrl + P)</span>
@@ -438,94 +472,129 @@ export default function SuratPage() {
             </div>
           </div>
 
-          {/* LEMBAR KERTAS A4 RESMI CETAK */}
-          <div className="mx-auto max-w-3xl rounded-2xl bg-white p-8 sm:p-14 shadow-lg border border-slate-200 text-black font-serif print:border-none print:shadow-none print:p-0 print:max-w-none">
-            {/* KOP SURAT RESMI */}
-            <div className="relative text-center border-b-4 border-double border-black pb-3">
-              {activeTenant.logo_url && (
-                <div className="absolute left-0 top-0 w-16 h-16 hidden sm:flex items-center justify-center">
+          {/* LEMBAR KERTAS A4 RESMI CETAK (STANDAR TATA NASKAH DINAS PERMENDAGRI) */}
+          <div className="print-sheet-a4 mx-auto w-full max-w-[210mm] min-h-[297mm] bg-white p-8 sm:p-14 shadow-2xl rounded-2xl border border-slate-200 text-black font-serif print:border-none print:shadow-none print:p-0 print:m-0 print:max-w-none print:min-h-0 print:rounded-none">
+            {/* KOP SURAT RESMI DINAS */}
+            <div className="relative border-b-2 border-black pb-2 text-black">
+              <div className="flex items-center gap-4">
+                {/* Logo Pemkab / Lambang Daerah */}
+                <div className="w-20 h-20 shrink-0 flex items-center justify-center">
                   <SafeImage
-                    src={activeTenant.logo_url}
-                    alt="Logo Desa"
-                    width={64}
-                    height={64}
-                    className="max-h-16 max-w-16 object-contain"
+                    src={activeTenant.logo_url || '/images/default-logo.png'}
+                    alt={`Lambang ${activeTenant.nama_desa}`}
+                    width={80}
+                    height={80}
+                    className="max-h-20 max-w-20 object-contain"
+                    unoptimized
                   />
                 </div>
-              )}
-              <h3 className="text-sm font-bold uppercase tracking-wider">
-                PEMERINTAH KABUPATEN {activeTenant.kabupaten?.toUpperCase()}
-              </h3>
-              <h3 className="text-sm font-bold uppercase tracking-wider">
-                KECAMATAN {activeTenant.kecamatan?.toUpperCase()}
-              </h3>
-              <h2 className="text-lg font-black uppercase tracking-widest mt-0.5">
-                KANTOR KEPALA DESA {activeTenant.nama_desa?.toUpperCase()}
-              </h2>
-              <p className="text-[11px] font-sans text-slate-700 mt-1">
-                Alamat: {activeTenant.alamat_kantor || 'Jalan Poros Desa ' + activeTenant.nama_desa} | Kode Pos: {activeTenant.kode_pos || '-'}
-              </p>
-              <p className="text-[11px] font-sans text-slate-700">
-                Email: {activeTenant.email || `desa@${process.env.NEXT_PUBLIC_APP_DOMAIN || 'adit.lt'}`} | Telepon: {activeTenant.telepon || '-'}
-              </p>
+
+                {/* Teks Lembaga Pemda & Kantor Desa */}
+                <div className="flex-1 text-center pr-20">
+                  <h3 className="text-sm sm:text-base font-bold uppercase tracking-wider font-serif leading-tight">
+                    PEMERINTAH KABUPATEN {activeTenant.kabupaten?.toUpperCase()}
+                  </h3>
+                  <h3 className="text-sm sm:text-base font-bold uppercase tracking-wider font-serif leading-tight">
+                    KECAMATAN {activeTenant.kecamatan?.toUpperCase()}
+                  </h3>
+                  <h2 className="text-lg sm:text-xl font-black uppercase tracking-widest font-serif leading-tight mt-0.5">
+                    KANTOR KEPALA DESA {activeTenant.nama_desa?.toUpperCase()}
+                  </h2>
+                  <p className="text-[10.5px] sm:text-[11px] font-sans text-black mt-1 leading-tight">
+                    {activeTenant.alamat_kantor || `Jalan Poros Desa ${activeTenant.nama_desa}`}
+                    {activeTenant.kode_pos ? ` • Kode Pos ${activeTenant.kode_pos}` : ''}
+                  </p>
+                  <p className="text-[10px] sm:text-[10.5px] font-sans text-black leading-tight">
+                    {activeTenant.email ? `Email: ${activeTenant.email}` : `Email: desa@${process.env.NEXT_PUBLIC_APP_DOMAIN || 'adit.lt'}`}
+                    {activeTenant.telepon ? ` • Telp: ${activeTenant.telepon}` : ''}
+                    {` • Website: ${activeTenant.slug}.${process.env.NEXT_PUBLIC_APP_DOMAIN || 'adit.lt'}`}
+                  </p>
+                </div>
+              </div>
             </div>
+            {/* Garis Ganda Tipis Bawah (Garis Naskah Dinas Resmi) */}
+            <div className="border-b border-black mt-[1.5px] mb-5"></div>
 
             {/* JUDUL DAN NOMOR SURAT */}
-            <div className="text-center my-6">
-              <h1 className="text-base font-bold uppercase underline tracking-wider font-serif">
+            <div className="text-center my-4">
+              <h1 className="text-base sm:text-lg font-bold uppercase underline tracking-wider font-serif">
                 {selectedSurat.jenis_surat}
               </h1>
-              <p className="text-xs font-sans mt-1">Nomor: {selectedSurat.nomor_surat}</p>
+              <p className="text-xs sm:text-sm font-sans mt-0.5 font-medium tracking-normal text-black">
+                Nomor : {selectedSurat.nomor_surat}
+              </p>
             </div>
 
             {/* ISI SURAT */}
-            <div className="text-xs leading-relaxed space-y-4">
+            <div className="text-xs sm:text-[13px] leading-relaxed space-y-3 font-serif text-black">
               <p className="text-justify indent-8">
-                Yang bertanda tangan di bawah ini, Kepala Desa {activeTenant.nama_desa}, Kecamatan {activeTenant.kecamatan}, Kabupaten {activeTenant.kabupaten}, Provinsi {activeTenant.provinsi || 'Indonesia'}, menerangkan dengan sebenarnya bahwa:
+                Yang bertanda tangan di bawah ini Kepala Desa {activeTenant.nama_desa}, Kecamatan {activeTenant.kecamatan}, Kabupaten {activeTenant.kabupaten}, Provinsi {activeTenant.provinsi || 'Indonesia'}, menerangkan dengan sebenarnya bahwa:
               </p>
 
-              <div className="pl-6 space-y-1.5 font-sans">
-                <div className="grid grid-cols-3">
-                  <span className="text-slate-700">Nama Lengkap</span>
-                  <span className="col-span-2 font-bold">: {selectedSurat.nama_pemohon}</span>
-                </div>
-                <div className="grid grid-cols-3">
-                  <span className="text-slate-700">NIK (Nomor Induk Kependudukan)</span>
-                  <span className="col-span-2 font-mono font-bold">: {selectedSurat.nik_pemohon}</span>
-                </div>
-                <div className="grid grid-cols-3">
-                  <span className="text-slate-700">No. Kartu Keluarga (KK)</span>
-                  <span className="col-span-2 font-mono">: {dataPendudukCetak?.noKk || '-'}</span>
-                </div>
-                <div className="grid grid-cols-3">
-                  <span className="text-slate-700">Tempat, Tanggal Lahir</span>
-                  <span className="col-span-2">: {dataPendudukCetak?.tempatLahir || '-'}, {dataPendudukCetak?.tanggalLahir ? String(dataPendudukCetak.tanggalLahir).slice(0, 10) : '-'}</span>
-                </div>
-                <div className="grid grid-cols-3">
-                  <span className="text-slate-700">Jenis Kelamin</span>
-                  <span className="col-span-2">: {dataPendudukCetak?.jenisKelamin === 'L' ? 'Laki-Laki' : 'Perempuan'}</span>
-                </div>
-                <div className="grid grid-cols-3">
-                  <span className="text-slate-700">Agama / Status</span>
-                  <span className="col-span-2">: {dataPendudukCetak?.agama || 'Islam'} / {dataPendudukCetak?.statusKawin || 'Kawin'}</span>
-                </div>
-                <div className="grid grid-cols-3">
-                  <span className="text-slate-700">Pekerjaan</span>
-                  <span className="col-span-2">: {dataPendudukCetak?.pekerjaan || 'Wiraswasta'}</span>
-                </div>
-                <div className="grid grid-cols-3">
-                  <span className="text-slate-700">Alamat / Dusun</span>
-                  <span className="col-span-2">: {dataPendudukCetak?.alamat || 'Dusun ' + (dataPendudukCetak?.dusun || '-')} RT {dataPendudukCetak?.rt || '001'} / RW {dataPendudukCetak?.rw || '001'}</span>
-                </div>
-              </div>
+              {/* TABEL BIODATA PEMOHON */}
+              <table className="w-full my-2.5 text-xs sm:text-[13px] leading-relaxed font-serif text-black border-collapse">
+                <tbody>
+                  <tr>
+                    <td className="w-48 py-0.5 align-top">1. Nama Lengkap</td>
+                    <td className="w-4 py-0.5 align-top text-center">:</td>
+                    <td className="py-0.5 align-top font-bold uppercase">{selectedSurat.nama_pemohon}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-0.5 align-top">2. NIK</td>
+                    <td className="py-0.5 align-top text-center">:</td>
+                    <td className="py-0.5 align-top font-mono font-bold tracking-wider">{selectedSurat.nik_pemohon}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-0.5 align-top">3. Nomor KK</td>
+                    <td className="py-0.5 align-top text-center">:</td>
+                    <td className="py-0.5 align-top font-mono">{dataPendudukCetak?.noKk || '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-0.5 align-top">4. Tempat / Tgl. Lahir</td>
+                    <td className="py-0.5 align-top text-center">:</td>
+                    <td className="py-0.5 align-top">
+                      {dataPendudukCetak?.tempatLahir || '-'}, {dataPendudukCetak?.tanggalLahir ? formatTanggalIndo(dataPendudukCetak.tanggalLahir) : '-'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-0.5 align-top">5. Jenis Kelamin</td>
+                    <td className="py-0.5 align-top text-center">:</td>
+                    <td className="py-0.5 align-top">
+                      {dataPendudukCetak?.jenisKelamin === 'L' ? 'Laki-Laki' : dataPendudukCetak?.jenisKelamin === 'P' ? 'Perempuan' : '-'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-0.5 align-top">6. Warga Negara / Agama</td>
+                    <td className="py-0.5 align-top text-center">:</td>
+                    <td className="py-0.5 align-top">Indonesia / {dataPendudukCetak?.agama || 'Islam'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-0.5 align-top">7. Status Perkawinan</td>
+                    <td className="py-0.5 align-top text-center">:</td>
+                    <td className="py-0.5 align-top">{dataPendudukCetak?.statusKawin || '-'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-0.5 align-top">8. Pekerjaan</td>
+                    <td className="py-0.5 align-top text-center">:</td>
+                    <td className="py-0.5 align-top">{dataPendudukCetak?.pekerjaan || 'Wiraswasta'}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-0.5 align-top">9. Tempat Tinggal / Alamat</td>
+                    <td className="py-0.5 align-top text-center">:</td>
+                    <td className="py-0.5 align-top">
+                      {dataPendudukCetak?.alamat || `Dusun ${dataPendudukCetak?.dusun || '-'}`} RT {dataPendudukCetak?.rt || '001'} / RW {dataPendudukCetak?.rw || '001'}, Desa {activeTenant.nama_desa}, Kec. {activeTenant.kecamatan}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
               <p className="text-justify indent-8">
-                {templateDetail?.isiTemplate || 'Berdasarkan catatan dan data kependudukan resmi kami, orang tersebut di atas adalah benar-benar penduduk yang berdomisili sah di Desa ' + activeTenant.nama_desa + '.'}
+                {templateDetail?.isiTemplate || `Berdasarkan catatan dan data kependudukan resmi kami, orang tersebut di atas adalah benar-benar penduduk yang bertempat tinggal dan berdomisili sah di Desa ${activeTenant.nama_desa}, Kecamatan ${activeTenant.kecamatan}, Kabupaten ${activeTenant.kabupaten}.`}
               </p>
 
               {selectedSurat.keterangan_tambahan && (
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg font-sans">
-                  <span className="font-bold">Keterangan:</span> {selectedSurat.keterangan_tambahan}
+                <div className="p-2.5 my-1.5 border border-black rounded font-sans text-xs bg-slate-50 print:bg-transparent print:border-black">
+                  <span className="font-bold">Keterangan Khusus:</span> {selectedSurat.keterangan_tambahan}
                 </div>
               )}
 
@@ -535,42 +604,41 @@ export default function SuratPage() {
               </p>
 
               <p className="text-justify indent-8">
-                Demikian surat keterangan ini kami buat dengan sebenarnya agar dapat dipergunakan sebagaimana mestinya oleh pihak yang berkepentingan.
+                Demikian surat keterangan ini kami buat dengan sebenarnya dan penuh rasa tanggung jawab agar dapat dipergunakan sebagaimana mestinya oleh pihak yang berkepentingan.
               </p>
             </div>
 
             {/* TANDA TANGAN & LEGALISIR */}
-            <div className="mt-10 flex justify-between items-end text-xs">
+            <div className="mt-8 flex justify-between items-end text-xs font-sans text-black break-inside-avoid">
               {/* QR Code Verifikasi Dokumen Digital */}
-              <div className="border border-slate-300 p-2.5 rounded-xl font-sans flex items-center gap-3">
+              <div className="border border-black p-2.5 rounded-xl flex items-center gap-3 max-w-[280px]">
                 <DynamicQrCode
                   value={
                     typeof window !== 'undefined'
                       ? `${window.location.origin}/surat/verify/${selectedSurat.id}?tenant=${activeTenant.slug}&nomor=${encodeURIComponent(selectedSurat.nomor_surat)}&nama=${encodeURIComponent(selectedSurat.nama_pemohon)}&jenis=${encodeURIComponent(selectedSurat.jenis_surat)}&keperluan=${encodeURIComponent(selectedSurat.keperluan)}&tgl=${encodeURIComponent(selectedSurat.tanggal_cetak || selectedSurat.tanggal_permohonan)}&nik=${encodeURIComponent(selectedSurat.nik_pemohon)}`
                       : `/surat/verify/${selectedSurat.id}?tenant=${activeTenant.slug}`
                   }
-                  size={68}
+                  size={64}
                   className="h-16 w-16 shrink-0"
                   alt={`QR Verifikasi Surat ${selectedSurat.nomor_surat}`}
                 />
-                <div className="text-[10px] text-slate-600 leading-tight">
-                  <p className="font-bold text-slate-900">VERIFIKASI DOKUMEN DIGITAL</p>
-                  <p>Kode: {selectedSurat.nomor_surat}</p>
-                  <p className="text-emerald-700 font-semibold">Tersertifikasi Pemdes {activeTenant.nama_desa}</p>
-                  <p className="text-[9px] text-slate-400 mt-0.5">Pindai QR untuk uji keaslian</p>
+                <div className="text-[9.5px] leading-tight text-black">
+                  <p className="font-bold uppercase tracking-tight">VERIFIKASI DIGITAL DESDIG</p>
+                  <p className="mt-0.5">Dokumen sah diterbitkan oleh Pemdes {activeTenant.nama_desa}.</p>
+                  <p className="text-[8.5px] text-slate-600 print:text-black mt-1 font-mono">Pindai QR untuk uji keabsahan.</p>
                 </div>
               </div>
 
               {/* Tanda Tangan Kades */}
-              <div className="text-center font-sans min-w-[200px]">
-                <p>
-                  {activeTenant.nama_desa}, {selectedSurat.tanggal_permohonan}
+              <div className="text-center min-w-[220px]">
+                <p className="text-xs">
+                  {activeTenant.nama_desa}, {formatTanggalIndo(selectedSurat.tanggal_cetak || selectedSurat.tanggal_permohonan)}
                 </p>
-                <p className="font-bold mt-1">Kepala Desa {activeTenant.nama_desa}</p>
-                <div className="h-20 flex items-center justify-center italic text-slate-400 text-[10px]">
-                  [ Tanda Tangan & Cap Resmi ]
+                <p className="font-bold mt-0.5 uppercase">Kepala Desa {activeTenant.nama_desa}</p>
+                <div className="h-18 flex items-center justify-center italic text-slate-400 print:text-slate-300 text-[10px]">
+                  [ Tanda Tangan & Cap Stempel ]
                 </div>
-                <p className="font-bold underline text-slate-900 text-sm">
+                <p className="font-bold underline text-sm uppercase tracking-wide">
                   {activeTenant.kepala_desa || 'Kepala Desa ' + activeTenant.nama_desa}
                 </p>
               </div>

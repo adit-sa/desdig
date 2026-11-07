@@ -28,11 +28,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-100/50 dark:bg-slate-950">
+    <div className="min-h-screen flex flex-col bg-slate-100/50 dark:bg-slate-950 print:bg-white print:min-h-0 print:p-0 print:m-0 print:block">
       <Navbar />
-      <div className="flex flex-1">
+      <div className="flex flex-1 print:block print:p-0 print:m-0">
         <Sidebar />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto print:p-0 print:m-0 print:max-w-none print:w-full print:block">
           {children}
         </main>
       </div>

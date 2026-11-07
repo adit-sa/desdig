@@ -68,6 +68,14 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Memperbarui plugin & skill `ponytail` ke versi upstream terbaru (163 commits fast-forward).
 
 ### Changed
+- **Penyempurnaan Format & Tata Letak Pencetakan Surat Dinas A4 (`app/surat/page.tsx`, `components/AdminLayoutWrapper.tsx`, `components/Navbar.tsx`, `components/Sidebar.tsx`, `app/globals.css`, `lib/formatters.ts`)**:
+  - **Eliminasi Elemen UI Saat Cetak**: Menambahkan `print:hidden` pada `Navbar`, `Sidebar`, tombol aksi, dan navigasi tab, serta menghapus padding/background pada `AdminLayoutWrapper` saat pencetakan berlangsung sehingga hanya lembar warkah resmi yang dicetak di atas kertas fisik.
+  - **Kepatuhan Tata Naskah Dinas Permendagri No. 1/2023**:
+    - **Kop Surat Dinas Resmi**: Lambang/Logo Desa di sisi kiri sejajar dengan hierarki 3 tingkat (Pemerintah Kabupaten, Kecamatan, Kantor Kepala Desa), alamat kantor, kontak, dan website, diakhiri dengan garis ganda naskah dinas resmi (garis tebal 3px dan garis tipis 1px).
+    - **Tabel Biodata Aligned**: Menggunakan semantic `<table>` dengan lebar kolom presisi (`w-48`, `w-4`) sehingga tanda titik dua (`:`) pada 9 poin data kependudukan lurus sempurna tanpa geser di seluruh peramban dan PDF printer.
+    - **Format Tanggal Bahasa Indonesia Baku**: Menambahkan helper `formatTanggalIndo` di `lib/formatters.ts` untuk menampilkan tanggal surat dan tanggal lahir warga dalam ejaan baku (misal: "18 Oktober 2026").
+    - **Standar Kertas A4 & Proteksi Halaman Tunggal**: Menambahkan `@media print { @page { size: A4 portrait; margin: 15mm 20mm; } }` dan class `.print-sheet-a4` dengan `break-inside: avoid` agar surat keterangan pas dalam 1 lembar kertas A4 tanpa tumpah ke halaman kedua.
+    - **Quick Selector & Toolbar**: Menyediakan dropdown pemilih surat langsung dari layar pratinjau cetak dan tombol kembali ke daftar arsip.
 - **Pembersihan Over-Engineering & Transisi ke Platform Native (`components/themes/modern-government/ScrollEffects.tsx`, `app/globals.css`, `package.json`)**:
   - Menghapus dependensi pihak ketiga `lenis` (~20 KB bundle) dan loop RAF dinamis, beralih 100% ke native CSS `scroll-behavior: smooth` dan lightweight `window.requestAnimationFrame` handler.
   - Menghapus CSS overhead `.lenis*` di `app/globals.css`.

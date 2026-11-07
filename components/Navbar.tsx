@@ -68,7 +68,7 @@ export default function Navbar() {
   const displayKodeDesa = activeTenant.kode_desa;
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 sm:px-6 print:hidden">
       {/* Brand & Multi-Tenant Switcher */}
       <div className="flex items-center gap-3 sm:gap-4">
         {/* Sidebar Toggle (Bisa sembunyikan/tampilkan Menu Sidebar di Desktop & Mobile) */}
