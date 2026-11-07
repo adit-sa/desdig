@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { articleSchema } from '@/lib/validations/cms';
 import { getTenantFromRequest } from '@/lib/tenant/resolver';
+import { revalidateTenantCache } from '@/lib/tenant/cache-revalidate';
 
 export async function GET(request: NextRequest) {
   try {
@@ -131,6 +132,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    revalidateTenantCache(tenant.id);
     return NextResponse.json({ success: true, article: newArticle }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating article:', error);

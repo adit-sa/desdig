@@ -23,6 +23,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
+import SafeImage from '@/components/SafeImage';
 
 interface OfficialAttendanceItem {
   id: string;
@@ -442,9 +443,12 @@ export default function AbsensiPamongAdminPage() {
                   >
                   <div className="flex items-start gap-4">
                     {ofc.photoUrl ? (
-                      <img
+                      <SafeImage
                         src={ofc.photoUrl}
                         alt={ofc.name}
+                        width={64}
+                        height={64}
+                        fallbackSrc="/images/kades_portrait.jpg"
                         className="w-16 h-16 rounded-2xl object-cover object-top border-2 border-slate-200 flex-shrink-0"
                       />
                     ) : (

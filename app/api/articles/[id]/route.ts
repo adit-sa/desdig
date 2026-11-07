@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { articleSchema } from '@/lib/validations/cms';
 import { requireTenantManagerApi } from '@/lib/auth/rbac';
 import { deleteTenantMediaFiles } from '@/lib/media';
+import { revalidateTenantCache } from '@/lib/tenant/cache-revalidate';
 
 export async function DELETE(
   request: NextRequest,
@@ -49,6 +50,7 @@ export async function DELETE(
       where: { id },
     });
 
+    revalidateTenantCache(article.tenantId);
     return NextResponse.json({ success: true, message: 'Artikel dan berkas foto berhasil dihapus' });
   } catch (error: any) {
     console.error('Error deleting article:', error);
@@ -130,6 +132,7 @@ export async function PUT(
       },
     });
 
+    revalidateTenantCache(existingArticle.tenantId);
     return NextResponse.json({ success: true, article: updated });
   } catch (error: any) {
     console.error('Error updating article:', error);

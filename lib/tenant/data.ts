@@ -1,17 +1,25 @@
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { prisma } from '@/lib/prisma';
 import { ContentStatus } from '@prisma/client';
 import { formatProjectTitle } from '@/lib/formatters';
 
-/** Menu navigasi header tenant (di-cache per request). */
-export const getTenantNavMenus = cache(async (tenantId: string): Promise<any[]> =>
-  prisma.$queryRaw<any[]>`
-    SELECT id, title, url, "parentId", "orderIndex", "isVisible", "isExternal"
-    FROM "NavMenu"
-    WHERE "tenantId" = ${tenantId} AND "isVisible" = true
-    ORDER BY "orderIndex" ASC
-  `.catch(() => [])
-);
+/** Menu navigasi header tenant (di-cache lintas request & otomatis divalidasi per tenant). */
+export const getTenantNavMenus = (tenantId: string): Promise<any[]> =>
+  unstable_cache(
+    async () =>
+      prisma.$queryRaw<any[]>`
+        SELECT id, title, url, "parentId", "orderIndex", "isVisible", "isExternal"
+        FROM "NavMenu"
+        WHERE "tenantId" = ${tenantId} AND "isVisible" = true
+        ORDER BY "orderIndex" ASC
+      `.catch(() => []),
+    [`tenant-nav-menus-${tenantId}`],
+    {
+      revalidate: 3600,
+      tags: [`tenant-${tenantId}`, `tenant-${tenantId}-menus`],
+    }
+  )();
 
 // Absensi hari ini, fallback ke tanggal absensi terakhir yang tersedia
 async function getLatestAttendances(tenantId: string): Promise<any[]> {
@@ -33,7 +41,7 @@ async function getLatestAttendances(tenantId: string): Promise<any[]> {
   `.catch(() => []);
 }
 
-export const getTenantPublicHomeData = cache(async (tenantId: string) => {
+async function fetchTenantPublicHomeDataInternal(tenantId: string) {
   // Semua query terisolasi ketat berdasarkan tenantId & dijalankan paralel
   const [
     articles,
@@ -211,7 +219,20 @@ export const getTenantPublicHomeData = cache(async (tenantId: string) => {
     pembangunan,
     themeConfig: activeThemeConfig?.settings ? (activeThemeConfig.settings as any) : null,
   };
-});
+}
+
+/**
+ * Data beranda portal publik desa (di-cache lintas request untuk kecepatan <30ms dan proteksi beban database).
+ */
+export const getTenantPublicHomeData = (tenantId: string) =>
+  unstable_cache(
+    () => fetchTenantPublicHomeDataInternal(tenantId),
+    [`tenant-home-${tenantId}`],
+    {
+      revalidate: 3600,
+      tags: [`tenant-${tenantId}`, `tenant-${tenantId}-home`],
+    }
+  )();
 
 export async function getTenantArticleBySlug(tenantId: string, slug: string) {
   const article = await prisma.article.findFirst({
@@ -247,7 +268,7 @@ const stripHtml = (html: string) =>
  * Data halaman daftar artikel (/artikel, /kategori/[slug]).
  * `content` dikirim sebagai teks polos (untuk pencarian & cuplikan) agar payload ke browser kecil.
  */
-export async function getTenantArticleListing(tenantId: string) {
+async function fetchTenantArticleListingInternal(tenantId: string) {
   const [rawArticles, categories, menus] = await Promise.all([
     prisma.article.findMany({
       where: { tenantId, status: ContentStatus.PUBLISHED },
@@ -287,3 +308,16 @@ export async function getTenantArticleListing(tenantId: string) {
 
   return { articles, categories, menus };
 }
+
+/**
+ * Data daftar artikel desa (di-cache lintas request untuk loading instan).
+ */
+export const getTenantArticleListing = (tenantId: string) =>
+  unstable_cache(
+    () => fetchTenantArticleListingInternal(tenantId),
+    [`tenant-article-listing-${tenantId}`],
+    {
+      revalidate: 1800,
+      tags: [`tenant-${tenantId}`, `tenant-${tenantId}-articles`],
+    }
+  )();

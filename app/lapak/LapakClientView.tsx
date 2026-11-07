@@ -8,6 +8,7 @@ import TopBar from '@/components/themes/modern-government/TopBar';
 import SiteHeader from '@/components/themes/modern-government/SiteHeader';
 import SiteFooter from '@/components/themes/modern-government/SiteFooter';
 import { buildTenantHref } from '@/components/themes/modern-government/shared';
+import SafeImage from '@/components/SafeImage';
 import {
   ShoppingBag,
   Store,
@@ -342,10 +343,12 @@ export default function LapakClientView({ tenant, menus, initialMerchants }: Lap
                     {/* Image Box */}
                     <div className="aspect-square bg-slate-100 dark:bg-slate-800 relative overflow-hidden">
                       {p.imageUrl ? (
-                        <img
+                        <SafeImage
                           src={p.imageUrl}
                           alt={p.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                          className="object-cover group-hover:scale-105 transition duration-500"
                         />
                       ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50 dark:bg-slate-800/50">

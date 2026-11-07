@@ -13,6 +13,7 @@ import ArticleShareBar from '@/components/themes/modern-government/ArticleShareB
 import ArticleGalleryView, { AlbumPhoto } from '@/components/themes/modern-government/ArticleGalleryView';
 import { buildTenantHref } from '@/components/themes/modern-government/shared';
 import { formatArticleContent } from '@/lib/utils/formatContent';
+import SafeImage from '@/components/SafeImage';
 import {
   Calendar,
   Eye,
@@ -58,13 +59,36 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
 
   if (!article) return { title: 'Berita Tidak Ditemukan' };
 
+  const proto = headerList.get('x-forwarded-proto') || 'https';
+  const siteUrl = `${proto}://${host}`;
+  const fullCoverUrl = article.coverImageUrl
+    ? (article.coverImageUrl.startsWith('http') ? article.coverImageUrl : `${siteUrl}${article.coverImageUrl}`)
+    : `${siteUrl}/images/balai_desa_gedung.jpg`;
+
   return {
     title: `${article.title} - Pemerintah Desa ${tenant.namaDesa}`,
-    description: article.summary || undefined,
+    description: article.summary || `Kabar warta resmi kegiatan Pemerintah Desa ${tenant.namaDesa}.`,
     openGraph: {
       title: article.title,
-      description: article.summary || undefined,
-      images: article.coverImageUrl ? [article.coverImageUrl] : undefined,
+      description: article.summary || `Kabar warta resmi kegiatan Pemerintah Desa ${tenant.namaDesa}.`,
+      url: `${siteUrl}/berita/${article.slug}?tenant=${tenant.slug}`,
+      siteName: `Portal Resmi Desa ${tenant.namaDesa}`,
+      type: 'article',
+      publishedTime: article.publishedAt ? article.publishedAt.toISOString() : undefined,
+      images: [
+        {
+          url: fullCoverUrl,
+          width: 1200,
+          height: 630,
+          alt: article.title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.title,
+      description: article.summary || `Kabar warta resmi kegiatan Pemerintah Desa ${tenant.namaDesa}.`,
+      images: [fullCoverUrl],
     },
   };
 }
@@ -243,10 +267,13 @@ export default async function ArticleDetailPage({ params, searchParams }: PagePr
             {/* Cover Foto Utama Artikel (Hero Image) */}
             {article.coverImageUrl && (
               <div className="relative aspect-video sm:aspect-21/9 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
-                <img
+                <SafeImage
                   src={article.coverImageUrl}
                   alt={article.title}
-                  className="w-full h-full object-cover"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 900px"
+                  className="object-cover"
                 />
               </div>
             )}
@@ -314,11 +341,13 @@ export default async function ArticleDetailPage({ params, searchParams }: PagePr
                   >
                     <div>
                       {rel.coverImageUrl ? (
-                        <div className="aspect-video rounded-xl overflow-hidden bg-slate-100 mb-3">
-                          <img
+                        <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 mb-3">
+                          <SafeImage
                             src={rel.coverImageUrl}
                             alt={rel.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            fill
+                            sizes="(max-width: 640px) 100vw, 300px"
+                            className="object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         </div>
                       ) : (

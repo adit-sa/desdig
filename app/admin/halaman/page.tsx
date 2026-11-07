@@ -41,6 +41,7 @@ import { useOpenSIDStore } from '@/lib/store';
 import MediaLibraryModal from '@/components/admin/MediaLibraryModal';
 import InsertLinkModal from '@/components/admin/InsertLinkModal';
 import { formatArticleContent } from '@/lib/utils/formatContent';
+import SafeImage from '@/components/SafeImage';
 
 interface AlbumItem {
   url: string;
@@ -593,7 +594,13 @@ Pemerintah desa senantiasa berkomitmen memberikan pelayanan terbaik, akuntabel, 
                       <div className="flex items-start gap-3">
                         {p.coverImageUrl ? (
                           <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100 border border-slate-200">
-                            <img src={p.coverImageUrl} alt={p.title} className="w-full h-full object-cover" />
+                            <SafeImage
+                              src={p.coverImageUrl}
+                              alt={p.title}
+                              width={48}
+                              height={48}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                         ) : (
                           <div className="w-12 h-12 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0 border border-emerald-100 font-bold">
@@ -778,7 +785,13 @@ Pemerintah desa senantiasa berkomitmen memberikan pelayanan terbaik, akuntabel, 
                   {/* Cover */}
                   {formData.coverImageUrl && (
                     <div className="rounded-xl overflow-hidden shadow-md border border-slate-200 max-h-[380px]">
-                      <img src={formData.coverImageUrl} alt="Cover Preview" className="w-full h-full object-cover" />
+                      <SafeImage
+                        src={formData.coverImageUrl}
+                        alt="Cover Preview"
+                        width={800}
+                        height={400}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   )}
 
@@ -802,7 +815,13 @@ Pemerintah desa senantiasa berkomitmen memberikan pelayanan terbaik, akuntabel, 
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {formData.galleryUrls.map((p, idx) => (
                           <div key={idx} className="aspect-4/3 rounded-lg overflow-hidden bg-slate-200 relative border border-slate-200">
-                            <img src={p.url} alt="" className="w-full h-full object-cover" />
+                            <SafeImage
+                              src={p.url}
+                              alt={`Album ${idx + 1}`}
+                              fill
+                              sizes="(max-width: 640px) 50vw, 25vw"
+                              className="object-cover"
+                            />
                           </div>
                         ))}
                       </div>
@@ -1094,7 +1113,13 @@ Pemerintah desa senantiasa berkomitmen memberikan pelayanan terbaik, akuntabel, 
 
                         {formData.coverImageUrl ? (
                           <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-900 h-28 group">
-                            <img src={formData.coverImageUrl} alt="" className="w-full h-full object-cover" />
+                            <SafeImage
+                              src={formData.coverImageUrl}
+                              alt=""
+                              fill
+                              sizes="300px"
+                              className="object-cover"
+                            />
                             <button
                               type="button"
                               onClick={() => setFormData((prev) => ({ ...prev, coverImageUrl: '' }))}
@@ -1188,7 +1213,13 @@ Pemerintah desa senantiasa berkomitmen memberikan pelayanan terbaik, akuntabel, 
                                 key={idx}
                                 className="aspect-square rounded-md overflow-hidden bg-slate-100 relative group border border-slate-200"
                               >
-                                <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                                <SafeImage
+                                  src={photo.url}
+                                  alt=""
+                                  fill
+                                  sizes="100px"
+                                  className="object-cover"
+                                />
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveAlbumPhoto(idx)}

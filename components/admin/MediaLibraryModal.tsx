@@ -19,6 +19,7 @@ import {
   Filter,
   RefreshCw,
 } from 'lucide-react';
+import SafeImage from '@/components/SafeImage';
 
 export interface MediaFileItem {
   id: string;
@@ -370,11 +371,12 @@ export default function MediaLibraryModal({
                   >
                     {/* Thumbnail Display with Lazy Loading */}
                     <div className="aspect-square relative bg-slate-100 dark:bg-slate-900 overflow-hidden">
-                      <img
+                      <SafeImage
                         src={displaySrc}
                         alt={file.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        loading="lazy"
+                        fill
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 150px"
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
 
                       {/* Multi Select Checkbox Overlay */}

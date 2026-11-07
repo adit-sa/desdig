@@ -6,6 +6,7 @@ import { MapPin, ChevronRight, HardHat } from 'lucide-react';
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { formatProjectTitle } from '@/lib/formatters';
 import { ThemeData, Setter, SectionOrderFn, formatRupiah, isProjectDone } from './shared';
+import SafeImage from '@/components/SafeImage';
 
 export default function PembangunanSection({
   tenant,
@@ -119,15 +120,13 @@ export default function PembangunanSection({
               className="bg-white rounded-xl border border-slate-200/90 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col justify-between group cursor-pointer animate-in fade-in-50 duration-200"
             >
               <div className="relative h-44 bg-slate-900 overflow-hidden">
-                <img
-                  loading="lazy"
-                  decoding="async"
-                  src={proj.foto || defaultProjectPhoto}
+                <SafeImage
+                  src={proj.foto}
+                  fallbackSrc={defaultProjectPhoto}
                   alt={formatProjectTitle(proj.judul)}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = defaultProjectPhoto;
-                  }}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
                 <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">

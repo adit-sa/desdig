@@ -4,6 +4,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, LayoutGrid, X, Search } from 'lucide-react';
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { ThemeData, Setter, SectionOrderFn, getTimezoneByProvince } from './shared';
+import SafeImage from '@/components/SafeImage';
 
 export default function PamongSection({
   tenant,
@@ -246,15 +247,13 @@ export default function PamongSection({
                   {/* Foto Besar, Jelas & Simpel */}
                   <div className="h-60 sm:h-64 relative w-full bg-slate-900 overflow-hidden">
                     {ofc.photoUrl ? (
-                      <img
-                        loading="lazy"
-                        decoding="async"
+                      <SafeImage
                         src={ofc.photoUrl}
+                        fallbackSrc="/images/kades_portrait.jpg"
                         alt={ofc.name}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/kades_portrait.jpg';
-                        }}
+                        fill
+                        sizes="(max-width: 640px) 280px, 300px"
+                        className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-tr from-emerald-800 via-teal-900 to-slate-900 flex items-center justify-center text-white text-4xl font-black">
@@ -353,15 +352,13 @@ export default function PamongSection({
                   {/* Foto Besar, Jelas & Simpel */}
                   <div className="h-60 sm:h-64 relative w-full bg-slate-900 overflow-hidden">
                     {ofc.photoUrl ? (
-                      <img
-                        loading="lazy"
-                        decoding="async"
+                      <SafeImage
                         src={ofc.photoUrl}
+                        fallbackSrc="/images/kades_portrait.jpg"
                         alt={ofc.name}
-                        className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/kades_portrait.jpg';
-                        }}
+                        fill
+                        sizes="(max-width: 640px) 280px, 300px"
+                        className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-tr from-emerald-800 via-teal-900 to-slate-900 flex items-center justify-center text-white text-4xl font-black">

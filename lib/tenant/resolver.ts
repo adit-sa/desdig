@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import type { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { verifySessionToken } from '@/lib/auth/session';
 
 export interface SocialMediaLinks {
   facebook?: string | null;
@@ -220,9 +221,10 @@ export async function getTenantFromRequest(
     const match = cookieHeader.match(/(?:desdig_auth_session|opensid_auth_session)=([^;]+)/);
     if (match) {
       try {
-        const decoded = decodeURIComponent(match[1]);
-        const session = JSON.parse(decoded);
-        tenantIdentifier = session.tenantSlug || session.tenantId || '';
+        const session = verifySessionToken(match[1]);
+        if (session) {
+          tenantIdentifier = session.tenantSlug || session.tenantId || '';
+        }
       } catch {}
     }
   }

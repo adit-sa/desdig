@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 import { ADMIN_MENU_GROUPS } from '@/lib/admin-menu';
+import SafeImage from '@/components/SafeImage';
 
 export default function DashboardPage() {
   const { pendudukList, keluargaList, suratList, activeTenant, currentTenantId, apbdesList, aparaturList, isLoaded } = useOpenSIDStore();
@@ -397,9 +398,11 @@ export default function DashboardPage() {
                   <div key={aparat.id} className="flex items-center justify-between text-xs py-1">
                     <div className="flex items-center gap-2.5 min-w-0">
                       {photo ? (
-                        <img
+                        <SafeImage
                           src={photo}
                           alt={aparat.nama}
+                          width={28}
+                          height={28}
                           className="w-7 h-7 rounded-full object-cover shrink-0 border border-slate-200"
                         />
                       ) : (

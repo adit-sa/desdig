@@ -14,6 +14,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - **Navigasi Internal**: Seluruh link publik wajib mempertahankan konteks tenant (`buildTenantHref(url, tenant.slug)` atau `?tenant=${tenant.slug}`).
 - **Zona Waktu Dinamis**: Selalu gunakan `getTimezoneByProvince(tenant.provinsi)` (bukan statis).
 - **Terminologi**: Selalu gunakan kata **"Absensi"** (JANGAN gunakan "Presensi").
+- **Standar Gambar & Media (Mutlak)**: DILARANG KERAS menggunakan tag HTML native `<img>`. Wajib selalu menggunakan komponen universal `<SafeImage />` dari `@/components/SafeImage`. Komponen ini mengintegrasikan `next/image` untuk kompresi otomatis WebP/AVIF, proteksi CLS, lazy loading, auto fallback ke aset default jika gambar hilang, serta otomatis `unoptimized` untuk data URI / blob preview.
 
 ## IDENTITAS APLIKASI & CHANGELOG (ATURAN MUTLAK)
 - **Nama Resmi Aplikasi**: **`desDig` (desa Digital)**.

@@ -9,6 +9,7 @@ import SiteHeader from '@/components/themes/modern-government/SiteHeader';
 import SiteFooter from '@/components/themes/modern-government/SiteFooter';
 import { buildTenantHref } from '@/components/themes/modern-government/shared';
 import { getTimezoneByProvince, formatDateWithTimezone } from '@/lib/timezone';
+import SafeImage from '@/components/SafeImage';
 import {
   Camera,
   Search,
@@ -377,13 +378,13 @@ export default function GalleryClientView({
                     className="group bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col cursor-pointer transform hover:-translate-y-1"
                   >
                     <div className="relative aspect-[4/3] bg-slate-100 overflow-hidden">
-                      <img
+                      <SafeImage
                         src={photo.imageUrl}
+                        fallbackSrc={tenant.heroImageUrl || '/images/desa_irigasi_pertanian.jpg'}
                         alt={photo.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = tenant.heroImageUrl || '/images/desa_irigasi_pertanian.jpg';
-                        }}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                         <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-slate-950/70 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/20">
@@ -486,14 +487,16 @@ export default function GalleryClientView({
                       className="max-h-[60vh] w-auto max-w-full object-contain"
                     />
                   ) : (
-                    <img
-                      src={currentMedia.url}
-                      alt={activePhoto.title}
-                      className="max-h-[60vh] w-auto max-w-full object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = tenant.heroImageUrl || '/images/desa_irigasi_pertanian.jpg';
-                      }}
-                    />
+                    <div className="relative w-full h-[60vh] max-w-4xl flex items-center justify-center">
+                      <SafeImage
+                        src={currentMedia.url}
+                        fallbackSrc={tenant.heroImageUrl || '/images/desa_irigasi_pertanian.jpg'}
+                        alt={activePhoto.title}
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 900px"
+                        className="object-contain"
+                      />
+                    </div>
                   )}
 
                   {/* Close Button */}
@@ -576,11 +579,15 @@ export default function GalleryClientView({
                             : 'border-slate-800 opacity-60 hover:opacity-100'
                         }`}
                       >
-                        <img
-                          src={m.thumbnailUrl || m.url}
-                          alt="Thumbnail"
-                          className="w-full h-full object-cover"
-                        />
+                        <div className="relative w-full h-full">
+                          <SafeImage
+                            src={m.thumbnailUrl || m.url}
+                            alt="Thumbnail"
+                            fill
+                            sizes="56px"
+                            className="object-cover"
+                          />
+                        </div>
                       </button>
                     );
                   })}

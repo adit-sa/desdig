@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 import { formatAnnouncementDateTime } from '@/lib/timezone';
+import SafeImage from '@/components/SafeImage';
 
 export interface MediaItem {
   url: string;
@@ -628,10 +629,13 @@ export default function GaleriAdminPage() {
                     }}
                     className="relative h-52 sm:h-56 overflow-hidden bg-slate-950 cursor-pointer"
                   >
-                    <img
+                    <SafeImage
                       src={p.imageUrl || '/images/desa_irigasi_pertanian.jpg'}
                       alt={p.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      fallbackSrc="/images/desa_irigasi_pertanian.jpg"
+                      className="object-cover group-hover:scale-105 transition-transform duration-700"
                     />
 
                     {/* Gradient Overlay */}
@@ -891,10 +895,12 @@ export default function GaleriAdminPage() {
                               {isYt ? (
                                 <div className="relative w-full h-full flex items-center justify-center bg-slate-900">
                                   {item.thumbnailUrl ? (
-                                    <img
+                                    <SafeImage
                                       src={item.thumbnailUrl}
                                       alt="YouTube Thumbnail"
-                                      className="w-full h-full object-cover"
+                                      fill
+                                      sizes="200px"
+                                      className="object-cover"
                                     />
                                   ) : (
                                     <Video className="w-8 h-8 text-red-600" />
@@ -911,7 +917,13 @@ export default function GaleriAdminPage() {
                                   </span>
                                 </div>
                               ) : (
-                                <img src={item.url} alt="Uploaded" className="w-full h-full object-cover" />
+                                <SafeImage
+                                  src={item.url}
+                                  alt="Uploaded"
+                                  fill
+                                  sizes="200px"
+                                  className="object-cover"
+                                />
                               )}
 
                               {/* Cover Badge */}
@@ -1019,13 +1031,13 @@ export default function GaleriAdminPage() {
                     </label>
                     <div className="h-36 rounded-2xl overflow-hidden bg-slate-900 border border-slate-300 dark:border-slate-700 relative flex items-center justify-center">
                       {formData.imageUrl ? (
-                        <img
+                        <SafeImage
                           src={formData.imageUrl}
                           alt="Cover"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/images/desa_irigasi_pertanian.jpg';
-                          }}
+                          fill
+                          sizes="300px"
+                          fallbackSrc="/images/desa_irigasi_pertanian.jpg"
+                          className="object-cover"
                         />
                       ) : (
                         <span className="text-xs text-slate-500">Pilih berkas untuk menetapkan cover</span>
@@ -1164,10 +1176,12 @@ export default function GaleriAdminPage() {
                           <Play className="w-8 h-8 text-rose-500" />
                         </div>
                       ) : (
-                        <img
+                        <SafeImage
                           src={file.url}
                           alt={file.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                          fill
+                          sizes="150px"
+                          className="object-cover group-hover:scale-105 transition-transform"
                         />
                       )}
 
@@ -1232,9 +1246,11 @@ export default function GaleriAdminPage() {
                   ) : isVid ? (
                     <video src={currentMedia.url} controls className="max-h-full max-w-full object-contain" />
                   ) : (
-                    <img
+                    <SafeImage
                       src={currentMedia.url}
                       alt={previewItem.title}
+                      width={1200}
+                      height={800}
                       className="max-h-full max-w-full object-contain"
                     />
                   )}

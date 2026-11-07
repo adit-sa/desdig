@@ -6,6 +6,7 @@ import { ArrowRight, TrendingUp, ChevronRight, ChevronLeft, Video, Image as Imag
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { handleScrollToSection, getTimezoneByProvince } from './shared';
 import LiveClock from './LiveClock';
+import SafeImage from '@/components/SafeImage';
 
 export interface HeroMediaItem {
   type: 'image' | 'video';
@@ -376,16 +377,17 @@ export default function HeroSection({ tenant, officials, themeConfig }: { tenant
         {showKadesHighlight && (
           <div className="lg:col-span-4 card-bento-glow bg-white text-slate-900 rounded-2xl p-6 sm:p-7 shadow-2xl border border-slate-200 relative overflow-hidden ring-1 ring-slate-900/5">
             <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
-              <img
-                src={kadesPhoto}
-                alt={kadesName}
-                fetchPriority="high"
-                decoding="async"
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover object-top shadow-md border-2 border-emerald-600/30 flex-shrink-0"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = kades?.photoUrl || '/images/kades_portrait.jpg';
-                }}
-              />
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shadow-md border-2 border-emerald-600/30 flex-shrink-0">
+                <SafeImage
+                  src={kadesPhoto}
+                  fallbackSrc={kades?.photoUrl || '/images/kades_portrait.jpg'}
+                  alt={kadesName}
+                  fill
+                  priority
+                  sizes="(max-width: 640px) 80px, 96px"
+                  className="object-cover object-top"
+                />
+              </div>
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-block mb-1">
                   {kadesPosition}

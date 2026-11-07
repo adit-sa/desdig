@@ -101,16 +101,26 @@ export function useDesDigStore() {
         }
       }
 
-      // 2. Fallback ke cookie autentikasi (hanya untuk non-Super Admin)
+      // 2. Fallback ke cookie autentikasi / profil (hanya untuk non-Super Admin)
       if (!targetTenantSlug) {
-        const match = document.cookie.match(/(?:desdig_auth_session|opensid_auth_session)=([^;]+)/);
-        if (match) {
+        const matchProfile = document.cookie.match(/desdig_user_profile=([^;]+)/);
+        if (matchProfile) {
           try {
-            const session = JSON.parse(decodeURIComponent(match[1]));
-            if (session.globalRole !== 'SUPER_ADMIN' && session.tenantSlug) {
-              targetTenantSlug = session.tenantSlug;
+            const profile = JSON.parse(decodeURIComponent(matchProfile[1]));
+            if (profile.globalRole !== 'SUPER_ADMIN' && profile.tenantSlug) {
+              targetTenantSlug = profile.tenantSlug;
             }
           } catch {}
+        } else {
+          const match = document.cookie.match(/(?:desdig_auth_session|opensid_auth_session)=([^;]+)/);
+          if (match) {
+            try {
+              const session = JSON.parse(decodeURIComponent(match[1]));
+              if (session.globalRole !== 'SUPER_ADMIN' && session.tenantSlug) {
+                targetTenantSlug = session.tenantSlug;
+              }
+            } catch {}
+          }
         }
       }
 

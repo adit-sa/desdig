@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 import ResidentPicker from '@/components/admin/ResidentPicker';
+import SafeImage from '@/components/SafeImage';
 
 interface OfficialItem {
   id: string;
@@ -402,13 +403,13 @@ export default function PamongAdminPage() {
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         {ofc.photoUrl ? (
-                          <img
+                          <SafeImage
                             src={ofc.photoUrl}
                             alt={ofc.name}
+                            width={40}
+                            height={40}
+                            fallbackSrc="/images/kades_portrait.jpg"
                             className="w-10 h-10 rounded-full object-cover object-top border border-slate-200 flex-shrink-0"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/images/kades_portrait.jpg';
-                            }}
                           />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-sm flex items-center justify-center border border-emerald-300 flex-shrink-0">
@@ -559,7 +560,14 @@ export default function PamongAdminPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 flex-shrink-0 flex items-center justify-center">
                     {photoUrl ? (
-                      <img src={photoUrl} alt="Preview" className="w-full h-full object-cover object-top" />
+                      <SafeImage
+                        src={photoUrl}
+                        alt="Preview"
+                        width={56}
+                        height={56}
+                        fallbackSrc="/images/kades_portrait.jpg"
+                        className="w-full h-full object-cover object-top"
+                      />
                     ) : (
                       <Camera className="w-5 h-5 text-slate-400" />
                     )}

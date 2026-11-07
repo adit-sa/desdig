@@ -12,6 +12,7 @@ import { buildTenantHref } from '@/components/themes/modern-government/shared';
 import { getTimezoneByProvince } from '@/lib/timezone';
 import { formatArticleContent } from '@/lib/utils/formatContent';
 import ArticleGalleryView, { AlbumPhoto } from '@/components/themes/modern-government/ArticleGalleryView';
+import SafeImage from '@/components/SafeImage';
 import {
   ChevronRight,
   Calendar,
@@ -59,13 +60,35 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
     return { title: `Halaman Tidak Ditemukan - Desa ${tenant.namaDesa}` };
   }
 
+  const proto = headerList.get('x-forwarded-proto') || 'https';
+  const siteUrl = `${proto}://${host}`;
+  const fullCoverUrl = page.coverImageUrl
+    ? (page.coverImageUrl.startsWith('http') ? page.coverImageUrl : `${siteUrl}${page.coverImageUrl}`)
+    : `${siteUrl}/images/balai_desa_gedung.jpg`;
+
   return {
     title: `${page.title} - Pemerintah Desa ${tenant.namaDesa}`,
-    description: page.summary || `Halaman resmi ${page.title} Desa ${tenant.namaDesa}`,
+    description: page.summary || `Halaman informasi resmi ${page.title} Desa ${tenant.namaDesa}.`,
     openGraph: {
       title: `${page.title} - Desa ${tenant.namaDesa}`,
-      description: page.summary || undefined,
-      images: page.coverImageUrl ? [page.coverImageUrl] : undefined,
+      description: page.summary || `Halaman informasi resmi ${page.title} Desa ${tenant.namaDesa}.`,
+      url: `${siteUrl}/halaman/${page.slug}?tenant=${tenant.slug}`,
+      siteName: `Portal Resmi Desa ${tenant.namaDesa}`,
+      type: 'article',
+      images: [
+        {
+          url: fullCoverUrl,
+          width: 1200,
+          height: 630,
+          alt: page.title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${page.title} - Desa ${tenant.namaDesa}`,
+      description: page.summary || `Halaman informasi resmi ${page.title} Desa ${tenant.namaDesa}.`,
+      images: [fullCoverUrl],
     },
   };
 }
@@ -198,11 +221,14 @@ export default async function PublicCustomPage({ params, searchParams }: PagePro
 
               {/* Cover Image Banner */}
               {page.coverImageUrl && (
-                <div className="w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 shadow-sm">
-                  <img
+                <div className="relative w-full h-64 sm:h-80 md:h-96 rounded-2xl overflow-hidden border border-slate-200 bg-slate-900 shadow-sm">
+                  <SafeImage
                     src={page.coverImageUrl}
                     alt={page.title}
-                    className="w-full h-full object-cover"
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 900px"
+                    className="object-cover"
                   />
                 </div>
               )}
@@ -288,13 +314,13 @@ export default async function PublicCustomPage({ params, searchParams }: PagePro
                         className="flex items-start gap-3 group"
                       >
                         {art.coverImageUrl ? (
-                          <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100 border border-slate-200">
-                            <img
-                              loading="lazy"
-                              decoding="async"
+                          <div className="relative w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-slate-100 border border-slate-200">
+                            <SafeImage
                               src={art.coverImageUrl}
                               alt={art.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                              fill
+                              sizes="56px"
+                              className="object-cover group-hover:scale-105 transition duration-300"
                             />
                           </div>
                         ) : (

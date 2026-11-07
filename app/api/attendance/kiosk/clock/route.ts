@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkRateLimit } from '@/lib/security/rate-limit';
 
 // POST /api/attendance/kiosk/clock
 export async function POST(request: NextRequest) {
@@ -57,10 +58,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Data aparatur tidak ditemukan' }, { status: 404 });
     }
 
+    // Proteksi Brute-Force PIN Kiosk (Maksimal 5 percobaan salah per 2 menit)
+    const pinRateKey = `pin:${tenant.id}:${officialId}`;
     const expectedPin = official.pinCode || '1234';
     if (pinCode.trim() !== expectedPin.trim()) {
+      const pinRate = checkRateLimit(pinRateKey, 5, 120_000);
+      if (!pinRate.success) {
+        return NextResponse.json(
+          { error: 'Terlalu banyak percobaan PIN salah. Akses aparatur ditangguhkan selama 2 menit demi keamanan.' },
+          { status: 429 }
+        );
+      }
       return NextResponse.json(
-        { error: 'PIN yang Anda masukkan salah. Silakan coba kembali.' },
+        { error: `PIN yang Anda masukkan salah. Sisa kesempatan: ${pinRate.remaining}. Silakan coba kembali.` },
         { status: 401 }
       );
     }

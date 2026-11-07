@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { formatAnnouncementDateTime } from '@/lib/timezone';
 import { formatKodeKemendagri } from '@/lib/formatters';
+import SafeImage from '@/components/SafeImage';
 
 interface ThemeProps {
   tenant: ResolvedTenant;
@@ -142,12 +143,14 @@ export default function ModernEditorialTheme({ tenant, data }: ThemeProps) {
 
               {/* Real Photo Covering Full Width */}
               <div className="relative h-80 sm:h-[420px] rounded-2xl overflow-hidden shadow-lg border border-stone-200 group">
-                <img
-                  loading="lazy"
-                  decoding="async"
-                  src={featuredArticle.coverImageUrl || tenant.heroImageUrl || '/images/desa_irigasi_pertanian.jpg'}
+                <SafeImage
+                  src={featuredArticle.coverImageUrl || tenant.heroImageUrl}
+                  fallbackSrc="/images/desa_irigasi_pertanian.jpg"
                   alt={featuredArticle.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 800px"
+                  className="object-cover group-hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-stone-950/90 via-stone-950/50 to-transparent p-5 text-white">
                   <p className="text-xs text-stone-300 font-mono">
@@ -187,13 +190,15 @@ export default function ModernEditorialTheme({ tenant, data }: ThemeProps) {
                   <article key={art.id} className="py-4 space-y-2 group">
                     <div className="flex gap-3 items-start">
                       {art.coverImageUrl && (
-                        <img
-                          loading="lazy"
-                          decoding="async"
-                          src={art.coverImageUrl}
-                          alt={art.title}
-                          className="w-20 h-20 rounded-xl object-cover flex-shrink-0 border border-stone-200"
-                        />
+                        <div className="relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border border-stone-200">
+                          <SafeImage
+                            src={art.coverImageUrl}
+                            alt={art.title}
+                            fill
+                            sizes="80px"
+                            className="object-cover"
+                          />
+                        </div>
                       )}
                       <div>
                         <span className="text-[10px] font-bold text-stone-600 block uppercase tracking-wider">
@@ -263,13 +268,16 @@ export default function ModernEditorialTheme({ tenant, data }: ThemeProps) {
               {data.officials.map((ofc) => (
                 <div key={ofc.id} className="flex items-center gap-3.5 p-3.5 bg-white border border-stone-200 rounded-2xl shadow-sm">
                   {ofc.photoUrl ? (
-                    <img
-                      loading="lazy"
-                      decoding="async"
-                      src={ofc.photoUrl}
-                      alt={ofc.name}
-                      className="w-12 h-12 rounded-xl object-cover object-top border border-stone-300 flex-shrink-0"
-                    />
+                    <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-stone-300 flex-shrink-0">
+                      <SafeImage
+                        src={ofc.photoUrl}
+                        fallbackSrc="/images/kades_portrait.jpg"
+                        alt={ofc.name}
+                        fill
+                        sizes="48px"
+                        className="object-cover object-top"
+                      />
+                    </div>
                   ) : (
                     <div className="w-12 h-12 rounded-xl bg-stone-900 text-white font-bold flex items-center justify-center flex-shrink-0">
                       {ofc.name.charAt(0)}

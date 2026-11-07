@@ -42,6 +42,7 @@ import CategoryManagerModal from '@/components/admin/CategoryManagerModal';
 import InsertLinkModal from '@/components/admin/InsertLinkModal';
 import ResidentPicker from '@/components/admin/ResidentPicker';
 import { formatArticleContent } from '@/lib/utils/formatContent';
+import SafeImage from '@/components/SafeImage';
 
 interface AlbumItem {
   url: string;
@@ -693,9 +694,11 @@ export default function CmsBeritaPage() {
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
                             {art.coverImageUrl ? (
-                              <img
+                              <SafeImage
                                 src={art.coverImageUrl}
                                 alt={art.title}
+                                width={48}
+                                height={48}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -908,7 +911,13 @@ export default function CmsBeritaPage() {
                   {/* Cover */}
                   {formData.coverImageUrl && (
                     <div className="rounded-xl overflow-hidden shadow-md border border-slate-200 max-h-[420px]">
-                      <img src={formData.coverImageUrl} alt="Cover Preview" className="w-full h-full object-cover" />
+                      <SafeImage
+                        src={formData.coverImageUrl}
+                        alt="Cover Preview"
+                        width={800}
+                        height={450}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                   )}
 
@@ -932,7 +941,13 @@ export default function CmsBeritaPage() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         {formData.galleryUrls.map((p, idx) => (
                           <div key={idx} className="aspect-4/3 rounded-lg overflow-hidden bg-slate-200 relative">
-                            <img src={p.url} alt="" className="w-full h-full object-cover" />
+                            <SafeImage
+                              src={p.url}
+                              alt={`Album ${idx + 1}`}
+                              fill
+                              sizes="(max-width: 640px) 50vw, 25vw"
+                              className="object-cover"
+                            />
                           </div>
                         ))}
                       </div>
@@ -1298,9 +1313,11 @@ export default function CmsBeritaPage() {
                         <div className="flex items-center gap-2.5">
                           <div className="relative w-24 h-16 rounded-lg bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 overflow-hidden flex items-center justify-center flex-shrink-0">
                             {formData.coverImageUrl ? (
-                              <img
+                              <SafeImage
                                 src={formData.coverImageUrl}
                                 alt="Cover"
+                                width={96}
+                                height={64}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -1403,7 +1420,13 @@ export default function CmsBeritaPage() {
                                 key={idx}
                                 className="aspect-square rounded-md overflow-hidden bg-slate-100 dark:bg-slate-800 relative group border border-slate-200 dark:border-slate-700"
                               >
-                                <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                                <SafeImage
+                                  src={photo.url}
+                                  alt={`Album ${idx + 1}`}
+                                  fill
+                                  sizes="100px"
+                                  className="object-cover"
+                                />
                                 <button
                                   type="button"
                                   onClick={() => handleRemoveAlbumPhoto(idx)}

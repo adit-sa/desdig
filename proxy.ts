@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifySessionToken } from '@/lib/auth/session';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const host = request.headers.get('host') || '';
   const pathname = request.nextUrl.pathname;
 
@@ -17,22 +18,18 @@ export function middleware(request: NextRequest) {
   // 2. Proteksi API Master SaaS: Hanya untuk akun SUPER_ADMIN
   if (pathname.startsWith('/api/saas')) {
     const authSession = (request.cookies.get('desdig_auth_session') || request.cookies.get('opensid_auth_session'))?.value;
-    if (!authSession) {
+    const parsed = verifySessionToken(authSession);
+    if (!parsed) {
       return NextResponse.json(
         { error: 'Autentikasi diperlukan. Silakan login sebagai Super Admin SaaS.' },
         { status: 401 }
       );
     }
-    try {
-      const parsed = JSON.parse(decodeURIComponent(authSession));
-      if (parsed.globalRole !== 'SUPER_ADMIN') {
-        return NextResponse.json(
-          { error: 'Akses ditolak: Hanya Super Admin SaaS Platform yang berhak mengakses API ini.' },
-          { status: 403 }
-        );
-      }
-    } catch {
-      return NextResponse.json({ error: 'Sesi autentikasi tidak valid.' }, { status: 401 });
+    if (parsed.globalRole !== 'SUPER_ADMIN') {
+      return NextResponse.json(
+        { error: 'Akses ditolak: Hanya Super Admin SaaS Platform yang berhak mengakses API ini.' },
+        { status: 403 }
+      );
     }
     return NextResponse.next();
   }
@@ -45,18 +42,14 @@ export function middleware(request: NextRequest) {
   // 3. Proteksi Akses UI Master SaaS (/saas): Hanya untuk akun SUPER_ADMIN
   if (pathname.startsWith('/saas')) {
     const authSession = (request.cookies.get('desdig_auth_session') || request.cookies.get('opensid_auth_session'))?.value;
-    if (!authSession) {
+    const parsed = verifySessionToken(authSession);
+    if (!parsed) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
-    try {
-      const parsed = JSON.parse(decodeURIComponent(authSession));
-      if (parsed.globalRole !== 'SUPER_ADMIN') {
-        // Manager desa dilarang keras masuk ke Master SaaS, kembalikan ke dashboard desanya
-        const targetUrl = parsed.tenantSlug ? `/admin?tenant=${parsed.tenantSlug}` : '/admin';
-        return NextResponse.redirect(new URL(targetUrl, request.url));
-      }
-    } catch {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+    if (parsed.globalRole !== 'SUPER_ADMIN') {
+      // Manager desa dilarang keras masuk ke Master SaaS, kembalikan ke dashboard desanya
+      const targetUrl = parsed.tenantSlug ? `/admin?tenant=${parsed.tenantSlug}` : '/admin';
+      return NextResponse.redirect(new URL(targetUrl, request.url));
     }
   }
 
@@ -71,13 +64,13 @@ export function middleware(request: NextRequest) {
 
   if (isAdminProtected) {
     const authSession = (request.cookies.get('desdig_auth_session') || request.cookies.get('opensid_auth_session'))?.value;
-    if (!authSession) {
+    const parsed = verifySessionToken(authSession);
+    if (!parsed) {
       const loginUrl = new URL('/admin/login', request.url);
       return NextResponse.redirect(loginUrl);
     }
 
     try {
-      const parsed = JSON.parse(decodeURIComponent(authSession));
       // STRICT TENANT ISOLATION:
       // Jika pengguna adalah Manager/Admin Desa biasa (bukan SUPER_ADMIN),
       // kunci akses hanya pada tenant miliknya sendiri.

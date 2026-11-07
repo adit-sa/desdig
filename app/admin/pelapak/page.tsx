@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 import ResidentPicker from '@/components/admin/ResidentPicker';
+import SafeImage from '@/components/SafeImage';
 
 interface ProductItem {
   id: string;
@@ -602,13 +603,12 @@ export default function AdminPelapakPage() {
                     <div className="flex items-start gap-3.5">
                       <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
                         {m.avatarUrl ? (
-                          <img
+                          <SafeImage
                             src={m.avatarUrl}
                             alt={m.shopName}
+                            width={56}
+                            height={56}
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = 'none';
-                            }}
                           />
                         ) : (
                           <Store className="w-6 h-6 text-emerald-600" />
@@ -823,13 +823,12 @@ export default function AdminPelapakPage() {
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
                               {p.imageUrl ? (
-                                <img
+                                <SafeImage
                                   src={p.imageUrl}
                                   alt={p.name}
+                                  width={48}
+                                  height={48}
                                   className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    (e.target as HTMLElement).style.display = 'none';
-                                  }}
                                 />
                               ) : (
                                 <Package className="w-5 h-5 text-slate-300" />
@@ -1059,9 +1058,11 @@ export default function AdminPelapakPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
                     {merchantForm.avatarUrl ? (
-                      <img
+                      <SafeImage
                         src={merchantForm.avatarUrl}
                         alt="Preview"
+                        width={56}
+                        height={56}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -1300,9 +1301,11 @@ export default function AdminPelapakPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden flex-shrink-0 flex items-center justify-center">
                     {productForm.imageUrl ? (
-                      <img
+                      <SafeImage
                         src={productForm.imageUrl}
                         alt="Preview"
+                        width={64}
+                        height={64}
                         className="w-full h-full object-cover"
                       />
                     ) : (

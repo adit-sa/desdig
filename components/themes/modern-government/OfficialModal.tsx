@@ -4,6 +4,7 @@ import React from 'react';
 import { Clock, X } from 'lucide-react';
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { Setter, getTimezoneByProvince } from './shared';
+import SafeImage from '@/components/SafeImage';
 
 export default function OfficialModal({
   tenant,
@@ -43,16 +44,16 @@ export default function OfficialModal({
         <div className="p-6 space-y-5">
           <div className="flex items-center gap-4">
             {selectedOfficialModal.photoUrl ? (
-              <img
-                loading="lazy"
-                decoding="async"
-                src={selectedOfficialModal.photoUrl}
-                alt={selectedOfficialModal.name}
-                className="w-20 h-20 rounded-2xl object-cover object-top shadow-md border-2 border-emerald-600/30 flex-shrink-0"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/images/kades_portrait.jpg';
-                }}
-              />
+              <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-md border-2 border-emerald-600/30 flex-shrink-0">
+                <SafeImage
+                  src={selectedOfficialModal.photoUrl}
+                  fallbackSrc="/images/kades_portrait.jpg"
+                  alt={selectedOfficialModal.name}
+                  fill
+                  sizes="80px"
+                  className="object-cover object-top"
+                />
+              </div>
             ) : (
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-emerald-700 to-slate-800 text-white font-black text-2xl flex items-center justify-center shadow-md flex-shrink-0">
                 {selectedOfficialModal.name.charAt(0)}

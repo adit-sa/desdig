@@ -6,6 +6,7 @@ import { Users, ChevronRight, Landmark, ExternalLink, X, ChevronDown, Menu as Me
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { buildTenantHref, handleScrollToSection } from './shared';
 import { ThemeColorStyle } from './themeColors';
+import SafeImage from '@/components/SafeImage';
 
 export default function SiteHeader({ tenant, menus }: { tenant: ResolvedTenant; menus?: any[] }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -48,7 +49,7 @@ export default function SiteHeader({ tenant, menus }: { tenant: ResolvedTenant; 
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
         <Link href={`/?tenant=${tenant.slug}`} className="flex items-center gap-2.5 sm:gap-3 group flex-shrink-0 mr-3 sm:mr-6">
           {/* Logo Desa Bebas Kotak Luar (Frameless) */}
-          <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform duration-300 relative">
             {tenant.logoUrl ? (
               tenant.logoUrl.endsWith('.webm') ||
               tenant.logoUrl.endsWith('.mp4') ||
@@ -63,12 +64,13 @@ export default function SiteHeader({ tenant, menus }: { tenant: ResolvedTenant; 
                   className="w-full h-full object-contain filter drop-shadow-sm"
                 />
               ) : (
-                <img
+                <SafeImage
                   src={tenant.logoUrl}
                   alt={`Logo ${tenant.namaDesa}`}
-                  fetchPriority="high"
-                  decoding="async"
-                  className="w-full h-full object-contain filter drop-shadow-sm"
+                  fill
+                  priority
+                  sizes="(max-width: 640px) 40px, 48px"
+                  className="object-contain filter drop-shadow-sm"
                 />
               )
             ) : (

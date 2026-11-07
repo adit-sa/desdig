@@ -9,7 +9,7 @@ import {
   GetObjectCommand,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
-import { isR2Configured, getR2Client, R2_BUCKET_NAME } from './storage';
+import { isR2Configured, getR2Client, R2_BUCKET_NAME, resolveUploadPath } from './storage';
 import { prisma } from './prisma';
 
 export interface MediaFileItem {
@@ -419,7 +419,7 @@ export async function deleteTenantMediaFiles(tenantSlug: string, relativeUrls: s
     r2KeysToDelete.push({ Key: thumbKey });
 
     // Hapus lokal jika ada
-    const localPath = path.join(process.cwd(), 'public', 'uploads', cleanTenant, subpath);
+    const localPath = resolveUploadPath(cleanTenant, subpath);
     if (existsSync(localPath)) {
       try {
         await fs.unlink(localPath);
@@ -652,7 +652,7 @@ export async function compressTenantMediaFile(
 
   // Fallback lokal
   if (!inputBuffer) {
-    const localPath = path.join(process.cwd(), 'public', 'uploads', cleanTenant, subpath);
+    const localPath = resolveUploadPath(cleanTenant, subpath);
     if (existsSync(localPath)) {
       inputBuffer = await fs.readFile(localPath);
     }
@@ -682,9 +682,9 @@ export async function compressTenantMediaFile(
       );
     }
 
-    const localDir = path.join(process.cwd(), 'public', 'uploads', cleanTenant, folder);
+    const localDir = resolveUploadPath(cleanTenant, folder);
     if (existsSync(localDir)) {
-      const localPath = path.join(process.cwd(), 'public', 'uploads', cleanTenant, subpath);
+      const localPath = resolveUploadPath(cleanTenant, subpath);
       await fs.writeFile(localPath, opt.buffer);
     }
   }

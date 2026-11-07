@@ -24,6 +24,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
+import SafeImage from '@/components/SafeImage';
 
 interface TelegramUser {
   id: string;
@@ -514,9 +515,12 @@ export default function TelegramAdminPage() {
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0">
                             {official.photoUrl ? (
-                              <img
+                              <SafeImage
                                 src={official.photoUrl}
                                 alt={official.name}
+                                width={36}
+                                height={36}
+                                fallbackSrc="/images/kades_portrait.jpg"
                                 className="w-full h-full object-cover"
                               />
                             ) : (

@@ -46,6 +46,7 @@ import {
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 import ResidentPicker, { SelectedResident } from '@/components/admin/ResidentPicker';
+import SafeImage from '@/components/SafeImage';
 import {
   THEME_COLOR_PRESETS,
   type ThemeColorScheme,
@@ -1810,13 +1811,13 @@ export default function ThemeCustomizerPage() {
                             </div>
                           </>
                         ) : (
-                          <img
+                          <SafeImage
                             src={media.url}
                             alt={`Slide ${idx + 1}`}
+                            width={160}
+                            height={90}
+                            fallbackSrc="/images/balai_desa_gedung.jpg"
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/images/balai_desa_gedung.jpg';
-                            }}
                           />
                         )}
                       </div>
@@ -2327,9 +2328,12 @@ export default function ThemeCustomizerPage() {
                 </div>
                 {kadesHighlight.photoUrl && (
                   <div className="mt-2 flex items-center gap-2">
-                    <img
+                    <SafeImage
                       src={kadesHighlight.photoUrl}
                       alt="Preview Kades"
+                      width={40}
+                      height={40}
+                      fallbackSrc="/images/kades_portrait.jpg"
                       className="w-10 h-10 rounded-full object-cover border border-slate-200"
                     />
                     <span className="text-[10px] text-slate-500 truncate max-w-xs">{kadesHighlight.photoUrl}</span>

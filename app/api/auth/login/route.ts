@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { signSessionToken } from '@/lib/auth/session';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const rateCheck = checkRateLimit(`login:${ip}`, 8, 60_000);
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { error: 'Terlalu banyak percobaan login dari perangkat ini. Silakan tunggu 1 menit sebelum mencoba lagi.' },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const { email, password, tenantSlug, kodeDesa } = body;
 
@@ -92,15 +103,36 @@ export async function POST(request: NextRequest) {
       user: sessionData,
     });
 
-    // Simpan session cookie sederhana (desdig_auth_session standar resmi & opensid_auth_session kompatibilitas)
+    // Simpan token sesi bertanda tangan kriptografis HMAC-SHA256 (HttpOnly)
+    const signedToken = signSessionToken(sessionData as any);
     const cookieOptions = {
-      httpOnly: false,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 hari
       sameSite: 'lax' as const,
     };
-    response.cookies.set('desdig_auth_session', JSON.stringify(sessionData), cookieOptions);
-    response.cookies.set('opensid_auth_session', JSON.stringify(sessionData), cookieOptions);
+    response.cookies.set('desdig_auth_session', signedToken, cookieOptions);
+    response.cookies.set('opensid_auth_session', signedToken, cookieOptions);
+
+    // Cookie non-sensitif untuk profil client-side UI
+    const profileOptions = {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+      sameSite: 'lax' as const,
+    };
+    response.cookies.set(
+      'desdig_user_profile',
+      JSON.stringify({
+        name: user.name,
+        email: user.email,
+        globalRole: user.globalRole,
+        tenantSlug: sessionData.tenantSlug,
+      }),
+      profileOptions
+    );
 
     return response;
   } catch (error: any) {

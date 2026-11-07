@@ -32,6 +32,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
+import SafeImage from '@/components/SafeImage';
 
 interface MediaItem {
   id: string;
@@ -820,11 +821,12 @@ export default function AdminMediaPage() {
                     onClick={() => setPreviewItem(file)}
                     className="aspect-square w-full bg-slate-200 dark:bg-slate-800 relative cursor-pointer overflow-hidden flex items-center justify-center"
                   >
-                    <img
+                    <SafeImage
                       src={file.url}
                       alt={file.name}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <span className="p-2 bg-white/90 text-slate-800 rounded-full shadow hover:bg-white">
@@ -930,7 +932,13 @@ export default function AdminMediaPage() {
                           onClick={() => setPreviewItem(file)}
                           className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 cursor-pointer"
                         >
-                          <img src={file.url} alt={file.name} className="w-full h-full object-cover" />
+                          <SafeImage
+                            src={file.url}
+                            alt={file.name}
+                            width={40}
+                            height={40}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                       </td>
                       <td className="p-3">
@@ -1047,7 +1055,13 @@ export default function AdminMediaPage() {
             </div>
 
             <div className="rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center max-h-[50vh]">
-              <img src={previewItem.url} alt={previewItem.name} className="max-h-[50vh] object-contain" />
+              <SafeImage
+                src={previewItem.url}
+                alt={previewItem.name}
+                width={1200}
+                height={800}
+                className="max-h-[50vh] object-contain"
+              />
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl">

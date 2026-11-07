@@ -3,6 +3,8 @@ import sharp from 'sharp';
 import { prisma } from '@/lib/prisma';
 import { uploadFile } from '@/lib/storage';
 import { optimizeImageBuffer } from '@/lib/media';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
+import { revalidateTenantCache } from '@/lib/tenant/cache-revalidate';
 import {
   isTelegramConfigured,
   sendTelegramMessage,
@@ -68,6 +70,12 @@ export async function GET(request: NextRequest) {
 // POST /api/telegram/webhook - Penerima pembaruan instan dari Telegram Bot API
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const rateCheck = checkRateLimit(`tg-webhook:${ip}`, 120, 60_000);
+    if (!rateCheck.success) {
+      return NextResponse.json({ ok: false, error: 'Rate limit exceeded' }, { status: 429 });
+    }
+
     const update = await request.json();
 
     // =========================================================================
@@ -161,6 +169,7 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        revalidateTenantCache(tenant.id);
         await resetSubscriberConversation(from.id);
         await sendTelegramMessage(
           chatId,
@@ -225,6 +234,7 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        revalidateTenantCache(tenant.id);
         await resetSubscriberConversation(from.id);
         const articlePublicUrl = `https://${primaryDomain}/berita/${article.slug}?tenant=${tenant.slug}`;
         await sendTelegramMessage(
@@ -506,6 +516,7 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        revalidateTenantCache(tenant.id);
         await resetSubscriberConversation(from.id);
         await sendTelegramMessage(
           chatId,
@@ -568,6 +579,7 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        revalidateTenantCache(tenant.id);
         await resetSubscriberConversation(from.id);
         const articlePublicUrl = `https://${primaryDomain}/berita/${article.slug}?tenant=${tenant.slug}`;
         await sendTelegramMessage(
@@ -680,6 +692,7 @@ export async function POST(request: NextRequest) {
           },
         });
 
+        revalidateTenantCache(tenant.id);
         await resetSubscriberConversation(from.id);
         await sendTelegramMessage(
           chatId,

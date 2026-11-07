@@ -6,6 +6,7 @@ import { ArrowRight, ChevronRight, ChevronLeft, Camera, ZoomIn, Calendar, Clock,
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { Setter, SectionOrderFn } from './shared';
 import { formatAnnouncementDateTime } from '@/lib/timezone';
+import SafeImage from '@/components/SafeImage';
 
 export default function GallerySection({
   tenant,
@@ -154,16 +155,15 @@ export default function GallerySection({
               >
                 {/* Background Photo with Smooth Fade */}
                 <div className="absolute inset-0 overflow-hidden">
-                  <img
-                    loading="lazy"
-                    decoding="async"
+                  <SafeImage
                     key={activeSpotlightImageUrl}
                     src={activeSpotlightImageUrl}
+                    fallbackSrc={defaultGalleryPhoto}
                     alt={currentItem.title}
-                    className="w-full h-full object-cover brightness-[0.88] group-hover:brightness-95 transition-all duration-700 animate-in fade-in"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = defaultGalleryPhoto;
-                    }}
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 60vw"
+                    className="object-cover brightness-[0.88] group-hover:brightness-95 transition-all duration-700 animate-in fade-in"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/95 via-slate-950/50 to-transparent" />
                 </div>
@@ -313,17 +313,15 @@ export default function GallerySection({
                     }`}
                   >
                     <div className="relative w-24 sm:w-28 aspect-[4/3] rounded-xl overflow-hidden flex-shrink-0 bg-slate-900 border border-slate-200">
-                      <img
-                        loading="lazy"
-                        decoding="async"
-                        src={photo.imageUrl || defaultGalleryPhoto}
+                      <SafeImage
+                        src={photo.imageUrl}
+                        fallbackSrc={defaultGalleryPhoto}
                         alt={photo.title}
-                        className={`w-full h-full object-cover transition-transform duration-500 ${
+                        fill
+                        sizes="120px"
+                        className={`object-cover transition-transform duration-500 ${
                           isSelected ? 'scale-105' : 'group-hover:scale-110'
                         }`}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = defaultGalleryPhoto;
-                        }}
                       />
                       {isSelected && (
                         <div className="absolute inset-0 bg-emerald-600/20 border-2 border-emerald-500 rounded-xl pointer-events-none" />

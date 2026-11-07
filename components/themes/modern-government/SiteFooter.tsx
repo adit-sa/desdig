@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Phone, Mail, ChevronRight, Landmark, Clock, UserCheck, ShoppingBag } from 'lucide-react';
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { getTimezoneByProvince } from './shared';
+import SafeImage from '@/components/SafeImage';
 
 export default function SiteFooter({ tenant }: { tenant: ResolvedTenant }) {
   return (
@@ -14,7 +15,7 @@ export default function SiteFooter({ tenant }: { tenant: ResolvedTenant }) {
         <div className="space-y-4 md:col-span-1">
           <div className="flex items-center gap-3">
             {/* Logo Footer Frameless & Larger */}
-            <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center flex-shrink-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center flex-shrink-0 relative">
               {tenant.logoUrl ? (
                 tenant.logoUrl.endsWith('.webm') ||
                 tenant.logoUrl.endsWith('.mp4') ||
@@ -29,12 +30,12 @@ export default function SiteFooter({ tenant }: { tenant: ResolvedTenant }) {
                     className="w-full h-full object-contain filter drop-shadow-md"
                   />
                 ) : (
-                  <img
-                    loading="lazy"
-                    decoding="async"
+                  <SafeImage
                     src={tenant.logoUrl}
                     alt={`Logo Desa ${tenant.namaDesa}`}
-                    className="w-full h-full object-contain filter drop-shadow-md"
+                    fill
+                    sizes="(max-width: 640px) 56px, 64px"
+                    className="object-contain filter drop-shadow-md"
                   />
                 )
               ) : (

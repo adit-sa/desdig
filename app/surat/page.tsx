@@ -23,6 +23,7 @@ import {
   Download,
   Share2,
 } from 'lucide-react';
+import SafeImage from '@/components/SafeImage';
 import { useOpenSIDStore } from '@/lib/store';
 import { SuratPermohonan } from '@/lib/types';
 
@@ -442,7 +443,13 @@ export default function SuratPage() {
             <div className="relative text-center border-b-4 border-double border-black pb-3">
               {activeTenant.logo_url && (
                 <div className="absolute left-0 top-0 w-16 h-16 hidden sm:flex items-center justify-center">
-                  <img src={activeTenant.logo_url} alt="Logo Desa" className="max-h-16 max-w-16 object-contain" />
+                  <SafeImage
+                    src={activeTenant.logo_url}
+                    alt="Logo Desa"
+                    width={64}
+                    height={64}
+                    className="max-h-16 max-w-16 object-contain"
+                  />
                 </div>
               )}
               <h3 className="text-sm font-bold uppercase tracking-wider">

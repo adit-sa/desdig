@@ -33,6 +33,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
+import SafeImage from '@/components/SafeImage';
 import { maskKodeKemendagriInput, formatKodeKemendagri } from '@/lib/formatters';
 
 export default function IdentitasDesaPage() {
@@ -347,9 +348,11 @@ export default function IdentitasDesaPage() {
                       className="w-full h-full object-contain"
                     />
                   ) : (
-                    <img
+                    <SafeImage
                       src={formData.logoUrl}
                       alt="Logo Desa"
+                      width={128}
+                      height={128}
                       className="w-full h-full object-contain"
                     />
                   )

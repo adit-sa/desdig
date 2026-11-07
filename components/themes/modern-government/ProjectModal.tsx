@@ -6,6 +6,7 @@ import { MapPin, ChevronRight, Camera, X } from 'lucide-react';
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { formatProjectTitle } from '@/lib/formatters';
 import { Setter, formatRupiah } from './shared';
+import SafeImage from '@/components/SafeImage';
 
 export default function ProjectModal({
   tenant,
@@ -63,19 +64,16 @@ export default function ProjectModal({
         <div className="p-5 sm:p-6 space-y-5 overflow-y-auto">
           {/* Foto Utama / Foto Dokumentasi Tahapan yang Dipilih */}
           <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-950 border border-slate-200 shadow-sm">
-            <img
-              loading="lazy"
-              decoding="async"
+            <SafeImage
               src={
                 activePhotoDoc?.gambar ||
-                selectedProjectModal.foto ||
-                '/images/desa_irigasi_pertanian.jpg'
+                selectedProjectModal.foto
               }
+              fallbackSrc="/images/desa_irigasi_pertanian.jpg"
               alt={selectedProjectModal.judul}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/images/desa_irigasi_pertanian.jpg';
-              }}
+              fill
+              sizes="(max-width: 640px) 100vw, 600px"
+              className="object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-transparent to-transparent pointer-events-none" />
 
@@ -128,16 +126,14 @@ export default function ProjectModal({
                         : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
-                    <div className="w-full h-16 rounded overflow-hidden bg-slate-200">
-                      <img
-                        loading="lazy"
-                        decoding="async"
-                        src={d.gambar || '/images/desa_irigasi_pertanian.jpg'}
+                    <div className="w-full h-16 rounded overflow-hidden bg-slate-200 relative">
+                      <SafeImage
+                        src={d.gambar}
+                        fallbackSrc="/images/desa_irigasi_pertanian.jpg"
                         alt={d.persentase}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/desa_irigasi_pertanian.jpg';
-                        }}
+                        fill
+                        sizes="80px"
+                        className="object-cover"
                       />
                     </div>
                     <span className="text-[10px] font-bold text-emerald-800">{d.persentase}</span>

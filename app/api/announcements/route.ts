@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
 }
 
 import { requireTenantManagerApi } from '@/lib/auth/rbac';
+import { revalidateTenantCache } from '@/lib/tenant/cache-revalidate';
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
       },
     }).catch(() => {});
 
+    revalidateTenantCache(tenant.id);
     return NextResponse.json({ success: true, announcement: newAnnouncement }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating announcement:', error);

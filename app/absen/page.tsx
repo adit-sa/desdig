@@ -20,9 +20,12 @@ import {
   Lock,
   ChevronRight,
   Delete,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 import { getTimezoneByProvince } from '@/components/themes/modern-government/shared';
+import SafeImage from '@/components/SafeImage';
 
 interface OfficialItem {
   id: string;
@@ -66,6 +69,73 @@ export default function KioskAbsenPage() {
   const [submittingPin, setSubmittingPin] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
   const [clockSuccess, setClockSuccess] = useState<string | null>(null);
+
+  // Offline-First Kiosk State
+  const [isOnline, setIsOnline] = useState(true);
+  const [pendingOfflineCount, setPendingOfflineCount] = useState(0);
+
+  // Sync Antrean Offline ke Server
+  const syncOfflineQueue = async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('desdig_offline_attendances');
+      if (!raw) return;
+      const queue: any[] = JSON.parse(raw);
+      if (!Array.isArray(queue) || queue.length === 0) return;
+
+      const remaining: any[] = [];
+      for (const item of queue) {
+        try {
+          const res = await fetch('/api/attendance/kiosk/clock', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(item),
+          });
+          if (!res.ok && res.status !== 401 && res.status !== 429) {
+            remaining.push(item);
+          }
+        } catch {
+          remaining.push(item);
+        }
+      }
+
+      if (remaining.length > 0) {
+        localStorage.setItem('desdig_offline_attendances', JSON.stringify(remaining));
+        setPendingOfflineCount(remaining.length);
+      } else {
+        localStorage.removeItem('desdig_offline_attendances');
+        setPendingOfflineCount(0);
+        fetchOfficials();
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    setIsOnline(typeof navigator !== 'undefined' ? navigator.onLine : true);
+    const handleOnline = () => {
+      setIsOnline(true);
+      syncOfflineQueue();
+    };
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Initial check
+    const raw = localStorage.getItem('desdig_offline_attendances');
+    if (raw) {
+      try {
+        const queue = JSON.parse(raw);
+        setPendingOfflineCount(Array.isArray(queue) ? queue.length : 0);
+      } catch {}
+    }
+    syncOfflineQueue();
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [currentTenantId]);
 
   // Clock Ticker
   useEffect(() => {
@@ -219,8 +289,36 @@ export default function KioskAbsenPage() {
         setClockSuccess(null);
       }, 1800);
     } catch (err: any) {
-      setPinError(err.message || 'PIN yang dimasukkan salah.');
-      setPinCode('');
+      // Jika jaringan mati atau fetch gagal karena offline, simpan ke antrean lokal aman
+      if (typeof navigator !== 'undefined' && (!navigator.onLine || err.name === 'TypeError')) {
+        try {
+          const raw = localStorage.getItem('desdig_offline_attendances');
+          const queue = raw ? JSON.parse(raw) : [];
+          queue.push({
+            tenantSlug: currentTenantId,
+            deviceToken,
+            officialId: selectedOfficial.id,
+            officialName: selectedOfficial.name,
+            pinCode,
+            timestamp: new Date().toISOString(),
+          });
+          localStorage.setItem('desdig_offline_attendances', JSON.stringify(queue));
+          setPendingOfflineCount(queue.length);
+          setClockSuccess(`(Mode Luar Jaringan) Absensi ${selectedOfficial.name} Disimpan di Perangkat!`);
+
+          setTimeout(() => {
+            setSelectedOfficial(null);
+            setPinCode('');
+            setClockSuccess(null);
+          }, 2200);
+        } catch {
+          setPinError('Gagal menyimpan absensi offline.');
+          setPinCode('');
+        }
+      } else {
+        setPinError(err.message || 'PIN yang dimasukkan salah.');
+        setPinCode('');
+      }
     } finally {
       setSubmittingPin(false);
     }
@@ -275,6 +373,27 @@ export default function KioskAbsenPage() {
               Kec. {activeTenant.kecamatan}, Kab. {activeTenant.kabupaten}
             </p>
           </div>
+        </div>
+
+        {/* Status Koneksi & Sinkronisasi Antrean Offline */}
+        <div className="flex items-center gap-2">
+          {!isOnline && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs font-bold animate-pulse">
+              <WifiOff className="w-3.5 h-3.5 text-rose-400" />
+              <span>Offline (Luar Jaringan)</span>
+            </div>
+          )}
+          {pendingOfflineCount > 0 && (
+            <button
+              type="button"
+              onClick={syncOfflineQueue}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-950/80 border border-amber-800 text-amber-300 text-xs font-bold cursor-pointer hover:bg-amber-900/60 transition"
+              title="Klik untuk sinkronisasi antrean ke server"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+              <span>{pendingOfflineCount} Tersimpan Lokal</span>
+            </button>
+          )}
         </div>
 
         {/* Realtime Live Digital Clock */}
@@ -449,13 +568,13 @@ export default function KioskAbsenPage() {
                       {/* Photo Box */}
                       <div className="h-44 sm:h-52 relative w-full bg-slate-950 overflow-hidden">
                         {ofc.photoUrl ? (
-                          <img
+                          <SafeImage
                             src={ofc.photoUrl}
                             alt={ofc.name}
-                            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/images/kades_portrait.jpg';
-                            }}
+                            fill
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            fallbackSrc="/images/kades_portrait.jpg"
+                            className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-3xl font-black text-slate-700">
@@ -522,9 +641,12 @@ export default function KioskAbsenPage() {
             <div className="text-center space-y-2">
               <div className="w-16 h-16 rounded-2xl mx-auto overflow-hidden border-2 border-emerald-500 shadow-md">
                 {selectedOfficial.photoUrl ? (
-                  <img
+                  <SafeImage
                     src={selectedOfficial.photoUrl}
                     alt={selectedOfficial.name}
+                    width={64}
+                    height={64}
+                    fallbackSrc="/images/kades_portrait.jpg"
                     className="w-full h-full object-cover object-top"
                   />
                 ) : (

@@ -9,6 +9,7 @@ import SiteHeader from '@/components/themes/modern-government/SiteHeader';
 import SiteFooter from '@/components/themes/modern-government/SiteFooter';
 import { buildTenantHref } from '@/components/themes/modern-government/shared';
 import { formatProjectTitle } from '@/lib/formatters';
+import SafeImage from '@/components/SafeImage';
 import {
   HardHat,
   Search,
@@ -300,13 +301,13 @@ export default function PembangunanClientView({
                     {/* Foto Utama */}
                     <div className="relative h-52 bg-slate-900 overflow-hidden cursor-pointer" onClick={() => setSelectedProjectModal(p)}>
                       {p.foto ? (
-                        <img
+                        <SafeImage
                           src={p.foto}
+                          fallbackSrc="/images/desa_irigasi_pertanian.jpg"
                           alt={p.judul}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/images/desa_irigasi_pertanian.jpg';
-                          }}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                       ) : (
                         <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-slate-800 to-slate-900 text-slate-400">
@@ -400,12 +401,15 @@ export default function PembangunanClientView({
                                 className="relative w-14 h-14 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200 cursor-pointer hover:border-emerald-500 transition group/thumb"
                                 title={`${d.persentase} - ${d.keterangan || ''}`}
                               >
-                                <img
-                                  src={d.gambar || '/images/desa_irigasi_pertanian.jpg'}
+                                <SafeImage
+                                  src={d.gambar}
+                                  fallbackSrc="/images/desa_irigasi_pertanian.jpg"
                                   alt={d.persentase}
-                                  className="w-full h-full object-cover group-hover/thumb:scale-110 transition duration-300"
+                                  fill
+                                  sizes="56px"
+                                  className="object-cover group-hover/thumb:scale-110 transition duration-300"
                                 />
-                                <span className="absolute bottom-0 inset-x-0 bg-slate-950/85 text-[9px] font-bold text-center text-white font-mono">
+                                <span className="absolute bottom-0 inset-x-0 bg-slate-950/85 text-[9px] font-bold text-center text-white font-mono z-10">
                                   {d.persentase}
                                 </span>
                               </div>
@@ -489,14 +493,13 @@ export default function PembangunanClientView({
             <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
               {/* Foto Utama / Foto Tahapan yang Dipilih */}
               <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-900 border border-slate-200 shadow-sm">
-                <img
-                  src={
-                    activePhotoDoc?.gambar ||
-                    selectedProjectModal.foto ||
-                    '/images/desa_irigasi_pertanian.jpg'
-                  }
+                <SafeImage
+                  src={activePhotoDoc?.gambar || selectedProjectModal.foto}
+                  fallbackSrc="/images/desa_irigasi_pertanian.jpg"
                   alt={selectedProjectModal.judul}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 800px"
+                  className="object-cover"
                 />
                 {activePhotoDoc && (
                   <div className="absolute bottom-3 left-3 bg-slate-950/85 text-white px-3 py-1 rounded-md text-xs font-bold backdrop-blur-md">
@@ -523,11 +526,14 @@ export default function PembangunanClientView({
                             : 'border-slate-200 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="w-full h-16 rounded overflow-hidden bg-slate-200">
-                          <img
-                            src={d.gambar || '/images/desa_irigasi_pertanian.jpg'}
+                        <div className="relative w-full h-16 rounded overflow-hidden bg-slate-200">
+                          <SafeImage
+                            src={d.gambar}
+                            fallbackSrc="/images/desa_irigasi_pertanian.jpg"
                             alt={d.persentase}
-                            className="w-full h-full object-cover"
+                            fill
+                            sizes="80px"
+                            className="object-cover"
                           />
                         </div>
                         <span className="text-[10px] font-bold text-emerald-800">{d.persentase}</span>

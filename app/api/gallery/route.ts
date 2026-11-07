@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
 }
 
 import { requireTenantManagerApi } from '@/lib/auth/rbac';
+import { revalidateTenantCache } from '@/lib/tenant/cache-revalidate';
 
 export async function POST(request: NextRequest) {
   try {
@@ -152,6 +153,7 @@ export async function POST(request: NextRequest) {
       createdAt: new Date(),
     };
 
+    revalidateTenantCache(tenant.id);
     return NextResponse.json({ success: true, photo });
   } catch (error: any) {
     console.error('Error creating gallery item:', error);

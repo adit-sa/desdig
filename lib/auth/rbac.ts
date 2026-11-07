@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifySessionToken } from './session';
 
 export interface AuthSession {
   id: string;
@@ -19,13 +20,13 @@ export function getAuthSession(request: Request | NextRequest): AuthSession | nu
     if ('cookies' in request && typeof (request as any).cookies?.get === 'function') {
       const cookie = (request as any).cookies.get('desdig_auth_session') || (request as any).cookies.get('opensid_auth_session');
       if (cookie?.value) {
-        return JSON.parse(decodeURIComponent(cookie.value));
+        return verifySessionToken(cookie.value);
       }
     }
     const cookieHeader = request.headers.get('cookie') || '';
     const match = cookieHeader.match(/(?:desdig_auth_session|opensid_auth_session)=([^;]+)/);
     if (match) {
-      return JSON.parse(decodeURIComponent(match[1]));
+      return verifySessionToken(match[1]);
     }
   } catch {
     // ignore parse error

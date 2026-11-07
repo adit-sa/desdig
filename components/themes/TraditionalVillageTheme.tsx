@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { formatAnnouncementDateTime, getTimezoneByProvince } from '@/lib/timezone';
 import { formatKodeKemendagri } from '@/lib/formatters';
+import SafeImage from '@/components/SafeImage';
 
 interface ThemeProps {
   tenant: ResolvedTenant;
@@ -162,13 +163,17 @@ export default function TraditionalVillageTheme({ tenant, data }: ThemeProps) {
           {/* Profil Kepala Desa / Sambutan Pamong */}
           <div className="lg:col-span-5 bg-[#fdfbf7] text-stone-900 rounded-xl p-6 sm:p-7 shadow-2xl border border-amber-200">
             <div className="flex items-center gap-4 pb-4 border-b border-amber-200">
-              <img
-                loading="lazy"
-                decoding="async"
-                src="/images/kades_portrait.jpg"
-                alt={tenant.kepalaDesa || 'Kepala Desa'}
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover object-top shadow-md border-2 border-amber-700 flex-shrink-0"
-              />
+              <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shadow-md border-2 border-amber-700 flex-shrink-0">
+                <SafeImage
+                  src="/images/kades_portrait.jpg"
+                  fallbackSrc="/images/kades_portrait.jpg"
+                  alt={tenant.kepalaDesa || 'Kepala Desa'}
+                  fill
+                  priority
+                  sizes="(max-width: 640px) 80px, 96px"
+                  className="object-cover object-top"
+                />
+              </div>
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300 inline-block mb-1">
                   Kepala Desa
@@ -297,12 +302,13 @@ export default function TraditionalVillageTheme({ tenant, data }: ThemeProps) {
               {data.articles.map((art) => (
                 <article key={art.id} className="bg-white rounded-xl border border-amber-200/90 shadow-sm overflow-hidden hover:shadow-md transition flex flex-col group">
                   <div className="relative h-48 overflow-hidden bg-stone-100">
-                    <img
-                      loading="lazy"
-                      decoding="async"
-                      src={art.coverImageUrl || '/images/desa_irigasi_pertanian.jpg'}
+                    <SafeImage
+                      src={art.coverImageUrl}
+                      fallbackSrc="/images/desa_irigasi_pertanian.jpg"
                       alt={art.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      fill
+                      sizes="(max-width: 640px) 100vw, 50vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <span className="absolute top-3 left-3 bg-[#3b1d11]/85 text-amber-200 text-[11px] font-bold px-3 py-1 rounded-full shadow backdrop-blur-sm border border-amber-700/50">
                       {art.category?.name || 'Kabar Desa'}
@@ -401,13 +407,16 @@ export default function TraditionalVillageTheme({ tenant, data }: ThemeProps) {
                 <div key={ofc.id} className="bg-white rounded-xl border border-amber-200 p-6 text-center shadow-sm hover:shadow-md transition flex flex-col justify-between">
                   <div>
                     {ofc.photoUrl ? (
-                      <img
-                        loading="lazy"
-                        decoding="async"
-                        src={ofc.photoUrl}
-                        alt={ofc.name}
-                        className="w-20 h-20 rounded-2xl object-cover object-top mx-auto shadow-md border-2 border-amber-700/40 mb-3.5"
-                      />
+                      <div className="relative w-20 h-20 rounded-2xl overflow-hidden mx-auto shadow-md border-2 border-amber-700/40 mb-3.5">
+                        <SafeImage
+                          src={ofc.photoUrl}
+                          fallbackSrc="/images/kades_portrait.jpg"
+                          alt={ofc.name}
+                          fill
+                          sizes="80px"
+                          className="object-cover object-top"
+                        />
+                      </div>
                     ) : (
                       <div className="w-20 h-20 rounded-2xl bg-[#592a17] text-amber-100 font-serif font-black text-2xl mx-auto flex items-center justify-center shadow-md shadow-amber-950/20 mb-3.5">
                         {ofc.name.charAt(0)}

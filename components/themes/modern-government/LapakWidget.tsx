@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MapPin, ArrowRight, ChevronRight, ChevronLeft, ShoppingBag, Store, Package } from 'lucide-react';
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
+import SafeImage from '@/components/SafeImage';
 
 export default function LapakWidget({ tenant, order }: { tenant: ResolvedTenant; order: number }) {
   const [merchants, setMerchants] = useState<any[]>([]);
@@ -116,14 +117,14 @@ export default function LapakWidget({ tenant, order }: { tenant: ResolvedTenant;
         <div key={merchants[currentMerchantSlide].id || currentMerchantSlide} className="space-y-3.5 animate-in fade-in duration-300">
           {/* Header Toko Pelapak */}
           <div className="flex items-start gap-3">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 overflow-hidden flex-shrink-0 flex items-center justify-center text-emerald-700 font-extrabold text-sm">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 overflow-hidden flex-shrink-0 flex items-center justify-center text-emerald-700 font-extrabold text-sm relative">
               {merchants[currentMerchantSlide].avatarUrl ? (
-                <img
-                  loading="lazy"
-                  decoding="async"
+                <SafeImage
                   src={merchants[currentMerchantSlide].avatarUrl}
                   alt={merchants[currentMerchantSlide].shopName}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="48px"
+                  className="object-cover"
                 />
               ) : (
                 <Store className="w-6 h-6 text-emerald-600" />
@@ -158,14 +159,14 @@ export default function LapakWidget({ tenant, order }: { tenant: ResolvedTenant;
                 className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2.5"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-white overflow-hidden flex-shrink-0 border border-slate-200 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-white overflow-hidden flex-shrink-0 border border-slate-200 flex items-center justify-center relative">
                     {prod.imageUrl ? (
-                      <img
-                        loading="lazy"
-                        decoding="async"
+                      <SafeImage
                         src={prod.imageUrl}
                         alt={prod.name}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="40px"
+                        className="object-cover"
                       />
                     ) : (
                       <Package className="w-4 h-4 text-slate-300" />

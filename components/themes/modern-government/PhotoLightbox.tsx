@@ -3,6 +3,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { Setter } from './shared';
+import SafeImage from '@/components/SafeImage';
 
 export default function PhotoLightbox({ activePhoto, setActivePhoto }: { activePhoto: any; setActivePhoto: Setter<any | null> }) {
   return (
@@ -15,12 +16,12 @@ export default function PhotoLightbox({ activePhoto, setActivePhoto }: { activeP
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative aspect-video sm:aspect-[16/10] bg-black">
-          <img
-            loading="lazy"
-            decoding="async"
+          <SafeImage
             src={activePhoto.imageUrl}
             alt={activePhoto.title}
-            className="w-full h-full object-contain"
+            fill
+            sizes="(max-width: 1024px) 100vw, 800px"
+            className="object-contain"
           />
           <button
             onClick={() => setActivePhoto(null)}

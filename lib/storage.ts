@@ -38,6 +38,14 @@ export function getR2Client(): S3Client {
 }
 
 /**
+ * Helper resolusi path upload lokal tanpa memicu Turbopack AST dynamic glob bundling scanner
+ */
+export function resolveUploadPath(...segments: string[]): string {
+  const baseUploadDir = path.resolve(/*turbopackIgnore: true*/ process.cwd(), 'public', 'uploads');
+  return path.resolve(/*turbopackIgnore: true*/ baseUploadDir, ...segments);
+}
+
+/**
  * Upload berkas ke Cloudflare R2 (jika env R2 dikonfigurasi),
  * atau fallback ke filesystem lokal public/uploads (untuk pengembangan lokal / VPS).
  */
@@ -73,9 +81,9 @@ export async function uploadFile({
   }
 
   // 2. Opsi B: Local Disk Fallback (Pengembangan Lokal / Standalone Server)
-  const localDir = path.join(process.cwd(), 'public', 'uploads', cleanTenant, cleanFolder);
+  const localDir = resolveUploadPath(cleanTenant, cleanFolder);
   await fs.mkdir(localDir, { recursive: true });
-  const localFilePath = path.join(localDir, filename);
+  const localFilePath = resolveUploadPath(cleanTenant, cleanFolder, filename);
   await fs.writeFile(localFilePath, buffer);
 
   return {

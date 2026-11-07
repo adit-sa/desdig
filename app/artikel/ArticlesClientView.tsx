@@ -8,6 +8,7 @@ import TopBar from '@/components/themes/modern-government/TopBar';
 import SiteHeader from '@/components/themes/modern-government/SiteHeader';
 import SiteFooter from '@/components/themes/modern-government/SiteFooter';
 import { buildTenantHref } from '@/components/themes/modern-government/shared';
+import SafeImage from '@/components/SafeImage';
 import {
   Search,
   Calendar,
@@ -335,13 +336,13 @@ export default function ArticlesClientView({
               <div>
                 {/* Image Cover */}
                 <div className="h-48 relative overflow-hidden bg-slate-900">
-                  <img
-                    src={art.coverImageUrl || fallbackImage}
+                  <SafeImage
+                    src={art.coverImageUrl}
+                    fallbackSrc={fallbackImage}
                     alt={art.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = fallbackImage;
-                    }}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
 

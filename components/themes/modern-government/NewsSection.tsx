@@ -7,6 +7,7 @@ import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { ThemeData, SectionOrderFn, getPengaduanUrl } from './shared';
 import LapakWidget from './LapakWidget';
 import { formatAnnouncementDateTime } from '@/lib/timezone';
+import SafeImage from '@/components/SafeImage';
 
 export default function NewsSection({
   tenant,
@@ -77,15 +78,14 @@ export default function NewsSection({
           {featuredArticle && (
             <article className="scroll-reveal bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col sm:flex-row sm:max-h-[380px]">
               <div className="relative aspect-[16/10] sm:aspect-auto sm:w-1/2 sm:self-stretch min-h-[220px] max-h-[280px] sm:max-h-none overflow-hidden bg-slate-900 flex-shrink-0">
-                <img
-                  loading="lazy"
-                  decoding="async"
-                  src={featuredArticle.coverImageUrl || defaultCover}
+                <SafeImage
+                  src={featuredArticle.coverImageUrl}
+                  fallbackSrc={defaultCover}
                   alt={featuredArticle.title}
-                  className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = defaultCover;
-                  }}
+                  fill
+                  priority
+                  sizes="(max-width: 640px) 100vw, 50vw"
+                  className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
                 />
                 <span className="absolute top-3 left-3 bg-emerald-600 text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">
                   Berita Utama
@@ -137,15 +137,13 @@ export default function NewsSection({
                 className="scroll-reveal bg-white rounded-xl border border-slate-200/90 shadow-sm overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group"
               >
                 <div className="h-44 relative overflow-hidden bg-slate-900">
-                  <img
-                    loading="lazy"
-                    decoding="async"
-                    src={art.coverImageUrl || defaultCover}
+                  <SafeImage
+                    src={art.coverImageUrl}
+                    fallbackSrc={defaultCover}
                     alt={art.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = defaultCover;
-                    }}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
                   <span className="absolute top-3 left-3 bg-emerald-600/90 backdrop-blur-md text-white text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider shadow">

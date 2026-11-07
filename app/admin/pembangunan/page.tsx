@@ -25,6 +25,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
+import SafeImage from '@/components/SafeImage';
 
 interface Documentation {
   id: string;
@@ -522,13 +523,13 @@ export default function AdminPembangunanPage() {
                   {/* Foto Utama Proyek */}
                   <div className="relative h-48 bg-slate-900 overflow-hidden">
                     {p.foto ? (
-                      <img
+                      <SafeImage
                         src={p.foto}
                         alt={p.judul}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/desa_irigasi_pertanian.jpg';
-                        }}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        fallbackSrc="/images/desa_irigasi_pertanian.jpg"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-slate-800 to-slate-900 text-slate-500">
@@ -622,9 +623,12 @@ export default function AdminPembangunanPage() {
                               className="relative w-14 h-14 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200 group/doc"
                               title={`${d.persentase} - ${d.keterangan || ''}`}
                             >
-                              <img
+                              <SafeImage
                                 src={d.gambar || '/images/desa_irigasi_pertanian.jpg'}
                                 alt={d.persentase}
+                                width={56}
+                                height={56}
+                                fallbackSrc="/images/desa_irigasi_pertanian.jpg"
                                 className="w-full h-full object-cover"
                               />
                               <span className="absolute bottom-0 inset-x-0 bg-slate-950/80 text-[9px] font-bold text-center text-white font-mono">
@@ -867,9 +871,11 @@ export default function AdminPembangunanPage() {
                 </div>
                 {formData.foto && (
                   <div className="mt-2 flex items-center gap-2">
-                    <img
+                    <SafeImage
                       src={formData.foto}
                       alt="Preview"
+                      width={64}
+                      height={48}
                       className="w-16 h-12 rounded border border-slate-200 object-cover"
                     />
                     <span className="text-[10px] text-slate-500 truncate max-w-xs">{formData.foto}</span>
@@ -967,9 +973,12 @@ export default function AdminPembangunanPage() {
                       className="bg-slate-50 dark:bg-slate-800/80 p-2 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2.5"
                     >
                       <div className="w-12 h-12 rounded bg-black overflow-hidden flex-shrink-0">
-                        <img
+                        <SafeImage
                           src={d.gambar || '/images/desa_irigasi_pertanian.jpg'}
                           alt={d.persentase}
+                          width={48}
+                          height={48}
+                          fallbackSrc="/images/desa_irigasi_pertanian.jpg"
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -1051,9 +1060,11 @@ export default function AdminPembangunanPage() {
                 </div>
                 {newProgressImage && (
                   <div className="mt-2 flex items-center gap-2">
-                    <img
+                    <SafeImage
                       src={newProgressImage}
                       alt="Preview"
+                      width={64}
+                      height={48}
                       className="w-16 h-12 rounded border border-slate-200 object-cover"
                     />
                     <span className="text-[10px] text-slate-500 truncate max-w-xs">{newProgressImage}</span>

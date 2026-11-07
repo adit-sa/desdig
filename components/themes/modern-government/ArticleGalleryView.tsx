@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Images, X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
+import SafeImage from '@/components/SafeImage';
 
 export interface AlbumPhoto {
   url: string;
@@ -51,11 +52,12 @@ export default function ArticleGalleryView({ photos, articleTitle }: ArticleGall
             onClick={() => setActivePhotoIndex(idx)}
             className="group relative aspect-4/3 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-900 cursor-pointer border border-slate-200 dark:border-slate-700 shadow-xs"
           >
-            <img
+            <SafeImage
               src={item.url}
               alt={item.caption || `Foto dokumentasi ${idx + 1}`}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
+              fill
+              sizes="(max-width: 640px) 50vw, 33vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
               <span className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-full bg-black/60 text-white backdrop-blur-xs">
@@ -114,13 +116,15 @@ export default function ArticleGalleryView({ photos, articleTitle }: ArticleGall
 
           {/* Konten Foto */}
           <div className="max-w-4xl w-full flex flex-col items-center justify-center p-2">
-            <img
-              loading="lazy"
-              decoding="async"
-              src={currentPhoto.url}
-              alt={currentPhoto.caption || articleTitle}
-              className="max-h-[75vh] w-auto max-w-full object-contain rounded-2xl shadow-2xl"
-            />
+            <div className="relative w-full h-[65vh] sm:h-[72vh]">
+              <SafeImage
+                src={currentPhoto.url}
+                alt={currentPhoto.caption || articleTitle}
+                fill
+                sizes="(max-width: 1024px) 100vw, 900px"
+                className="object-contain rounded-2xl shadow-2xl"
+              />
+            </div>
             {currentPhoto.caption && (
               <p className="text-white text-xs sm:text-sm text-center mt-3 max-w-2xl px-4 py-1.5 rounded-xl bg-black/50 backdrop-blur-sm">
                 {currentPhoto.caption}
