@@ -23,6 +23,7 @@ import SiteFooter from './modern-government/SiteFooter';
 const DEFAULT_SECTIONS_ORDER = [
   'stats',
   'quick_links',
+  'profile',
   'pamong',
   'berita',
   'apbdes',
@@ -86,10 +87,24 @@ export default function ModernGovernmentTheme({ tenant, data }: ThemeProps) {
       : 2;
 
   // Urutan modul dan visibilitas
-  const sectionsOrder: string[] =
-    Array.isArray(themeConfig.homepage_sections_order) && themeConfig.homepage_sections_order.length > 0
-      ? themeConfig.homepage_sections_order
-      : DEFAULT_SECTIONS_ORDER;
+  const sectionsOrder: string[] = useMemo(() => {
+    const rawOrder =
+      Array.isArray(themeConfig.homepage_sections_order) && themeConfig.homepage_sections_order.length > 0
+        ? [...themeConfig.homepage_sections_order]
+        : [...DEFAULT_SECTIONS_ORDER];
+
+    // Sisipkan profile setelah quick_links jika belum ada di data konfigurasi lama
+    if (!rawOrder.includes('profile')) {
+      const qIdx = rawOrder.indexOf('quick_links');
+      if (qIdx !== -1) {
+        rawOrder.splice(qIdx + 1, 0, 'profile');
+      } else {
+        rawOrder.push('profile');
+      }
+    }
+
+    return rawOrder;
+  }, [themeConfig.homepage_sections_order]);
   const sectionsVisibility: Record<string, boolean> = themeConfig.sections_visibility || {};
 
   const getSectionOrder = (sectionId: string) => {
@@ -115,6 +130,11 @@ export default function ModernGovernmentTheme({ tenant, data }: ThemeProps) {
       case 'quick_links':
         return isSectionVisible('quick_links') ? (
           <QuickLinksSection key="quick_links" tenant={tenant} />
+        ) : null;
+
+      case 'profile':
+        return hasProfile && isSectionVisible('profile') ? (
+          <ProfileSection key="profile" tenant={tenant} themeConfig={themeConfig} />
         ) : null;
 
       case 'pamong':
@@ -206,9 +226,6 @@ export default function ModernGovernmentTheme({ tenant, data }: ThemeProps) {
           sectionsOrder[0] === 'stats' && isSectionVisible('stats') ? 'pt-0' : 'pt-6 sm:pt-8'
         } pb-12 sm:pb-14 flex flex-col gap-8 sm:gap-10`}
       >
-        {/* Visi & Misi */}
-        {hasProfile && <ProfileSection tenant={tenant} themeConfig={themeConfig} />}
-
         {/* Dynamic Sections Rendered in Exact Admin Order */}
         {sectionsOrder.map((sectionId, idx) => renderSection(sectionId, idx))}
       </main>

@@ -43,6 +43,7 @@ import {
   Maximize2,
   Minimize2,
   Upload,
+  Award,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 import ResidentPicker, { SelectedResident } from '@/components/admin/ResidentPicker';
@@ -73,6 +74,11 @@ const AVAILABLE_MODULES: Record<string, { label: string; desc: string; icon: any
     label: 'Layanan Mandiri & Akses Cepat',
     desc: 'Tombol pintas surat, PPID, aduan warga, APBDes, dan galeri',
     icon: Globe,
+  },
+  profile: {
+    label: 'Visi Pembangunan & Misi Kerja',
+    desc: 'Visi strategis RKPDes dan agenda misi kerja pemerintah desa periode berjalan',
+    icon: Award,
   },
   pamong: {
     label: 'Struktur Aparatur & Status Absensi',
@@ -165,6 +171,7 @@ export default function ThemeCustomizerPage() {
   const [sectionsOrder, setSectionsOrder] = useState<string[]>([
     'stats',
     'quick_links',
+    'profile',
     'pamong',
     'berita',
     'apbdes',
@@ -178,6 +185,7 @@ export default function ThemeCustomizerPage() {
   const [sectionsVisibility, setSectionsVisibility] = useState<Record<string, boolean>>({
     stats: true,
     quick_links: true,
+    profile: true,
     pamong: true,
     berita: true,
     apbdes: true,
@@ -338,6 +346,15 @@ export default function ThemeCustomizerPage() {
         const s = activeConfig.settings;
         if (Array.isArray(s.homepage_sections_order) && s.homepage_sections_order.length > 0) {
           const loadedOrder = [...s.homepage_sections_order];
+          // Jika profile (Visi & Misi) belum tersimpan di DB, tempatkan setelah quick_links
+          if (!loadedOrder.includes('profile')) {
+            const qIdx = loadedOrder.indexOf('quick_links');
+            if (qIdx !== -1) {
+              loadedOrder.splice(qIdx + 1, 0, 'profile');
+            } else {
+              loadedOrder.push('profile');
+            }
+          }
           Object.keys(AVAILABLE_MODULES).forEach((k) => {
             if (!loadedOrder.includes(k)) loadedOrder.push(k);
           });
@@ -345,6 +362,7 @@ export default function ThemeCustomizerPage() {
         }
         if (s.sections_visibility) {
           setSectionsVisibility({
+            profile: true,
             lapak: true,
             jam_layanan: true,
             ...s.sections_visibility,
