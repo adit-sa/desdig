@@ -122,6 +122,45 @@ const AVAILABLE_MODULES: Record<string, { label: string; desc: string; icon: any
   },
 };
 
+export interface QuickLinkSettingItem {
+  id: string;
+  title: string;
+  description: string;
+  url: string;
+  icon?: string;
+  color?: string;
+  target?: '_self' | '_blank';
+}
+
+const QUICK_LINK_ICONS = [
+  { value: 'file-text', label: '📄 Surat / Administrasi (FileText)' },
+  { value: 'shield', label: '🛡️ PPID / Regulasi (ShieldCheck)' },
+  { value: 'megaphone', label: '📢 Pengaduan / Aspirasi (Megaphone)' },
+  { value: 'trending-up', label: '📈 APBDes / Transparansi (TrendingUp)' },
+  { value: 'camera', label: '📷 Galeri Foto Kegiatan (Camera)' },
+  { value: 'users', label: '👥 Aparatur / Pamong / Penduduk (Users)' },
+  { value: 'globe', label: '🌐 Portal Web Publik (Globe)' },
+  { value: 'shopping-bag', label: '🛍️ Pasar / Lapak UMKM (ShoppingBag)' },
+  { value: 'map-pin', label: '📍 Peta Wilayah & Wisata (MapPin)' },
+  { value: 'heart', label: '🤝 Bansos & Posyandu (Heart)' },
+  { value: 'book', label: '📖 Regulasi & Perpustakaan (BookOpen)' },
+  { value: 'phone', label: '📞 Telepon / Kontak Darurat (Phone)' },
+  { value: 'external-link', label: '🔗 Tautan Luar (ExternalLink)' },
+  { value: 'sparkles', label: '✨ Inovasi & Potensi (Sparkles)' },
+];
+
+const QUICK_LINK_COLORS = [
+  { value: 'emerald', label: 'Hijau Zamrud (Emerald)' },
+  { value: 'teal', label: 'Toska (Teal)' },
+  { value: 'rose', label: 'Merah (Rose)' },
+  { value: 'amber', label: 'Kuning Jingga (Amber)' },
+  { value: 'cyan', label: 'Biru Cerah (Cyan)' },
+  { value: 'indigo', label: 'Nila (Indigo)' },
+  { value: 'blue', label: 'Biru Safir (Blue)' },
+  { value: 'purple', label: 'Ungu Elegan (Purple)' },
+  { value: 'slate', label: 'Abu-Abu Netral (Slate)' },
+];
+
 export interface HeroMediaSettingItem {
   type: 'image' | 'video';
   url: string;
@@ -209,13 +248,192 @@ export default function ThemeCustomizerPage() {
   const [announcementPerSlide, setAnnouncementPerSlide] = useState<number>(2);
 
   // Kustomisasi Modul Pusat Pelayanan & Informasi Publik Desa (quick_links)
-  const [quickLinksConfig, setQuickLinksConfig] = useState({
+  const [quickLinksConfig, setQuickLinksConfig] = useState<{
+    badge: string;
+    title: string;
+    description: string;
+    ppidUrl?: string;
+    pengaduanUrl?: string;
+    items: QuickLinkSettingItem[];
+  }>({
     badge: 'Layanan Terpadu Mandiri',
     title: 'Pusat Pelayanan & Informasi Publik Desa',
     description: 'Akses langsung seluruh administrasi surat, permohonan informasi PPID, saluran aduan, dan transparansi anggaran desa.',
     ppidUrl: '',
     pengaduanUrl: '',
+    items: [
+      {
+        id: 'surat',
+        title: 'Administrasi Surat',
+        description: 'Layanan surat keterangan mandiri',
+        url: '/layanan?tenant={tenant}',
+        icon: 'file-text',
+        color: 'emerald',
+        target: '_self',
+      },
+      {
+        id: 'ppid',
+        title: 'PPID Informasi',
+        description: 'Permohonan data publik resmi',
+        url: '/layanan?tenant={tenant}#ppid',
+        icon: 'shield',
+        color: 'teal',
+        target: '_self',
+      },
+      {
+        id: 'pengaduan',
+        title: 'Lapor & Aspirasi',
+        description: 'Saluran aduan langsung warga',
+        url: '',
+        icon: 'megaphone',
+        color: 'rose',
+        target: '_blank',
+      },
+      {
+        id: 'apbdes',
+        title: 'Dana Desa APBDes',
+        description: 'Realisasi belanja transparan',
+        url: '#apbdes',
+        icon: 'trending-up',
+        color: 'amber',
+        target: '_self',
+      },
+      {
+        id: 'galeri',
+        title: 'Galeri Foto',
+        description: 'Potret kegiatan pembangunan',
+        url: '/galeri?tenant={tenant}',
+        icon: 'camera',
+        color: 'cyan',
+        target: '_self',
+      },
+      {
+        id: 'pamong',
+        title: 'Aparatur Desa',
+        description: 'Status absensi hari ini',
+        url: '#pamong',
+        icon: 'users',
+        color: 'indigo',
+        target: '_self',
+      },
+    ],
   });
+
+  const addQuickLinkItem = () => {
+    setQuickLinksConfig((prev) => ({
+      ...prev,
+      items: [
+        ...(prev.items || []),
+        {
+          id: 'link_' + Date.now(),
+          title: 'Layanan Baru',
+          description: 'Keterangan ringkas layanan publik',
+          url: '/layanan?tenant={tenant}',
+          icon: 'globe',
+          color: 'emerald',
+          target: '_self',
+        },
+      ],
+    }));
+  };
+
+  const updateQuickLinkItemField = (index: number, field: keyof QuickLinkSettingItem, value: any) => {
+    setQuickLinksConfig((prev) => {
+      const nextItems = [...(prev.items || [])];
+      if (nextItems[index]) {
+        nextItems[index] = { ...nextItems[index], [field]: value };
+      }
+      return { ...prev, items: nextItems };
+    });
+  };
+
+  const moveQuickLinkItem = (index: number, direction: 'up' | 'down') => {
+    setQuickLinksConfig((prev) => {
+      const items = [...(prev.items || [])];
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= items.length) return prev;
+      const temp = items[index];
+      items[index] = items[targetIndex];
+      items[targetIndex] = temp;
+      return { ...prev, items };
+    });
+  };
+
+  const removeQuickLinkItem = (index: number) => {
+    setQuickLinksConfig((prev) => {
+      const items = [...(prev.items || [])];
+      if (items.length <= 1) {
+        alert('Minimal harus menyisakan 1 kartu layanan.');
+        return prev;
+      }
+      items.splice(index, 1);
+      return { ...prev, items };
+    });
+  };
+
+  const resetDefaultQuickLinks = () => {
+    if (confirm('Kembalikan daftar tombol ke 6 tautan standar bawaan sistem?')) {
+      setQuickLinksConfig((prev) => ({
+        ...prev,
+        items: [
+          {
+            id: 'surat',
+            title: 'Administrasi Surat',
+            description: 'Layanan surat keterangan mandiri',
+            url: '/layanan?tenant={tenant}',
+            icon: 'file-text',
+            color: 'emerald',
+            target: '_self',
+          },
+          {
+            id: 'ppid',
+            title: 'PPID Informasi',
+            description: 'Permohonan data publik resmi',
+            url: '/layanan?tenant={tenant}#ppid',
+            icon: 'shield',
+            color: 'teal',
+            target: '_self',
+          },
+          {
+            id: 'pengaduan',
+            title: 'Lapor & Aspirasi',
+            description: 'Saluran aduan langsung warga',
+            url: '',
+            icon: 'megaphone',
+            color: 'rose',
+            target: '_blank',
+          },
+          {
+            id: 'apbdes',
+            title: 'Dana Desa APBDes',
+            description: 'Realisasi belanja transparan',
+            url: '#apbdes',
+            icon: 'trending-up',
+            color: 'amber',
+            target: '_self',
+          },
+          {
+            id: 'galeri',
+            title: 'Galeri Foto',
+            description: 'Potret kegiatan pembangunan',
+            url: '/galeri?tenant={tenant}',
+            icon: 'camera',
+            color: 'cyan',
+            target: '_self',
+          },
+          {
+            id: 'pamong',
+            title: 'Aparatur Desa',
+            description: 'Status absensi hari ini',
+            url: '#pamong',
+            icon: 'users',
+            color: 'indigo',
+            target: '_self',
+          },
+        ],
+      }));
+    }
+  };
 
   // Background Hero Media (Mendukung Campuran Video & Gambar dalam satu playlist sinematik)
   const [heroMediaList, setHeroMediaList] = useState<HeroMediaSettingItem[]>([
@@ -463,6 +681,10 @@ export default function ThemeCustomizerPage() {
           setQuickLinksConfig((prev) => ({
             ...prev,
             ...s.quick_links,
+            items:
+              Array.isArray(s.quick_links.items) && s.quick_links.items.length > 0
+                ? s.quick_links.items
+                : prev.items,
           }));
         }
         if (s.socialMedia) {
@@ -1202,36 +1424,189 @@ export default function ThemeCustomizerPage() {
               </div>
             </div>
 
-            {/* Preview 6 Kartu Layanan Cepat */}
-            <div className="pt-3 border-t border-slate-100">
-              <span className="text-xs font-bold text-slate-700 block mb-2">
-                Daftar 6 Akses Layanan yang Ditampilkan Modul Ini:
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-center">
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
-                  <span className="text-[11px] font-bold text-slate-800 block">1. Surat Online</span>
-                  <span className="text-[10px] text-slate-500">Administrasi Mandiri</span>
+            {/* Daftar Tombol Kartu Layanan Cepat (Dapat diedit, diubah urutan & ditambah tautan baru) */}
+            <div className="pt-4 border-t border-slate-100 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-emerald-600" />
+                    Kelola Tombol Layanan &amp; Tautan ({quickLinksConfig.items?.length || 0} Tombol)
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Anda bebas mengedit teks judul, keterangan, alamat URL, ikon, warna, mengubah urutan (naik/turun), atau menambah tombol tautan baru sesuai kebutuhan warga desa.
+                  </p>
                 </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
-                  <span className="text-[11px] font-bold text-slate-800 block">2. Portal PPID</span>
-                  <span className="text-[10px] text-slate-500">Informasi Publik</span>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={resetDefaultQuickLinks}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
+                    title="Kembalikan ke 6 tombol standar sistem"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Reset Default</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={addQuickLinkItem}
+                    className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Tambah Tautan Baru</span>
+                  </button>
                 </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
-                  <span className="text-[11px] font-bold text-slate-800 block">3. Lapor Aduan</span>
-                  <span className="text-[10px] text-slate-500">WhatsApp / Form</span>
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
-                  <span className="text-[11px] font-bold text-slate-800 block">4. APBDes Terbuka</span>
-                  <span className="text-[10px] text-slate-500">Transparansi Dana</span>
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
-                  <span className="text-[11px] font-bold text-slate-800 block">5. Galeri Warga</span>
-                  <span className="text-[10px] text-slate-500">Dokumentasi Desa</span>
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
-                  <span className="text-[11px] font-bold text-slate-800 block">6. Pamong Desa</span>
-                  <span className="text-[10px] text-slate-500">Aparatur &amp; Kehadiran</span>
-                </div>
+              </div>
+
+              {/* Grid Kartu-Kartu Layanan */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {quickLinksConfig.items?.map((item, idx) => (
+                  <div
+                    key={item.id || idx}
+                    className="bg-slate-50/90 border border-slate-200 rounded-xl p-4 space-y-3 relative hover:border-emerald-300 transition shadow-xs flex flex-col justify-between"
+                  >
+                    <div>
+                      {/* Header Kartu */}
+                      <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5 mb-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-md bg-slate-900 text-white text-xs font-black flex items-center justify-center flex-shrink-0">
+                            {idx + 1}
+                          </span>
+                          <span className="text-xs font-extrabold text-slate-800 line-clamp-1">
+                            {item.title || `Kartu #${idx + 1}`}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => moveQuickLinkItem(idx, 'up')}
+                            disabled={idx === 0}
+                            className="w-7 h-7 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition"
+                            title="Geser Naik"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveQuickLinkItem(idx, 'down')}
+                            disabled={idx === (quickLinksConfig.items?.length || 0) - 1}
+                            className="w-7 h-7 rounded-md border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition"
+                            title="Geser Turun"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeQuickLinkItem(idx)}
+                            className="w-7 h-7 rounded-md border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition ml-1"
+                            title="Hapus Kartu Ini"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Input fields */}
+                      <div className="space-y-2.5">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Judul Tombol
+                          </label>
+                          <input
+                            type="text"
+                            value={item.title}
+                            onChange={(e) => updateQuickLinkItemField(idx, 'title', e.target.value)}
+                            placeholder="Misal: Administrasi Surat"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Keterangan Singkat
+                          </label>
+                          <input
+                            type="text"
+                            value={item.description}
+                            onChange={(e) => updateQuickLinkItemField(idx, 'description', e.target.value)}
+                            placeholder="Misal: Layanan surat keterangan mandiri"
+                            className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[11px] font-bold text-slate-700">
+                              Alamat URL Tujuan
+                            </label>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              Variabel: <code className="bg-emerald-50 px-1 py-0.5 rounded text-emerald-700 font-bold">{'{tenant}'}</code>
+                            </span>
+                          </div>
+                          <input
+                            type="text"
+                            value={item.url}
+                            onChange={(e) => updateQuickLinkItemField(idx, 'url', e.target.value)}
+                            placeholder="Misal: /layanan?tenant={tenant} atau #apbdes atau https://..."
+                            className="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 mb-1">
+                              Pilih Ikon
+                            </label>
+                            <select
+                              value={item.icon || 'globe'}
+                              onChange={(e) => updateQuickLinkItemField(idx, 'icon', e.target.value)}
+                              className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            >
+                              {QUICK_LINK_ICONS.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-600 mb-1">
+                              Aksen Warna
+                            </label>
+                            <select
+                              value={item.color || 'emerald'}
+                              onChange={(e) => updateQuickLinkItemField(idx, 'color', e.target.value)}
+                              className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            >
+                              {QUICK_LINK_COLORS.map((c) => (
+                                <option key={c.value} value={c.value}>
+                                  {c.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 mb-1">
+                            Buka di Jendela
+                          </label>
+                          <select
+                            value={item.target || '_self'}
+                            onChange={(e) => updateQuickLinkItemField(idx, 'target', e.target.value)}
+                            className="w-full bg-white border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          >
+                            <option value="_self">Tab yang Sama (Halaman Ini)</option>
+                            <option value="_blank">Tab Baru (Eksternal / WhatsApp / Blank)</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 

@@ -28,8 +28,10 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
 
 ### Added
-- **Kustomisasi Konten & Tautan Modul Pusat Pelayanan & Informasi Publik Desa (`components/themes/modern-government/QuickLinksSection.tsx`, `components/themes/ModernGovernmentTheme.tsx`, `app/admin/tampilan/page.tsx`)**:
-  - Menambahkan panel kustomisasi komprehensif pada menu [Admin > Tampilan](file:///c:/app/opensid/app/admin/tampilan/page.tsx) untuk mengatur teks lencana atas (badge), judul utama, deskripsi pengantar, tautan khusus PPID desa, dan tautan khusus saluran pengaduan/aspirasi warga.
+- **Kustomisasi Penuh Tombol & Tautan Modul Pusat Pelayanan & Informasi Publik Desa (`components/themes/modern-government/QuickLinksSection.tsx`, `components/themes/ModernGovernmentTheme.tsx`, `app/admin/tampilan/page.tsx`)**:
+  - Memberikan kebebasan penuh bagi admin desa untuk mengedit setiap tombol/kartu layanan mandiri yang ada di halaman utama (mengubah judul, deskripsi, tautan URL tujuan, ikon, aksen warna, dan target jendela peramban).
+  - Menambahkan fitur penambahan tautan baru (`+ Tambah Tautan Baru`), pengaturan urutan naik/turun (`▲` / `▼`), penghapusan kartu, serta opsi pemulihan (`Reset Default`) ke 6 tombol standar sistem di menu [Admin > Tampilan](file:///c:/app/opensid/app/admin/tampilan/page.tsx).
+  - Mendukung variabel dinamis `{tenant}` pada kolom URL agar tautan internal desa (seperti `/layanan?tenant={tenant}`) tetap 100% aman dan multi-tenant tanpa hardcode.
   - Menghubungkan konfigurasi `themeConfig.quick_links` dari database tenant secara dinamis ke [QuickLinksSection.tsx](file:///c:/app/opensid/components/themes/modern-government/QuickLinksSection.tsx), lengkap dengan nilai fallback otomatis jika admin belum mengisinya.
   - Memperjelas penamaan label modul pada daftar urutan menjadi *"Pusat Pelayanan & Layanan Mandiri (Akses Cepat)"* agar admin dapat mengenali modul ini dengan mudah saat mengatur urutan dan visibilitas di beranda.
 - **Pengaturan Posisi & Visibilitas Modul Visi Pembangunan & Misi Kerja (`app/admin/tampilan/page.tsx`, `components/themes/ModernGovernmentTheme.tsx`)**:
