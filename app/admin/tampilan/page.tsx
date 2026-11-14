@@ -194,6 +194,12 @@ export default function ThemeCustomizerPage() {
   // Jumlah galeri dokumentasi beranda (default: 4)
   const [homepageGalleryCount, setHomepageGalleryCount] = useState<number>(4);
 
+  // Jumlah pengumuman beranda (default: 4)
+  const [homepageAnnouncementCount, setHomepageAnnouncementCount] = useState<number>(4);
+
+  // Jumlah pengumuman per slide (default: 2)
+  const [announcementPerSlide, setAnnouncementPerSlide] = useState<number>(2);
+
   // Background Hero Media (Mendukung Campuran Video & Gambar dalam satu playlist sinematik)
   const [heroMediaList, setHeroMediaList] = useState<HeroMediaSettingItem[]>([
     { type: 'video', url: 'https://dpmd-mateng.adit.lt/logo.webm' },
@@ -349,6 +355,12 @@ export default function ThemeCustomizerPage() {
         }
         if (typeof s.homepage_gallery_count === 'number') {
           setHomepageGalleryCount(s.homepage_gallery_count);
+        }
+        if (typeof s.homepage_announcement_count === 'number') {
+          setHomepageAnnouncementCount(s.homepage_announcement_count);
+        }
+        if (typeof s.announcement_per_slide === 'number') {
+          setAnnouncementPerSlide(s.announcement_per_slide);
         }
         if (s.hero_background) {
           const hb = s.hero_background;
@@ -530,6 +542,8 @@ export default function ThemeCustomizerPage() {
         layout_mode: layoutMode,
         homepage_article_count: homepageArticleCount,
         homepage_gallery_count: homepageGalleryCount,
+        homepage_announcement_count: homepageAnnouncementCount,
+        announcement_per_slide: announcementPerSlide,
         homepage_sections_order: sectionsOrder,
         sections_visibility: sectionsVisibility,
         hero_background: {
@@ -891,6 +905,52 @@ export default function ThemeCustomizerPage() {
                   <option value={6}>6 Kegiatan</option>
                   <option value={8}>8 Kegiatan</option>
                 </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Card Pengaturan Jumlah Pengumuman Beranda */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-emerald-600" />
+                  Pengaturan Slide Pengumuman & Maklumat di Beranda
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  Atur berapa banyak maklumat per slide (1 per slide, 2 per slide, dst) serta total kuota rotasi. Anda juga bisa mengatur ini secara instan langsung dari menu <strong>Admin &gt; Pengumuman</strong>.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700">Per Slide:</span>
+                  <select
+                    value={announcementPerSlide}
+                    onChange={(e) => setAnnouncementPerSlide(parseInt(e.target.value, 10))}
+                    className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value={1}>1 Pengumuman (Fokus)</option>
+                    <option value={2}>2 Pengumuman (Standar)</option>
+                    <option value={3}>3 Pengumuman</option>
+                    <option value={4}>4 Pengumuman</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-700">Total Kuota:</span>
+                  <select
+                    value={homepageAnnouncementCount}
+                    onChange={(e) => setHomepageAnnouncementCount(parseInt(e.target.value, 10))}
+                    className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value={2}>2 Pengumuman</option>
+                    <option value={3}>3 Pengumuman</option>
+                    <option value={4}>4 Pengumuman (Default Rekomendasi)</option>
+                    <option value={6}>6 Pengumuman</option>
+                    <option value={8}>8 Pengumuman</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Calendar, ArrowRight, ChevronRight, ChevronLeft, Eye, Megaphone, Clock, Sparkles, MessageSquare, BookOpen, X } from 'lucide-react';
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
@@ -13,6 +13,8 @@ export default function NewsSection({
   tenant,
   data,
   articleCount,
+  announcementCount = 4,
+  announcementPerSlide = 2,
   hasAnnouncements,
   hasUmkm,
   isSectionVisible,
@@ -21,6 +23,8 @@ export default function NewsSection({
   tenant: ResolvedTenant;
   data: ThemeData;
   articleCount: number;
+  announcementCount?: number;
+  announcementPerSlide?: number;
   hasAnnouncements: boolean;
   hasUmkm: boolean;
   isSectionVisible: (sectionId: string) => boolean;
@@ -30,14 +34,25 @@ export default function NewsSection({
   const [announcementPage, setAnnouncementPage] = useState(0);
   const [isAnnouncementHovered, setIsAnnouncementHovered] = useState(false);
 
-  // Filter pengumuman aktif (belum kedaluwarsa)
-  const activeAnnouncements = (data.announcements || []).filter(
-    (ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now()
-  );
-  // Maksimal 2 pengumuman tampil per slide
-  const totalAnnouncementPages = Math.ceil(activeAnnouncements.length / 2);
+  // Filter pengumuman aktif (belum kedaluwarsa) dan batasi sesuai kuota tayang setting admin
+  const activeAnnouncements = useMemo(() => {
+    return (data.announcements || [])
+      .filter((ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now())
+      .slice(0, announcementCount);
+  }, [data.announcements, announcementCount]);
 
-  // Auto-scroll pengumuman setiap 6 detik jika lebih dari 2 (1 halaman)
+  // Jumlah pengumuman per slide (dinamis dari setting admin, default: 2)
+  const perSlide = Math.max(1, announcementPerSlide || 2);
+  const totalAnnouncementPages = Math.ceil(activeAnnouncements.length / perSlide);
+
+  // Pastikan halaman aktif valid saat jumlah slide / filter berubah
+  useEffect(() => {
+    if (announcementPage >= totalAnnouncementPages && totalAnnouncementPages > 0) {
+      setAnnouncementPage(0);
+    }
+  }, [totalAnnouncementPages, announcementPage]);
+
+  // Auto-scroll pengumuman setiap 6 detik jika lebih dari 1 halaman
   useEffect(() => {
     if (totalAnnouncementPages <= 1 || isAnnouncementHovered) return;
     const timer = setInterval(() => {
@@ -278,13 +293,13 @@ export default function NewsSection({
 
               <div className="space-y-3.5">
                 {activeAnnouncements
-                  .slice(announcementPage * 2, announcementPage * 2 + 2)
+                  .slice(announcementPage * perSlide, announcementPage * perSlide + perSlide)
                   .map((ann: any) => {
-                    const isLong = (ann.content || '').length > 100 || (ann.content || '').includes('\n');
+                    const isLong = (ann.content || '').length > (perSlide === 1 ? 160 : 100) || (ann.content || '').includes('\n');
                     return (
                       <div
                         key={ann.id}
-                        className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/70 text-slate-800 space-y-1.5 transition-all duration-200"
+                        className="p-4 rounded-xl bg-amber-50/50 border border-amber-200/70 text-slate-800 space-y-1.5 transition-all duration-200 hover:shadow-xs hover:border-amber-300"
                       >
                         <div className="flex items-center justify-between text-[10px] font-bold text-amber-800 uppercase tracking-wider">
                           <span className="flex items-center gap-1">
@@ -298,7 +313,9 @@ export default function NewsSection({
                           )}
                         </div>
                         <h5 className="font-extrabold text-sm text-slate-900 leading-snug">{ann.title}</h5>
-                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 whitespace-pre-line">{ann.content}</p>
+                        <p className={`text-xs text-slate-600 leading-relaxed whitespace-pre-line ${perSlide === 1 ? 'line-clamp-5' : 'line-clamp-3'}`}>
+                          {ann.content}
+                        </p>
 
                         {isLong && (
                           <button

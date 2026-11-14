@@ -51,6 +51,12 @@ export default function TraditionalVillageTheme({ tenant, data }: ThemeProps) {
     .filter((i) => i.category === 'Belanja')
     .reduce((sum, curr) => sum + curr.realization, 0);
 
+  const themeConfig = tenant.themeConfig?.settings || {};
+  const homepageAnnouncementCount =
+    typeof themeConfig.homepage_announcement_count === 'number' && themeConfig.homepage_announcement_count > 0
+      ? themeConfig.homepage_announcement_count
+      : 3;
+
   return (
     <div className="min-h-screen bg-[#faf7f2] text-stone-900 font-sans antialiased selection:bg-amber-800 selection:text-amber-100">
       {/* 1. Pita Kehormatan Tradisi & Wilayah */}
@@ -373,7 +379,7 @@ export default function TraditionalVillageTheme({ tenant, data }: ThemeProps) {
               <div className="space-y-3">
                 {data.announcements
                   .filter((ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now())
-                  .slice(0, 2)
+                  .slice(0, homepageAnnouncementCount)
                   .map((ann) => (
                   <div key={ann.id} className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200 text-stone-800 space-y-1.5">
                     <span className="text-[10px] font-bold text-amber-800 flex items-center gap-1 uppercase tracking-wider">

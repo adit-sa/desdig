@@ -19,7 +19,17 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi tebakan PIN aparatur di kiosk absensi maksimal 5 kali per 2 menit untuk mencegah tebakan PIN liar di kantor desa.
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
+### Fixed
+- **Hydration Mismatch pada Tautan Beranda Papan Pengumuman Admin (`app/admin/pengumuman/page.tsx`)**:
+  - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
+
 ### Added
+- **Pengaturan Tampilan Slide & Kuota Tayang Pengumuman di Halaman Utama (`app/admin/pengumuman/page.tsx`, `app/api/announcements/route.ts`, `app/admin/tampilan/page.tsx`, `components/themes/*`, `lib/tenant/data.ts`)**:
+  - Menambahkan pengaturan jumlah pengumuman yang tampil **per slide** (`announcement_per_slide`: 1 per slide, 2 per slide, dst.) di [app/admin/pengumuman/page.tsx](file:///c:/app/opensid/app/admin/pengumuman/page.tsx) dan [app/admin/tampilan/page.tsx](file:///c:/app/opensid/app/admin/tampilan/page.tsx), sehingga admin desa bebas memilih apakah ingin menampilkan 1 pengumuman besar/fokus per slide atau 2 pengumuman bertingkat berdampingan per slide.
+  - Menghubungkan variabel `announcementPerSlide` secara dinamis ke komponen slider maklumat di tema utama ([components/themes/modern-government/NewsSection.tsx](file:///c:/app/opensid/components/themes/modern-government/NewsSection.tsx)), mengatur pembagian halaman slide (`totalAnnouncementPages = Math.ceil(activeAnnouncements.length / perSlide)`), pemotongan data slide (`.slice(page * perSlide, page * perSlide + perSlide)`), serta auto-scroll otomatis.
+  - Menambahkan panel kontrol kuota total tayang pengumuman beranda dengan preset instan (2, 3, 4, 6, 8), stepper (+/-) fleksibel 1–20 item, simulasi visual perhitungan slide, serta tautan langsung pratinjau beranda.
+  - Mengimplementasikan endpoint `PATCH /api/announcements` untuk menyimpan `announcement_per_slide` dan `homepage_announcement_count` pada `TenantThemeConfig` lengkap dengan audit logging dan `revalidateTenantCache` tanpa jeda.
+  - Memperluas query pengumuman beranda di [lib/tenant/data.ts](file:///c:/app/opensid/lib/tenant/data.ts) hingga 20 pengumuman aktif agar mencukupi kuota dinamis yang diatur admin.
 - **Legalitas & Anti-Pemalsuan: Dynamic Verifiable QR Code & Public Letter Verification (`app/surat/page.tsx`, `components/DynamicQrCode.tsx`, `app/surat/verify/[id]/page.tsx`)**:
   - Cetak surat keterangan permohonan warga kini menyematkan QR Code dinamis (`DynamicQrCode`) dengan tautan verifikasi digital resmi `/surat/verify/[id]?tenant=[slug]`.
   - Halaman publik verifikasi `/surat/verify/[id]` yang menampilkan lencana keabsahan warkah desa "DOKUMEN RESMI TERVERIFIKASI", kop lambang resmi desa penerbit, nomor surat, jenis surat, keperluan, serta pernyataan keabsahan sesuai UU ITE No. 1/2024.
@@ -95,7 +105,17 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi tebakan PIN aparatur di kiosk absensi maksimal 5 kali per 2 menit untuk mencegah tebakan PIN liar di kantor desa.
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
+### Fixed
+- **Hydration Mismatch pada Tautan Beranda Papan Pengumuman Admin (`app/admin/pengumuman/page.tsx`)**:
+  - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
+
 ### Added
+- **Pengaturan Tampilan Slide & Kuota Tayang Pengumuman di Halaman Utama (`app/admin/pengumuman/page.tsx`, `app/api/announcements/route.ts`, `app/admin/tampilan/page.tsx`, `components/themes/*`, `lib/tenant/data.ts`)**:
+  - Menambahkan pengaturan jumlah pengumuman yang tampil **per slide** (`announcement_per_slide`: 1 per slide, 2 per slide, dst.) di [app/admin/pengumuman/page.tsx](file:///c:/app/opensid/app/admin/pengumuman/page.tsx) dan [app/admin/tampilan/page.tsx](file:///c:/app/opensid/app/admin/tampilan/page.tsx), sehingga admin desa bebas memilih apakah ingin menampilkan 1 pengumuman besar/fokus per slide atau 2 pengumuman bertingkat berdampingan per slide.
+  - Menghubungkan variabel `announcementPerSlide` secara dinamis ke komponen slider maklumat di tema utama ([components/themes/modern-government/NewsSection.tsx](file:///c:/app/opensid/components/themes/modern-government/NewsSection.tsx)), mengatur pembagian halaman slide (`totalAnnouncementPages = Math.ceil(activeAnnouncements.length / perSlide)`), pemotongan data slide (`.slice(page * perSlide, page * perSlide + perSlide)`), serta auto-scroll otomatis.
+  - Menambahkan panel kontrol kuota total tayang pengumuman beranda dengan preset instan (2, 3, 4, 6, 8), stepper (+/-) fleksibel 1–20 item, simulasi visual perhitungan slide, serta tautan langsung pratinjau beranda.
+  - Mengimplementasikan endpoint `PATCH /api/announcements` untuk menyimpan `announcement_per_slide` dan `homepage_announcement_count` pada `TenantThemeConfig` lengkap dengan audit logging dan `revalidateTenantCache` tanpa jeda.
+  - Memperluas query pengumuman beranda di [lib/tenant/data.ts](file:///c:/app/opensid/lib/tenant/data.ts) hingga 20 pengumuman aktif agar mencukupi kuota dinamis yang diatur admin.
 - **Legalitas & Anti-Pemalsuan: Dynamic Verifiable QR Code & Public Letter Verification (`app/surat/page.tsx`, `components/DynamicQrCode.tsx`, `app/surat/verify/[id]/page.tsx`)**:
   - Cetak surat keterangan permohonan warga kini menyematkan QR Code dinamis (`DynamicQrCode`) dengan tautan verifikasi digital resmi `/surat/verify/[id]?tenant=[slug]`.
   - Halaman publik verifikasi `/surat/verify/[id]` yang menampilkan lencana keabsahan warkah desa "DOKUMEN RESMI TERVERIFIKASI", kop lambang resmi desa penerbit, nomor surat, jenis surat, keperluan, serta pernyataan keabsahan sesuai UU ITE No. 1/2024.
@@ -188,7 +208,17 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi tebakan PIN aparatur di kiosk absensi maksimal 5 kali per 2 menit untuk mencegah tebakan PIN liar di kantor desa.
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
+### Fixed
+- **Hydration Mismatch pada Tautan Beranda Papan Pengumuman Admin (`app/admin/pengumuman/page.tsx`)**:
+  - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
+
 ### Added
+- **Pengaturan Tampilan Slide & Kuota Tayang Pengumuman di Halaman Utama (`app/admin/pengumuman/page.tsx`, `app/api/announcements/route.ts`, `app/admin/tampilan/page.tsx`, `components/themes/*`, `lib/tenant/data.ts`)**:
+  - Menambahkan pengaturan jumlah pengumuman yang tampil **per slide** (`announcement_per_slide`: 1 per slide, 2 per slide, dst.) di [app/admin/pengumuman/page.tsx](file:///c:/app/opensid/app/admin/pengumuman/page.tsx) dan [app/admin/tampilan/page.tsx](file:///c:/app/opensid/app/admin/tampilan/page.tsx), sehingga admin desa bebas memilih apakah ingin menampilkan 1 pengumuman besar/fokus per slide atau 2 pengumuman bertingkat berdampingan per slide.
+  - Menghubungkan variabel `announcementPerSlide` secara dinamis ke komponen slider maklumat di tema utama ([components/themes/modern-government/NewsSection.tsx](file:///c:/app/opensid/components/themes/modern-government/NewsSection.tsx)), mengatur pembagian halaman slide (`totalAnnouncementPages = Math.ceil(activeAnnouncements.length / perSlide)`), pemotongan data slide (`.slice(page * perSlide, page * perSlide + perSlide)`), serta auto-scroll otomatis.
+  - Menambahkan panel kontrol kuota total tayang pengumuman beranda dengan preset instan (2, 3, 4, 6, 8), stepper (+/-) fleksibel 1–20 item, simulasi visual perhitungan slide, serta tautan langsung pratinjau beranda.
+  - Mengimplementasikan endpoint `PATCH /api/announcements` untuk menyimpan `announcement_per_slide` dan `homepage_announcement_count` pada `TenantThemeConfig` lengkap dengan audit logging dan `revalidateTenantCache` tanpa jeda.
+  - Memperluas query pengumuman beranda di [lib/tenant/data.ts](file:///c:/app/opensid/lib/tenant/data.ts) hingga 20 pengumuman aktif agar mencukupi kuota dinamis yang diatur admin.
 - **Legalitas & Anti-Pemalsuan: Dynamic Verifiable QR Code & Public Letter Verification (`app/surat/page.tsx`, `components/DynamicQrCode.tsx`, `app/surat/verify/[id]/page.tsx`)**:
   - Cetak surat keterangan permohonan warga kini menyematkan QR Code dinamis (`DynamicQrCode`) dengan tautan verifikasi digital resmi `/surat/verify/[id]?tenant=[slug]`.
   - Halaman publik verifikasi `/surat/verify/[id]` yang menampilkan lencana keabsahan warkah desa "DOKUMEN RESMI TERVERIFIKASI", kop lambang resmi desa penerbit, nomor surat, jenis surat, keperluan, serta pernyataan keabsahan sesuai UU ITE No. 1/2024.
@@ -463,7 +493,17 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi tebakan PIN aparatur di kiosk absensi maksimal 5 kali per 2 menit untuk mencegah tebakan PIN liar di kantor desa.
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
+### Fixed
+- **Hydration Mismatch pada Tautan Beranda Papan Pengumuman Admin (`app/admin/pengumuman/page.tsx`)**:
+  - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
+
 ### Added
+- **Pengaturan Tampilan Slide & Kuota Tayang Pengumuman di Halaman Utama (`app/admin/pengumuman/page.tsx`, `app/api/announcements/route.ts`, `app/admin/tampilan/page.tsx`, `components/themes/*`, `lib/tenant/data.ts`)**:
+  - Menambahkan pengaturan jumlah pengumuman yang tampil **per slide** (`announcement_per_slide`: 1 per slide, 2 per slide, dst.) di [app/admin/pengumuman/page.tsx](file:///c:/app/opensid/app/admin/pengumuman/page.tsx) dan [app/admin/tampilan/page.tsx](file:///c:/app/opensid/app/admin/tampilan/page.tsx), sehingga admin desa bebas memilih apakah ingin menampilkan 1 pengumuman besar/fokus per slide atau 2 pengumuman bertingkat berdampingan per slide.
+  - Menghubungkan variabel `announcementPerSlide` secara dinamis ke komponen slider maklumat di tema utama ([components/themes/modern-government/NewsSection.tsx](file:///c:/app/opensid/components/themes/modern-government/NewsSection.tsx)), mengatur pembagian halaman slide (`totalAnnouncementPages = Math.ceil(activeAnnouncements.length / perSlide)`), pemotongan data slide (`.slice(page * perSlide, page * perSlide + perSlide)`), serta auto-scroll otomatis.
+  - Menambahkan panel kontrol kuota total tayang pengumuman beranda dengan preset instan (2, 3, 4, 6, 8), stepper (+/-) fleksibel 1–20 item, simulasi visual perhitungan slide, serta tautan langsung pratinjau beranda.
+  - Mengimplementasikan endpoint `PATCH /api/announcements` untuk menyimpan `announcement_per_slide` dan `homepage_announcement_count` pada `TenantThemeConfig` lengkap dengan audit logging dan `revalidateTenantCache` tanpa jeda.
+  - Memperluas query pengumuman beranda di [lib/tenant/data.ts](file:///c:/app/opensid/lib/tenant/data.ts) hingga 20 pengumuman aktif agar mencukupi kuota dinamis yang diatur admin.
 - **Legalitas & Anti-Pemalsuan: Dynamic Verifiable QR Code & Public Letter Verification (`app/surat/page.tsx`, `components/DynamicQrCode.tsx`, `app/surat/verify/[id]/page.tsx`)**:
   - Cetak surat keterangan permohonan warga kini menyematkan QR Code dinamis (`DynamicQrCode`) dengan tautan verifikasi digital resmi `/surat/verify/[id]?tenant=[slug]`.
   - Halaman publik verifikasi `/surat/verify/[id]` yang menampilkan lencana keabsahan warkah desa "DOKUMEN RESMI TERVERIFIKASI", kop lambang resmi desa penerbit, nomor surat, jenis surat, keperluan, serta pernyataan keabsahan sesuai UU ITE No. 1/2024.

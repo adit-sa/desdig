@@ -50,6 +50,12 @@ export default function ModernEditorialTheme({ tenant, data }: ThemeProps) {
     .filter((i) => i.category === 'Belanja')
     .reduce((sum, curr) => sum + curr.realization, 0);
 
+  const themeConfig = tenant.themeConfig?.settings || {};
+  const homepageAnnouncementCount =
+    typeof themeConfig.homepage_announcement_count === 'number' && themeConfig.homepage_announcement_count > 0
+      ? themeConfig.homepage_announcement_count
+      : 3;
+
   return (
     <div className="min-h-screen bg-[#fafaf9] text-stone-900 font-sans antialiased selection:bg-stone-900 selection:text-white">
       {/* 1. Official Press Bar */}
@@ -238,7 +244,7 @@ export default function ModernEditorialTheme({ tenant, data }: ThemeProps) {
               <div className="space-y-3.5">
                 {data.announcements
                   .filter((ann: any) => !ann.expiresAt || new Date(ann.expiresAt).getTime() >= Date.now())
-                  .slice(0, 2)
+                  .slice(0, homepageAnnouncementCount)
                   .map((ann) => (
                   <div key={ann.id} className="text-xs space-y-1.5 p-3 rounded-xl bg-stone-50 border border-stone-200">
                     <span className="font-bold text-stone-950 block">{ann.title}</span>

@@ -73,6 +73,18 @@ export default function ModernGovernmentTheme({ tenant, data }: ThemeProps) {
       ? themeConfig.homepage_gallery_count
       : 4;
 
+  // Jumlah Pengumuman Beranda (Default: 4, dinamis dari setting admin)
+  const homepageAnnouncementCount =
+    typeof themeConfig.homepage_announcement_count === 'number' && themeConfig.homepage_announcement_count > 0
+      ? themeConfig.homepage_announcement_count
+      : 4;
+
+  // Jumlah Pengumuman per Slide Beranda (Default: 2, dinamis dari setting admin 1-6)
+  const announcementPerSlide =
+    typeof themeConfig.announcement_per_slide === 'number' && themeConfig.announcement_per_slide > 0
+      ? themeConfig.announcement_per_slide
+      : 2;
+
   // Urutan modul dan visibilitas
   const sectionsOrder: string[] =
     Array.isArray(themeConfig.homepage_sections_order) && themeConfig.homepage_sections_order.length > 0
@@ -126,6 +138,8 @@ export default function ModernGovernmentTheme({ tenant, data }: ThemeProps) {
             tenant={tenant}
             data={data}
             articleCount={homepageArticleCount}
+            announcementCount={homepageAnnouncementCount}
+            announcementPerSlide={announcementPerSlide}
             hasAnnouncements={hasAnnouncements}
             hasUmkm={hasUmkm}
             isSectionVisible={isSectionVisible}

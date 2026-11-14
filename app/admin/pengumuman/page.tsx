@@ -19,6 +19,8 @@ import {
   Sparkles,
   ChevronDown,
   ChevronRight,
+  Sliders,
+  Eye,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 import { formatAnnouncementDateTime } from '@/lib/timezone';
@@ -36,6 +38,7 @@ interface AnnouncementItem {
 
 export default function PengumumanAdminPage() {
   const { currentTenantId, activeTenant } = useOpenSIDStore();
+  const [mounted, setMounted] = useState(false);
   const [list, setList] = useState<AnnouncementItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,6 +48,7 @@ export default function PengumumanAdminPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    setMounted(true);
     const yr = new Date().getFullYear().toString();
     setCurrentYear(yr);
     setSelectedYear(yr); // DEFAULT TAHUN INI
@@ -60,16 +64,66 @@ export default function PengumumanAdminPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Pengaturan Kuota & Tampilan Slide Pengumuman di Beranda
+  const [homepageCount, setHomepageCount] = useState<number>(4);
+  const [perSlide, setPerSlide] = useState<number>(2);
+  const [savingSettings, setSavingSettings] = useState<boolean>(false);
+  const [settingsSavedMessage, setSettingsSavedMessage] = useState<string | null>(null);
+
   const fetchList = async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/announcements?tenant=${currentTenantId}`);
       const data = await res.json();
       if (data.announcements) setList(data.announcements);
+      if (typeof data.homepageAnnouncementCount === 'number') {
+        setHomepageCount(data.homepageAnnouncementCount);
+      }
+      if (typeof data.announcementPerSlide === 'number') {
+        setPerSlide(data.announcementPerSlide);
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateSettings = async (updates: { perSlide?: number; count?: number }) => {
+    const nextPerSlide = updates.perSlide !== undefined ? updates.perSlide : perSlide;
+    const nextCount = updates.count !== undefined ? updates.count : homepageCount;
+
+    if (nextPerSlide < 1 || nextPerSlide > 6) return;
+    if (nextCount < 1 || nextCount > 20) return;
+
+    if (updates.perSlide !== undefined) setPerSlide(nextPerSlide);
+    if (updates.count !== undefined) setHomepageCount(nextCount);
+
+    setSavingSettings(true);
+    setSettingsSavedMessage(null);
+    try {
+      const res = await fetch('/api/announcements', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantSlug: currentTenantId,
+          announcementPerSlide: nextPerSlide,
+          homepageAnnouncementCount: nextCount,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSettingsSavedMessage(
+          `Tersimpan: ${nextPerSlide} per slide (${nextCount} total pengumuman di beranda)`
+        );
+        setTimeout(() => setSettingsSavedMessage(null), 3500);
+      } else {
+        alert(data.error || 'Gagal menyimpan pengaturan');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -255,10 +309,10 @@ export default function PengumumanAdminPage() {
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 Papan Pengumuman & Edaran Desa
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5" suppressHydrationWarning>
                 Kelola maklumat publik, jadwal kegiatan, dan masa kedaluwarsa tayang untuk{' '}
-                <strong className="text-amber-600 dark:text-amber-400">
-                  Desa {activeTenant?.nama_desa}
+                <strong className="text-amber-600 dark:text-amber-400" suppressHydrationWarning>
+                  Desa {activeTenant?.nama_desa || ''}
                 </strong>
                 .
               </p>
@@ -273,6 +327,181 @@ export default function PengumumanAdminPage() {
           <Plus className="w-4 h-4" />
           Buat Pengumuman Baru
         </button>
+      </div>
+
+      {/* KARTU PENGATURAN TAMPILAN SLIDE PENGUMUMAN DI HALAMAN UTAMA / BERANDA */}
+      <div className="bg-gradient-to-r from-amber-50/90 via-white to-amber-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 p-5 rounded-2xl border border-amber-200/80 dark:border-slate-800 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-100 dark:border-slate-800/80 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500 text-white shadow-sm shrink-0">
+              <Sliders className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-sm font-black text-slate-900 dark:text-white">
+                  Pengaturan Slide Pengumuman di Halaman Utama (Beranda)
+                </h2>
+                {settingsSavedMessage && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100 dark:bg-emerald-950/80 dark:text-emerald-300 px-2.5 py-0.5 rounded-full border border-emerald-200 animate-in fade-in">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    {settingsSavedMessage}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Konfigurasikan jumlah maklumat yang tampil per slide (1 per slide, 2 per slide, dst) serta total kuota rotasi di beranda publik.
+              </p>
+            </div>
+          </div>
+
+          {/* Shortcut Lihat Halaman Utama */}
+          <a
+            suppressHydrationWarning
+            href={mounted && currentTenantId ? `/?tenant=${encodeURIComponent(currentTenantId)}#berita` : '#berita'}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => {
+              if (!currentTenantId) {
+                e.preventDefault();
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 shadow-2xs transition self-start sm:self-auto shrink-0"
+          >
+            <Eye className="w-3.5 h-3.5 text-amber-600" />
+            <span>Lihat Hasil di Beranda</span>
+          </a>
+        </div>
+
+        {/* 2 Kolom Pengaturan: 1. Isi Per Slide, 2. Total Kuota Beranda */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          {/* Setting A: Jumlah Pengumuman per Slide */}
+          <div className="p-3.5 rounded-xl bg-white/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-black text-slate-900 dark:text-white block">
+                  Jumlah Pengumuman per Slide
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {perSlide === 1 ? '1 per slide (Fokus & kartu lebih lebar)' : `${perSlide} pengumuman tampil bersamaan per slide`}
+                </span>
+              </div>
+              <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 font-mono">
+                {perSlide} / slide
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              {[1, 2, 3, 4].map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  disabled={savingSettings}
+                  onClick={() => handleUpdateSettings({ perSlide: num })}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    perSlide === num
+                      ? 'bg-amber-600 text-white shadow-sm ring-2 ring-amber-400/50'
+                      : 'bg-slate-100 dark:bg-slate-700/80 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                  }`}
+                >
+                  {num === 1 ? '1 (Fokus)' : num === 2 ? '2 (Standar)' : `${num} per slide`}
+                </button>
+              ))}
+
+              {/* Stepper +/- */}
+              <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 shadow-2xs overflow-hidden ml-auto">
+                <button
+                  type="button"
+                  disabled={savingSettings || perSlide <= 1}
+                  onClick={() => handleUpdateSettings({ perSlide: Math.max(1, perSlide - 1) })}
+                  className="px-2 py-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 cursor-pointer"
+                  title="Kurangi"
+                >
+                  -
+                </button>
+                <span className="px-2 py-1 text-xs font-black font-mono text-slate-900 dark:text-white min-w-[1.8rem] text-center bg-slate-50 dark:bg-slate-900">
+                  {perSlide}
+                </span>
+                <button
+                  type="button"
+                  disabled={savingSettings || perSlide >= 6}
+                  onClick={() => handleUpdateSettings({ perSlide: Math.min(6, perSlide + 1) })}
+                  className="px-2 py-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 cursor-pointer"
+                  title="Tambah"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Setting B: Total Kuota Pengumuman Beranda */}
+          <div className="p-3.5 rounded-xl bg-white/80 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-black text-slate-900 dark:text-white block">
+                  Total Kuota Pengumuman Beranda
+                </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Batas maklumat aktif yang dirotasikan di slider
+                </span>
+              </div>
+              <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200 font-mono">
+                Maks {homepageCount}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              {[2, 4, 6, 8].map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  disabled={savingSettings}
+                  onClick={() => handleUpdateSettings({ count: num })}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    homepageCount === num
+                      ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
+                      : 'bg-slate-100 dark:bg-slate-700/80 text-slate-700 dark:text-slate-300 hover:bg-slate-200'
+                  }`}
+                >
+                  {num}
+                </button>
+              ))}
+
+              {/* Stepper +/- */}
+              <div className="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 shadow-2xs overflow-hidden ml-auto">
+                <button
+                  type="button"
+                  disabled={savingSettings || homepageCount <= 1}
+                  onClick={() => handleUpdateSettings({ count: Math.max(1, homepageCount - 1) })}
+                  className="px-2 py-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 cursor-pointer"
+                  title="Kurangi kuota"
+                >
+                  -
+                </button>
+                <span className="px-2 py-1 text-xs font-black font-mono text-slate-900 dark:text-white min-w-[2rem] text-center bg-slate-50 dark:bg-slate-900">
+                  {homepageCount}
+                </span>
+                <button
+                  type="button"
+                  disabled={savingSettings || homepageCount >= 20}
+                  onClick={() => handleUpdateSettings({ count: Math.min(20, homepageCount + 1) })}
+                  className="px-2 py-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 cursor-pointer"
+                  title="Tambah kuota"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Calculation Preview Note */}
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-100/60 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/60 text-xs text-amber-900 dark:text-amber-200">
+          <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>
+            <strong>Simulasi Beranda:</strong> Jika terdapat {homepageCount} pengumuman aktif dan diset <strong>{perSlide} per slide</strong>, maka slider beranda akan menghasilkan <strong>{Math.ceil(homepageCount / perSlide)} halaman/slide</strong> ({perSlide === 1 ? '1 pengumuman per halaman' : `${perSlide} pengumuman bertingkat per halaman`}) dengan auto-scroll dan tombol navigasi panah.
+          </span>
+        </div>
       </div>
 
       {/* Filter Bar (Status & Tahun & Pencarian) */}
@@ -470,7 +699,7 @@ export default function PengumumanAdminPage() {
                       {/* Top Meta: Tanggal Terbit, Status Expired, Pin */}
                       <div>
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-medium bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                          <span suppressHydrationWarning className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-medium bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
                             <Clock className="w-3.5 h-3.5 text-amber-600" />
                             {formatAnnouncementDateTime(item.createdAt, activeTenant?.provinsi)}
                           </span>

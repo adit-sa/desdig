@@ -115,7 +115,7 @@ async function fetchTenantPublicHomeDataInternal(tenantId: string) {
         { isPinned: 'desc' },
         { createdAt: 'desc' },
       ],
-      take: 5,
+      take: 20, // Diperluas agar setting kuota tayang pengumuman beranda admin (1-20) terakomodir
     }),
 
     // 3. Aparatur Pamong Desa
