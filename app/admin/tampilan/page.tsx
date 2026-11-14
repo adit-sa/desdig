@@ -71,8 +71,8 @@ const AVAILABLE_MODULES: Record<string, { label: string; desc: string; icon: any
     icon: BarChart3,
   },
   quick_links: {
-    label: 'Layanan Mandiri & Akses Cepat',
-    desc: 'Tombol pintas surat, PPID, aduan warga, APBDes, dan galeri',
+    label: 'Pusat Pelayanan & Layanan Mandiri (Akses Cepat)',
+    desc: 'Tombol pintas surat mandiri, portal PPID, aduan warga, transparansi APBDes, pamong, dan galeri',
     icon: Globe,
   },
   profile: {
@@ -207,6 +207,15 @@ export default function ThemeCustomizerPage() {
 
   // Jumlah pengumuman per slide (default: 2)
   const [announcementPerSlide, setAnnouncementPerSlide] = useState<number>(2);
+
+  // Kustomisasi Modul Pusat Pelayanan & Informasi Publik Desa (quick_links)
+  const [quickLinksConfig, setQuickLinksConfig] = useState({
+    badge: 'Layanan Terpadu Mandiri',
+    title: 'Pusat Pelayanan & Informasi Publik Desa',
+    description: 'Akses langsung seluruh administrasi surat, permohonan informasi PPID, saluran aduan, dan transparansi anggaran desa.',
+    ppidUrl: '',
+    pengaduanUrl: '',
+  });
 
   // Background Hero Media (Mendukung Campuran Video & Gambar dalam satu playlist sinematik)
   const [heroMediaList, setHeroMediaList] = useState<HeroMediaSettingItem[]>([
@@ -450,6 +459,12 @@ export default function ThemeCustomizerPage() {
             ...s.stats,
           }));
         }
+        if (s.quick_links) {
+          setQuickLinksConfig((prev) => ({
+            ...prev,
+            ...s.quick_links,
+          }));
+        }
         if (s.socialMedia) {
           setSavedSocialMedia(s.socialMedia);
         }
@@ -586,6 +601,7 @@ export default function ThemeCustomizerPage() {
         },
         kades_highlight: kadesHighlight,
         stats: statsData,
+        quick_links: quickLinksConfig,
       };
 
       const res = await fetch(`/api/theme?tenant=${currentTenantId}`, {
@@ -1077,6 +1093,164 @@ export default function ThemeCustomizerPage() {
                   <Save className="w-4 h-4" />
                 )}
                 <span>{saving ? 'Menyimpan...' : saveSuccess ? 'Tersimpan ke Beranda!' : 'Simpan Urutan Modul'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Card Kustomisasi Teks & Tautan Pusat Pelayanan & Informasi Publik Desa */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-5">
+            <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-emerald-600" />
+                  Kustomisasi Konten &amp; Tautan &ldquo;Pusat Pelayanan &amp; Informasi Publik Desa&rdquo;
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+                  Modul ini adalah gerbang akses cepat warga di halaman utama yang memuat 6 kartu layanan utama (Surat Mandiri, PPID, Pengaduan, APBDes, Galeri, &amp; Pamong). Anda dapat mengubah teks judul, lencana, serta mengalihkan tautan PPID dan Pengaduan ke portal khusus jika ada.
+                </p>
+              </div>
+              <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5" />
+                Modul Aktif
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Teks Badge / Lencana Atas */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Teks Lencana (Badge Atas)
+                </label>
+                <input
+                  type="text"
+                  value={quickLinksConfig.badge}
+                  onChange={(e) => setQuickLinksConfig((prev) => ({ ...prev, badge: e.target.value }))}
+                  placeholder="Layanan Terpadu Mandiri"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Default: <em>Layanan Terpadu Mandiri</em>
+                </p>
+              </div>
+
+              {/* Judul Utama Modul */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Judul Utama Modul
+                </label>
+                <input
+                  type="text"
+                  value={quickLinksConfig.title}
+                  onChange={(e) => setQuickLinksConfig((prev) => ({ ...prev, title: e.target.value }))}
+                  placeholder="Pusat Pelayanan & Informasi Publik Desa"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Default: <em>Pusat Pelayanan &amp; Informasi Publik Desa</em>
+                </p>
+              </div>
+
+              {/* Deskripsi Modul */}
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Deskripsi / Penjelasan Singkat di Bawah Judul
+                </label>
+                <textarea
+                  rows={2}
+                  value={quickLinksConfig.description}
+                  onChange={(e) => setQuickLinksConfig((prev) => ({ ...prev, description: e.target.value }))}
+                  placeholder="Akses langsung seluruh administrasi surat, permohonan informasi PPID, saluran aduan, dan transparansi anggaran desa."
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Kalimat singkat ajakan kepada masyarakat untuk memanfaatkan layanan mandiri online.
+                </p>
+              </div>
+
+              {/* URL Kustom PPID */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Tautan Khusus PPID Desa (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={quickLinksConfig.ppidUrl}
+                  onChange={(e) => setQuickLinksConfig((prev) => ({ ...prev, ppidUrl: e.target.value }))}
+                  placeholder="Contoh: https://ppid.namadesa.go.id atau kosongkan"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Jika dikosongkan, tombol PPID otomatis mengarah ke menu portal PPID/Informasi Publik bawaan website.
+                </p>
+              </div>
+
+              {/* URL Kustom Aduan / Aspirasi */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Tautan Khusus Pengaduan / Aspirasi (Opsional)
+                </label>
+                <input
+                  type="text"
+                  value={quickLinksConfig.pengaduanUrl}
+                  onChange={(e) => setQuickLinksConfig((prev) => ({ ...prev, pengaduanUrl: e.target.value }))}
+                  placeholder="Contoh: https://lapor.go.id atau tautan WhatsApp khusus"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Jika dikosongkan, tombol aduan otomatis tersambung ke nomor WhatsApp resmi desa (dari menu <strong>Identitas Desa</strong>) atau halaman aspirasi warga.
+                </p>
+              </div>
+            </div>
+
+            {/* Preview 6 Kartu Layanan Cepat */}
+            <div className="pt-3 border-t border-slate-100">
+              <span className="text-xs font-bold text-slate-700 block mb-2">
+                Daftar 6 Akses Layanan yang Ditampilkan Modul Ini:
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-center">
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                  <span className="text-[11px] font-bold text-slate-800 block">1. Surat Online</span>
+                  <span className="text-[10px] text-slate-500">Administrasi Mandiri</span>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                  <span className="text-[11px] font-bold text-slate-800 block">2. Portal PPID</span>
+                  <span className="text-[10px] text-slate-500">Informasi Publik</span>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                  <span className="text-[11px] font-bold text-slate-800 block">3. Lapor Aduan</span>
+                  <span className="text-[10px] text-slate-500">WhatsApp / Form</span>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                  <span className="text-[11px] font-bold text-slate-800 block">4. APBDes Terbuka</span>
+                  <span className="text-[10px] text-slate-500">Transparansi Dana</span>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                  <span className="text-[11px] font-bold text-slate-800 block">5. Galeri Warga</span>
+                  <span className="text-[10px] text-slate-500">Dokumentasi Desa</span>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5">
+                  <span className="text-[11px] font-bold text-slate-800 block">6. Pamong Desa</span>
+                  <span className="text-[10px] text-slate-500">Aparatur &amp; Kehadiran</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tombol Simpan Modul Quick Links */}
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={handleSaveAll}
+                disabled={saving}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition disabled:opacity-50 cursor-pointer"
+              >
+                {saving ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : saveSuccess ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                <span>{saving ? 'Menyimpan...' : saveSuccess ? 'Tersimpan ke Beranda!' : 'Simpan Pengaturan Layanan Mandiri'}</span>
               </button>
             </div>
           </div>

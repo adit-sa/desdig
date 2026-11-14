@@ -6,20 +6,33 @@ import { FileText, Users, TrendingUp, ShieldCheck, Megaphone, Camera } from 'luc
 import type { ResolvedTenant } from '@/lib/tenant/resolver';
 import { handleScrollToSection, getPpidUrl, getPengaduanUrl } from './shared';
 
-export default function QuickLinksSection({ tenant }: { tenant: ResolvedTenant }) {
-  const ppidUrl = getPpidUrl(tenant);
-  const pengaduanUrl = getPengaduanUrl(tenant);
+export default function QuickLinksSection({
+  tenant,
+  themeConfig,
+}: {
+  tenant: ResolvedTenant;
+  themeConfig?: any;
+}) {
+  const ql = themeConfig?.quick_links || {};
+  const badgeText = ql.badge?.trim() || 'Layanan Terpadu Mandiri';
+  const titleText = ql.title?.trim() || 'Pusat Pelayanan & Informasi Publik Desa';
+  const descText =
+    ql.description?.trim() ||
+    'Akses langsung seluruh administrasi surat, permohonan informasi PPID, saluran aduan, dan transparansi anggaran desa.';
+  const ppidUrl = ql.ppidUrl?.trim() || getPpidUrl(tenant, themeConfig);
+  const pengaduanUrl = ql.pengaduanUrl?.trim() || getPengaduanUrl(tenant, themeConfig);
+
   return (
     <section className="w-full pt-4 sm:pt-6 scroll-reveal">
       <div className="text-center max-w-2xl mx-auto mb-10">
         <span className="text-xs font-black text-emerald-700 tracking-widest uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-          Layanan Terpadu Mandiri
+          {badgeText}
         </span>
         <h3 className="text-2xl sm:text-3xl font-black text-slate-900 mt-2">
-          Pusat Pelayanan & Informasi Publik Desa
+          {titleText}
         </h3>
         <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          Akses langsung seluruh administrasi surat, permohonan informasi PPID, saluran aduan, dan transparansi anggaran desa.
+          {descText}
         </p>
       </div>
 

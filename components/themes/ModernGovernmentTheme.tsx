@@ -129,7 +129,7 @@ export default function ModernGovernmentTheme({ tenant, data }: ThemeProps) {
 
       case 'quick_links':
         return isSectionVisible('quick_links') ? (
-          <QuickLinksSection key="quick_links" tenant={tenant} />
+          <QuickLinksSection key="quick_links" tenant={tenant} themeConfig={themeConfig} />
         ) : null;
 
       case 'profile':
