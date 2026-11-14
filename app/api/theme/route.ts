@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { themeSwitchSchema } from '@/lib/validations/cms';
 import { getTenantFromRequest } from '@/lib/tenant/resolver';
 import { requireTenantManagerApi } from '@/lib/auth/rbac';
+import { revalidateTenantCache } from '@/lib/tenant/cache-revalidate';
+import { revalidatePath } from 'next/cache';
 
 export async function GET(request: NextRequest) {
   try {
@@ -89,6 +91,12 @@ export async function POST(request: NextRequest) {
         details: { previousTheme: tenant.activeThemeId, newTheme: themeId },
       },
     });
+
+    // Revalidasi cache portal publik desa agar perubahan tata letak dan tema langsung tampil seketika
+    revalidateTenantCache(tenant.id);
+    try {
+      revalidatePath('/', 'layout');
+    } catch {}
 
     return NextResponse.json({
       success: true,

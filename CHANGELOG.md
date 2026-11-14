@@ -20,6 +20,10 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
 ### Fixed
+- **Sinkronisasi Reorder Posisi Modul Beranda & Cache Revalidation (`app/api/theme/route.ts`, `components/themes/ModernGovernmentTheme.tsx`, `components/themes/modern-government/*`, `app/admin/tampilan/page.tsx`)**:
+  - Memperbaiki kendala pengurutan modul beranda yang tidak berubah di portal publik akibat absennya `revalidateTenantCache(tenant.id)` pada endpoint `POST /api/theme`, sehingga peramban menyajikan cache lama selama 1 jam.
+  - Mengubah arsitektur penyusunan section di tema utama (`ModernGovernmentTheme.tsx`) agar seluruh modul beranda (`stats`, `quick_links`, `pamong`, `berita`, `apbdes`, `pembangunan`, `galeri`) dirender secara dinamis mengikuti urutan asli array `sectionsOrder` dari database, menghapus ketergantungan rapuh pada CSS flexbox `order`.
+  - Menghapus hardcoded `style={{ order: -1 }}` pada `ProfileSection.tsx`, menyesuaikan spacing mengambang dinamis `isFirst` pada `StatsSection.tsx`, dan menambahkan tombol simpan langsung di bawah tabel urutan modul di `app/admin/tampilan/page.tsx`.
 - **Hydration Mismatch pada Tautan Beranda Papan Pengumuman Admin (`app/admin/pengumuman/page.tsx`)**:
   - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
 
@@ -106,6 +110,10 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
 ### Fixed
+- **Sinkronisasi Reorder Posisi Modul Beranda & Cache Revalidation (`app/api/theme/route.ts`, `components/themes/ModernGovernmentTheme.tsx`, `components/themes/modern-government/*`, `app/admin/tampilan/page.tsx`)**:
+  - Memperbaiki kendala pengurutan modul beranda yang tidak berubah di portal publik akibat absennya `revalidateTenantCache(tenant.id)` pada endpoint `POST /api/theme`, sehingga peramban menyajikan cache lama selama 1 jam.
+  - Mengubah arsitektur penyusunan section di tema utama (`ModernGovernmentTheme.tsx`) agar seluruh modul beranda (`stats`, `quick_links`, `pamong`, `berita`, `apbdes`, `pembangunan`, `galeri`) dirender secara dinamis mengikuti urutan asli array `sectionsOrder` dari database, menghapus ketergantungan rapuh pada CSS flexbox `order`.
+  - Menghapus hardcoded `style={{ order: -1 }}` pada `ProfileSection.tsx`, menyesuaikan spacing mengambang dinamis `isFirst` pada `StatsSection.tsx`, dan menambahkan tombol simpan langsung di bawah tabel urutan modul di `app/admin/tampilan/page.tsx`.
 - **Hydration Mismatch pada Tautan Beranda Papan Pengumuman Admin (`app/admin/pengumuman/page.tsx`)**:
   - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
 
@@ -209,6 +217,10 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
 ### Fixed
+- **Sinkronisasi Reorder Posisi Modul Beranda & Cache Revalidation (`app/api/theme/route.ts`, `components/themes/ModernGovernmentTheme.tsx`, `components/themes/modern-government/*`, `app/admin/tampilan/page.tsx`)**:
+  - Memperbaiki kendala pengurutan modul beranda yang tidak berubah di portal publik akibat absennya `revalidateTenantCache(tenant.id)` pada endpoint `POST /api/theme`, sehingga peramban menyajikan cache lama selama 1 jam.
+  - Mengubah arsitektur penyusunan section di tema utama (`ModernGovernmentTheme.tsx`) agar seluruh modul beranda (`stats`, `quick_links`, `pamong`, `berita`, `apbdes`, `pembangunan`, `galeri`) dirender secara dinamis mengikuti urutan asli array `sectionsOrder` dari database, menghapus ketergantungan rapuh pada CSS flexbox `order`.
+  - Menghapus hardcoded `style={{ order: -1 }}` pada `ProfileSection.tsx`, menyesuaikan spacing mengambang dinamis `isFirst` pada `StatsSection.tsx`, dan menambahkan tombol simpan langsung di bawah tabel urutan modul di `app/admin/tampilan/page.tsx`.
 - **Hydration Mismatch pada Tautan Beranda Papan Pengumuman Admin (`app/admin/pengumuman/page.tsx`)**:
   - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
 
@@ -494,6 +506,10 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
 ### Fixed
+- **Sinkronisasi Reorder Posisi Modul Beranda & Cache Revalidation (`app/api/theme/route.ts`, `components/themes/ModernGovernmentTheme.tsx`, `components/themes/modern-government/*`, `app/admin/tampilan/page.tsx`)**:
+  - Memperbaiki kendala pengurutan modul beranda yang tidak berubah di portal publik akibat absennya `revalidateTenantCache(tenant.id)` pada endpoint `POST /api/theme`, sehingga peramban menyajikan cache lama selama 1 jam.
+  - Mengubah arsitektur penyusunan section di tema utama (`ModernGovernmentTheme.tsx`) agar seluruh modul beranda (`stats`, `quick_links`, `pamong`, `berita`, `apbdes`, `pembangunan`, `galeri`) dirender secara dinamis mengikuti urutan asli array `sectionsOrder` dari database, menghapus ketergantungan rapuh pada CSS flexbox `order`.
+  - Menghapus hardcoded `style={{ order: -1 }}` pada `ProfileSection.tsx`, menyesuaikan spacing mengambang dinamis `isFirst` pada `StatsSection.tsx`, dan menambahkan tombol simpan langsung di bawah tabel urutan modul di `app/admin/tampilan/page.tsx`.
 - **Hydration Mismatch pada Tautan Beranda Papan Pengumuman Admin (`app/admin/pengumuman/page.tsx`)**:
   - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
 

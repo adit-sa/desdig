@@ -98,6 +98,87 @@ export default function ModernGovernmentTheme({ tenant, data }: ThemeProps) {
   };
   const isSectionVisible = (sectionId: string) => sectionsVisibility[sectionId] !== false;
 
+  // Render modul beranda secara dinamis sesuai konfigurasi urutan (sectionsOrder) dari admin
+  const renderSection = (key: string, index: number) => {
+    switch (key) {
+      case 'stats':
+        return isSectionVisible('stats') ? (
+          <StatsSection
+            key="stats"
+            tenant={tenant}
+            themeConfig={themeConfig}
+            totalPendapatan={totalPendapatan}
+            isFirst={index === 0}
+          />
+        ) : null;
+
+      case 'quick_links':
+        return isSectionVisible('quick_links') ? (
+          <QuickLinksSection key="quick_links" tenant={tenant} />
+        ) : null;
+
+      case 'pamong':
+        return hasProfile && isSectionVisible('pamong') ? (
+          <PamongSection
+            key="pamong"
+            tenant={tenant}
+            data={data}
+            getSectionOrder={getSectionOrder}
+            setSelectedOfficialModal={setSelectedOfficialModal}
+          />
+        ) : null;
+
+      case 'berita':
+        return hasNews && isSectionVisible('berita') ? (
+          <NewsSection
+            key="berita"
+            tenant={tenant}
+            data={data}
+            articleCount={homepageArticleCount}
+            announcementCount={homepageAnnouncementCount}
+            announcementPerSlide={announcementPerSlide}
+            hasAnnouncements={hasAnnouncements}
+            hasUmkm={hasUmkm}
+            isSectionVisible={isSectionVisible}
+            getSectionOrder={getSectionOrder}
+          />
+        ) : null;
+
+      case 'apbdes':
+        return hasApbdes && isSectionVisible('apbdes') ? (
+          <ApbdesSection key="apbdes" tenant={tenant} data={data} getSectionOrder={getSectionOrder} />
+        ) : null;
+
+      case 'pembangunan':
+        return isSectionVisible('pembangunan') ? (
+          <PembangunanSection
+            key="pembangunan"
+            tenant={tenant}
+            data={data}
+            getSectionOrder={getSectionOrder}
+            setSelectedProjectModal={setSelectedProjectModal}
+            setActivePhotoDoc={setActivePhotoDoc}
+          />
+        ) : null;
+
+      case 'galeri':
+        return hasGallery && isSectionVisible('galeri') ? (
+          <GallerySection
+            key="galeri"
+            tenant={tenant}
+            galleryItems={data.gallery || []}
+            getSectionOrder={getSectionOrder}
+            setActivePhoto={setActivePhoto}
+            galleryLimit={homepageGalleryCount}
+          />
+        ) : null;
+
+      default:
+        // Catatan: 'pengumuman', 'lapak', dan 'jam_layanan' diurutkan di dalam sidebar NewsSection
+        return null;
+    }
+  };
+
   return (
     <div
       data-theme="modern-government"
@@ -119,70 +200,17 @@ export default function ModernGovernmentTheme({ tenant, data }: ThemeProps) {
       {/* 3. Hero Section with Real Landscape Photography / Slideshow / Video */}
       <HeroSection tenant={tenant} officials={data.officials} themeConfig={themeConfig} />
 
-      {/* 4. Infografis Kilat & Status Desa */}
-      {isSectionVisible('stats') && (
-        <StatsSection tenant={tenant} themeConfig={themeConfig} totalPendapatan={totalPendapatan} />
-      )}
-
-      {/* 5. Layanan Unggulan & Akses Cepat Warga */}
-      {isSectionVisible('quick_links') && <QuickLinksSection tenant={tenant} />}
-
-      {/* 6. Main Body Sections */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 pt-6 sm:pt-8 pb-12 sm:pb-14 flex flex-col gap-8 sm:gap-10">
+      {/* 4. Main Body Sections yang Disusun Dinamis Sesuai Urutan dari Admin */}
+      <main
+        className={`max-w-7xl mx-auto px-4 sm:px-8 ${
+          sectionsOrder[0] === 'stats' && isSectionVisible('stats') ? 'pt-0' : 'pt-6 sm:pt-8'
+        } pb-12 sm:pb-14 flex flex-col gap-8 sm:gap-10`}
+      >
         {/* Visi & Misi */}
         {hasProfile && <ProfileSection tenant={tenant} themeConfig={themeConfig} />}
 
-        {/* Warta Desa, Lapak UMKM & Papan Pengumuman */}
-        {hasNews && isSectionVisible('berita') && (
-          <NewsSection
-            tenant={tenant}
-            data={data}
-            articleCount={homepageArticleCount}
-            announcementCount={homepageAnnouncementCount}
-            announcementPerSlide={announcementPerSlide}
-            hasAnnouncements={hasAnnouncements}
-            hasUmkm={hasUmkm}
-            isSectionVisible={isSectionVisible}
-            getSectionOrder={getSectionOrder}
-          />
-        )}
-
-        {/* Struktur Aparatur Pamong Desa & Status Kehadiran Hari Ini */}
-        {hasProfile && isSectionVisible('pamong') && (
-          <PamongSection
-            tenant={tenant}
-            data={data}
-            getSectionOrder={getSectionOrder}
-            setSelectedOfficialModal={setSelectedOfficialModal}
-          />
-        )}
-
-        {/* Transparansi APBDes */}
-        {hasApbdes && isSectionVisible('apbdes') && (
-          <ApbdesSection tenant={tenant} data={data} getSectionOrder={getSectionOrder} />
-        )}
-
-        {/* Transparansi Proyek Pembangunan Fisik Desa */}
-        {isSectionVisible('pembangunan') && (
-          <PembangunanSection
-            tenant={tenant}
-            data={data}
-            getSectionOrder={getSectionOrder}
-            setSelectedProjectModal={setSelectedProjectModal}
-            setActivePhotoDoc={setActivePhotoDoc}
-          />
-        )}
-
-        {/* Galeri Kegiatan & Potensi Desa */}
-        {hasGallery && isSectionVisible('galeri') && (
-          <GallerySection
-            tenant={tenant}
-            galleryItems={data.gallery || []}
-            getSectionOrder={getSectionOrder}
-            setActivePhoto={setActivePhoto}
-            galleryLimit={homepageGalleryCount}
-          />
-        )}
+        {/* Dynamic Sections Rendered in Exact Admin Order */}
+        {sectionsOrder.map((sectionId, idx) => renderSection(sectionId, idx))}
       </main>
 
       {/* Lightbox Modal */}

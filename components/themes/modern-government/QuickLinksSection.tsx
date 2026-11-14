@@ -10,7 +10,7 @@ export default function QuickLinksSection({ tenant }: { tenant: ResolvedTenant }
   const ppidUrl = getPpidUrl(tenant);
   const pengaduanUrl = getPengaduanUrl(tenant);
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-8 pt-12 scroll-reveal">
+    <section className="w-full pt-4 sm:pt-6 scroll-reveal">
       <div className="text-center max-w-2xl mx-auto mb-10">
         <span className="text-xs font-black text-emerald-700 tracking-widest uppercase bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
           Layanan Terpadu Mandiri

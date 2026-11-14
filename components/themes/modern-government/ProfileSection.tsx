@@ -6,7 +6,7 @@ import type { ResolvedTenant } from '@/lib/tenant/resolver';
 
 export default function ProfileSection({ tenant, themeConfig }: { tenant: ResolvedTenant; themeConfig: any }) {
   return (
-    <section id="profil" style={{ order: -1 }} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+    <section id="profil" className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
       <div className="scroll-reveal md:col-span-1 bg-gradient-to-br from-emerald-800 via-teal-900 to-slate-900 rounded-xl p-8 text-white shadow-lg flex flex-col justify-between">
         <div>
           <span className="text-xs font-extrabold tracking-widest text-emerald-300 uppercase block">

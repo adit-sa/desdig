@@ -10,10 +10,12 @@ export default function StatsSection({
   tenant,
   themeConfig,
   totalPendapatan,
+  isFirst = true,
 }: {
   tenant: ResolvedTenant;
   themeConfig?: any;
   totalPendapatan: number;
+  isFirst?: boolean;
 }) {
   const statsConfig = themeConfig?.stats || {};
   const totalPenduduk = typeof statsConfig.totalPenduduk === 'number' ? statsConfig.totalPenduduk : 2450;
@@ -24,7 +26,7 @@ export default function StatsSection({
   const displayApbdes = totalPendapatan > 0 ? totalPendapatan : (statsConfig.apbdesManual || 0);
 
   return (
-    <section className="scroll-reveal relative -mt-8 sm:-mt-14 z-20 max-w-7xl mx-auto px-4 sm:px-8">
+    <section className={`scroll-reveal relative z-20 w-full ${isFirst ? '-mt-8 sm:-mt-14' : 'pt-2'}`}>
       <div className="bg-white rounded-2xl p-4 sm:p-7 border border-slate-200 shadow-sm grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <div className="scroll-reveal-child stagger-1 flex items-center gap-3 sm:gap-4 min-w-0 p-2 rounded-xl hover:bg-slate-50/70 transition-all duration-200 group cursor-default">
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0 font-bold border border-emerald-200 group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300 shadow-sm">

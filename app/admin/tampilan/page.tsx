@@ -991,7 +991,14 @@ export default function ThemeCustomizerPage() {
                         <IconComponent className="w-5 h-5" />
                       </div>
                       <div>
-                        <h4 className="font-extrabold text-xs sm:text-sm text-slate-900">{info.label}</h4>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-extrabold text-xs sm:text-sm text-slate-900">{info.label}</h4>
+                          {(key === 'pengumuman' || key === 'lapak' || key === 'jam_layanan') && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                              Bilah Samping Berita
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-slate-500 mt-0.5">{info.desc}</p>
                       </div>
                     </div>
@@ -1031,6 +1038,28 @@ export default function ThemeCustomizerPage() {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Tombol Simpan Cepat di Bawah Urutan Modul */}
+            <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <span className="text-xs text-slate-500">
+                Setelah mengatur urutan modul atau visibilitas, klik simpan agar susunan baru langsung diterapkan di beranda website.
+              </span>
+              <button
+                type="button"
+                onClick={handleSaveAll}
+                disabled={saving}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition disabled:opacity-50 cursor-pointer"
+              >
+                {saving ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : saveSuccess ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                <span>{saving ? 'Menyimpan...' : saveSuccess ? 'Tersimpan ke Beranda!' : 'Simpan Urutan Modul'}</span>
+              </button>
             </div>
           </div>
         </div>
