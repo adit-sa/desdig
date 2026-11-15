@@ -28,11 +28,17 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
 
 ### Added
-- **Penyatuan Manajemen Modul Beranda & Kustomisasi Satu Pintu ke Menu `Admin > Modul` (`app/admin/modul/page.tsx`, `app/admin/tampilan/page.tsx`)**:
-  - Mengintegrasikan seluruh manajemen modul desa ke dalam satu pintu terpusat di menu [Admin > Modul](file:///c:/app/opensid/app/admin/modul/page.tsx) dengan sistem Dual-Tab:
-    1. **Tab 1: Modul Beranda & Kustomisasi Tautan**: Menampilkan urutan 11 modul beranda, saklar on/off visibilitas, tombol geser urutan (`▲` / `▼`), dan editor kustomisasi tombol layanan mandiri langsung di tempat tanpa perlu berpindah menu.
-    2. **Tab 2: Lisensi & Fitur Sistem Desa**: Manajemen saklar aktivasi modul inti pemerintahan dan paket lisensi langganan SaaS.
-  - Menambahkan tab navigasi langsung **"Pusat Layanan Mandiri (Quick Links)"** di menu [Admin > Tampilan](file:///c:/app/opensid/app/admin/tampilan/page.tsx) dan tombol pintas pada baris modul, sehingga admin desa dapat langsung mengedit tombol dan tautan layanan dengan 1 klik tanpa harus menggulir halaman panjang ke bawah.
+- **Penyederhanaan Total Manajemen Modul: Antarmuka Terpadu 1 Halaman dengan Akordeon Kustomisasi per Modul (`app/admin/modul/page.tsx`, `app/admin/tampilan/page.tsx`)**:
+  - Menggabungkan pengaturan urutan posisi modul, lisensi paket sistem, status aktif/nonaktif, dan panel kustomisasi ke dalam **satu halaman ringkas tanpa tab terpisah** di [Admin > Modul](file:///c:/app/opensid/app/admin/modul/page.tsx).
+  - Mengimplementasikan sistem **Kustomisasi On-Demand (Expandable Accordion)**: Tombol *"Kustomisasi"* pada tiap baris modul hanya akan membuka sub-panel pengaturan khusus untuk modul tersebut saat diklik, menjaga tampilan tetap bersih, rapi, dan tidak memanjang ke bawah.
+  - Setiap modul memiliki panel kustomisasi mandirinya sendiri:
+    - **Pusat Pelayanan & Informasi Publik (`quick_links`)**: Editor interaktif kartu tautan layanan, ubah teks, ganti ikon Lucide, aksen warna, tambah/hapus tautan, atur urutan kartu, dan reset default.
+    - **Maklumat & Pengumuman Desa (`pengumuman`)**: Pengaturan pengumuman per slide (1 atau 2 slide) dan kuota total tayang di beranda beserta tautan langsung ke CMS Pengumuman.
+    - **Warta & Berita Desa (`berita`)**: Kuota tayang artikel warta di beranda (3, 4, 5, atau 6 berita) dan tautan ke CMS Berita.
+    - **Galeri Foto & Dokumentasi (`galeri`)**: Jumlah foto beranda (3, 4, 6, atau 8 foto) dan tautan ke CMS Galeri.
+    - **Statistik Kependudukan & IDM (`stats`)**: Input manual statistik penduduk, keluarga, luas wilayah, serta skor IDM.
+    - **Modul Data Master (Pamong, APBDes, Pembangunan, Lapak, Profil Visi Misi)**: Status sinkronisasi otomatis dan tombol pintas 1 klik ke data master masing-masing.
+  - Satu tombol simpan global terpadu yang langsung menyinkronkan seluruh perubahan ke database tenant dan merevalidasi cache beranda secara instan.
 - **Kustomisasi Penuh Tombol & Tautan Modul Pusat Pelayanan & Informasi Publik Desa (`components/themes/modern-government/QuickLinksSection.tsx`, `components/themes/ModernGovernmentTheme.tsx`, `app/admin/tampilan/page.tsx`)**:
   - Memberikan kebebasan penuh bagi admin desa untuk mengedit setiap tombol/kartu layanan mandiri yang ada di halaman utama (mengubah judul, deskripsi, tautan URL tujuan, ikon, aksen warna, dan target jendela peramban).
   - Menambahkan fitur penambahan tautan baru (`+ Tambah Tautan Baru`), pengaturan urutan naik/turun (`▲` / `▼`), penghapusan kartu, serta opsi pemulihan (`Reset Default`) ke 6 tombol standar sistem di menu [Admin > Tampilan](file:///c:/app/opensid/app/admin/tampilan/page.tsx).

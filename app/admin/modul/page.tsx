@@ -13,7 +13,7 @@ import {
   Newspaper,
   Megaphone,
   Calendar,
-  Image,
+  Image as ImageIcon,
   FileText,
   Compass,
   ShoppingBag,
@@ -39,6 +39,13 @@ import {
   Sliders,
   Eye,
   ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Camera,
+  Users,
+  HardHat,
+  Award,
 } from 'lucide-react';
 import { useOpenSIDStore } from '@/lib/store';
 
@@ -81,108 +88,119 @@ const QUICK_LINK_COLORS = [
   { value: 'slate', label: 'Abu-Abu Netral (Slate)' },
 ];
 
-const HOMEPAGE_MODULES: Record<string, { label: string; desc: string; icon: any; link?: string }> = {
+interface ModuleMetadata {
+  label: string;
+  desc: string;
+  category: string;
+  icon: any;
+  cmsLink?: string;
+  planTier?: string;
+}
+
+const MODULE_REGISTRY: Record<string, ModuleMetadata> = {
   stats: {
     label: 'Infografis Kilat & Status Desa',
-    desc: 'Statistik penduduk, KK terdata, status IDM, dan APBDes terbuka',
+    desc: 'Statistik penduduk, KK terdata, status IDM, dan APBDes terbuka di beranda',
+    category: 'Layanan Warga',
     icon: BarChart3,
+    planTier: 'Inti',
   },
   quick_links: {
     label: 'Pusat Pelayanan & Layanan Mandiri (Akses Cepat)',
-    desc: 'Tombol pintas surat mandiri, portal PPID, aduan warga, transparansi APBDes, pamong, dan galeri',
+    desc: 'Tombol pintas surat mandiri, portal PPID, aduan warga, APBDes, pamong, dan galeri',
+    category: 'Layanan Warga',
     icon: Globe,
+    planTier: 'Inti',
   },
   profile: {
     label: 'Visi Pembangunan & Misi Kerja',
     desc: 'Visi strategis RKPDes dan agenda misi kerja pemerintah desa periode berjalan',
-    icon: Building2,
-    link: '/admin/identitas',
+    category: 'Inti Pemerintahan',
+    icon: Award,
+    cmsLink: '/admin/identitas',
+    planTier: 'Inti',
   },
   pamong: {
     label: 'Struktur Aparatur & Status Absensi',
-    desc: 'Daftar perangkat desa, status kehadiran hari ini & auto-slider',
-    icon: Building2,
-    link: '/admin/pamong',
+    desc: 'Daftar perangkat desa, status kehadiran hari ini & auto-slider aparatur',
+    category: 'Inti Pemerintahan',
+    icon: Users,
+    cmsLink: '/admin/pamong',
+    planTier: 'Inti',
   },
   berita: {
     label: 'Warta & Berita Kegiatan Desa',
     desc: 'Kabar terkini dan artikel publikasi resmi pemerintah desa',
+    category: 'Publikasi & Warta',
     icon: Newspaper,
-    link: '/admin/berita',
+    cmsLink: '/admin/berita',
+    planTier: 'Inti',
   },
   apbdes: {
     label: 'Transparansi Realisasi APBDes 2026',
-    desc: 'Grafik infografis pendapatan, belanja, dan pembiayaan desa',
+    desc: 'Grafik infografis pendapatan, belanja, dan pembiayaan anggaran desa',
+    category: 'Transparansi',
     icon: TrendingUp,
-    link: '/keuangan',
+    cmsLink: '/keuangan',
+    planTier: 'Inti',
   },
   pembangunan: {
     label: 'Proyek Pembangunan & Infrastruktur',
-    desc: 'Transparansi progres fisik proyek lapangan dan dokumentasi foto',
-    icon: FileText,
-    link: '/admin/pembangunan',
+    desc: 'Transparansi progres fisik proyek lapangan dan dokumentasi foto kegiatan',
+    category: 'Transparansi',
+    icon: HardHat,
+    cmsLink: '/admin/pembangunan',
+    planTier: 'Pro',
   },
   galeri: {
     label: 'Galeri Dokumentasi Visual Desa',
     desc: 'Bento showcase foto dokumentasi kegiatan dan potensi desa',
-    icon: Image,
-    link: '/admin/galeri',
+    category: 'Publikasi & Warta',
+    icon: Camera,
+    cmsLink: '/admin/galeri',
+    planTier: 'Inti',
   },
   pengumuman: {
     label: 'Papan Pengumuman & Agenda Publik',
-    desc: 'Edaran resmi, imbauan gotong-royong, dan agenda warga',
+    desc: 'Edaran resmi, imbauan gotong-royong, agenda warga & slide maklumat',
+    category: 'Publikasi & Warta',
     icon: Megaphone,
-    link: '/admin/pengumuman',
+    cmsLink: '/admin/pengumuman',
+    planTier: 'Inti',
   },
   lapak: {
     label: 'Pasar Desa & Lapak UMKM Warga',
     desc: 'Etalase produk unggulan desa, carousel pelapak ringkas & pemesanan via WhatsApp',
+    category: 'Ekonomi & UMKM',
     icon: ShoppingBag,
-    link: '/admin/pelapak',
+    cmsLink: '/admin/pelapak',
+    planTier: 'Pro',
   },
   jam_layanan: {
     label: 'Jam Layanan Kantor & Pengaduan Warga',
     desc: 'Banner jadwal operasional kantor desa & tombol cepat kirim aspirasi/aduan online',
-    icon: MailCheck,
+    category: 'Layanan Warga',
+    icon: Clock,
+    planTier: 'Inti',
   },
 };
 
-interface ModuleItem {
-  key: string;
-  name: string;
-  category: string;
-  description: string;
-  version: string;
-  isCore: boolean;
-  minPlan: string;
-  isEnabled: boolean;
-  isAllowedByPlan: boolean;
-  planName: string;
-}
-
-const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
-  core: { label: 'Inti Pemerintahan', color: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
-  content: { label: 'Publikasi & Warta', color: 'bg-blue-50 text-blue-800 border-blue-200' },
-  economy: { label: 'Ekonomi & UMKM', color: 'bg-indigo-50 text-indigo-800 border-indigo-200' },
-  transparency: { label: 'Transparansi', color: 'bg-purple-50 text-purple-800 border-purple-200' },
-  service: { label: 'Layanan Warga', color: 'bg-cyan-50 text-cyan-800 border-cyan-200' },
-  system: { label: 'Sistem & Teknis', color: 'bg-slate-100 text-slate-800 border-slate-200' },
-};
-
-export default function ModuleManagementPage() {
+export default function UnifiedModuleManagementPage() {
   const { currentTenantId, activeTenant } = useOpenSIDStore();
-  const [mainTab, setMainTab] = useState<'homepage_modules' | 'system_features'>('homepage_modules');
 
-  // State Modul Sistem & Lisensi
-  const [modules, setModules] = useState<ModuleItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [togglingKey, setTogglingKey] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
-  // State Modul Beranda & Kustomisasi
+  // Accordion state: modul mana yang sedang dibuka kustomisasinya (default: 'quick_links')
+  const [expandedKey, setExpandedKey] = useState<string | null>('quick_links');
+
+  // State Urutan & Visibilitas Modul
   const [sectionsOrder, setSectionsOrder] = useState<string[]>([
     'stats',
     'quick_links',
@@ -196,6 +214,7 @@ export default function ModuleManagementPage() {
     'lapak',
     'jam_layanan',
   ]);
+
   const [sectionsVisibility, setSectionsVisibility] = useState<Record<string, boolean>>({
     stats: true,
     quick_links: true,
@@ -210,6 +229,22 @@ export default function ModuleManagementPage() {
     jam_layanan: true,
   });
 
+  // State Pengaturan Modul-Modul Tertentu
+  const [homepageArticleCount, setHomepageArticleCount] = useState<number>(3);
+  const [homepageGalleryCount, setHomepageGalleryCount] = useState<number>(4);
+  const [homepageAnnouncementCount, setHomepageAnnouncementCount] = useState<number>(4);
+  const [announcementPerSlide, setAnnouncementPerSlide] = useState<number>(2);
+
+  const [statsData, setStatsData] = useState({
+    totalPenduduk: 2450,
+    dusunInfo: 'Wilayah Dusun',
+    totalKK: 720,
+    statusIdm: 'Desa Mandiri',
+    statusIdmSub: 'Status Perkembangan',
+    apbdesManual: 0,
+  });
+
+  // Kustomisasi Pusat Layanan Mandiri (Quick Links)
   const [quickLinksConfig, setQuickLinksConfig] = useState<{
     badge: string;
     title: string;
@@ -284,28 +319,11 @@ export default function ModuleManagementPage() {
 
   const [activeThemeId, setActiveThemeId] = useState<string>('modern-government');
   const [rawThemeSettings, setRawThemeSettings] = useState<any>({});
-  const [savingTheme, setSavingTheme] = useState(false);
-  const [themeSaveSuccess, setThemeSaveSuccess] = useState(false);
 
-  // Fetch modul sistem (Lisensi/Plan)
-  const fetchModules = async () => {
+  // Muat data pengaturan modul dan beranda
+  const fetchAllData = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/modules?tenant=${currentTenantId}`);
-      const data = await res.json();
-      if (data.modules) {
-        setModules(data.modules);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch data modul beranda dari API theme
-  const fetchThemeData = async () => {
-    try {
       const res = await fetch(`/api/theme?tenant=${currentTenantId}`);
       const data = await res.json();
       if (data.activeThemeId) {
@@ -325,7 +343,7 @@ export default function ModuleManagementPage() {
             if (qIdx !== -1) loadedOrder.splice(qIdx + 1, 0, 'profile');
             else loadedOrder.push('profile');
           }
-          Object.keys(HOMEPAGE_MODULES).forEach((k) => {
+          Object.keys(MODULE_REGISTRY).forEach((k) => {
             if (!loadedOrder.includes(k)) loadedOrder.push(k);
           });
           setSectionsOrder(loadedOrder);
@@ -340,6 +358,22 @@ export default function ModuleManagementPage() {
           });
         }
 
+        if (typeof s.homepage_article_count === 'number') {
+          setHomepageArticleCount(s.homepage_article_count);
+        }
+        if (typeof s.homepage_gallery_count === 'number') {
+          setHomepageGalleryCount(s.homepage_gallery_count);
+        }
+        if (typeof s.homepage_announcement_count === 'number') {
+          setHomepageAnnouncementCount(s.homepage_announcement_count);
+        }
+        if (typeof s.announcement_per_slide === 'number') {
+          setAnnouncementPerSlide(s.announcement_per_slide);
+        }
+        if (s.stats) {
+          setStatsData((prev) => ({ ...prev, ...s.stats }));
+        }
+
         if (s.quick_links) {
           setQuickLinksConfig((prev) => ({
             ...prev,
@@ -352,25 +386,31 @@ export default function ModuleManagementPage() {
         }
       }
     } catch (e) {
-      console.error('Gagal mengambil data modul beranda:', e);
+      console.error('Gagal mengambil data modul:', e);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchModules();
-    fetchThemeData();
+    fetchAllData();
   }, [currentTenantId]);
 
-  // Handler simpan urutan modul & kustomisasi beranda
-  const handleSaveHomepageModules = async () => {
+  // Simpan seluruh urutan posisi, visibilitas, dan kustomisasi modul
+  const handleSaveAll = async () => {
     try {
-      setSavingTheme(true);
-      setThemeSaveSuccess(false);
+      setSaving(true);
+      setSaveSuccess(false);
 
       const updatedSettings = {
         ...rawThemeSettings,
         homepage_sections_order: sectionsOrder,
         sections_visibility: sectionsVisibility,
+        homepage_article_count: homepageArticleCount,
+        homepage_gallery_count: homepageGalleryCount,
+        homepage_announcement_count: homepageAnnouncementCount,
+        announcement_per_slide: announcementPerSlide,
+        stats: statsData,
         quick_links: quickLinksConfig,
       };
 
@@ -385,24 +425,24 @@ export default function ModuleManagementPage() {
       });
 
       if (res.ok) {
-        setThemeSaveSuccess(true);
-        setFeedback('Urutan modul beranda dan pengaturan tombol layanan berhasil disimpan!');
+        setSaveSuccess(true);
+        setFeedback('Seluruh urutan posisi dan kustomisasi modul berhasil disimpan!');
         setTimeout(() => {
-          setThemeSaveSuccess(false);
+          setSaveSuccess(false);
           setFeedback(null);
         }, 4000);
       } else {
-        alert('Gagal menyimpan pengaturan modul beranda.');
+        alert('Gagal menyimpan pengaturan modul.');
       }
     } catch (e: any) {
       console.error(e);
       alert('Terjadi kesalahan saat menyimpan modul: ' + e.message);
     } finally {
-      setSavingTheme(false);
+      setSaving(false);
     }
   };
 
-  // Navigasi urutan modul beranda
+  // Navigasi urutan modul
   const moveSection = (index: number, direction: 'up' | 'down') => {
     const newOrder = [...sectionsOrder];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
@@ -421,7 +461,11 @@ export default function ModuleManagementPage() {
     }));
   };
 
-  // Operasi kartu link layanan mandiri
+  const toggleExpand = (key: string) => {
+    setExpandedKey((prev) => (prev === key ? null : key));
+  };
+
+  // Operasi item tombol link layanan mandiri (quick_links)
   const addQuickLinkItem = () => {
     setQuickLinksConfig((prev) => ({
       ...prev,
@@ -538,105 +582,32 @@ export default function ModuleManagementPage() {
     }
   };
 
-  const handleToggle = async (mod: ModuleItem) => {
-    if (!mod.isAllowedByPlan) {
-      alert(
-        `Modul "${mod.name}" membutuhkan paket yang lebih tinggi (${mod.planName}). Silakan upgrade paket langganan desa.`
-      );
-      return;
-    }
+  // Filter modul berdasarkan pencarian dan status
+  const visibleModulesList = useMemo(() => {
+    return sectionsOrder.filter((key) => {
+      const mod = MODULE_REGISTRY[key];
+      if (!mod) return false;
+      const isVis = sectionsVisibility[key] !== false;
 
-    setTogglingKey(mod.key);
-    const newStatus = !mod.isEnabled;
+      if (statusFilter === 'enabled' && !isVis) return false;
+      if (statusFilter === 'disabled' && isVis) return false;
 
-    try {
-      const res = await fetch('/api/modules', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          moduleKey: mod.key,
-          isEnabled: newStatus,
-          tenantSlug: currentTenantId,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setModules((prev) =>
-          prev.map((m) => (m.key === mod.key ? { ...m, isEnabled: newStatus } : m))
-        );
-        setFeedback(`Modul "${mod.name}" berhasil ${newStatus ? 'diaktifkan' : 'dinonaktifkan'}.`);
-        setTimeout(() => setFeedback(null), 3500);
-      } else {
-        alert(data.error || 'Gagal mengubah status modul');
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setTogglingKey(null);
-    }
-  };
-
-  const getModuleIcon = (key: string) => {
-    switch (key) {
-      case 'profile':
-        return <Building2 className="w-4 h-4 text-emerald-600" />;
-      case 'news':
-        return <Newspaper className="w-4 h-4 text-blue-600" />;
-      case 'announcements':
-        return <Megaphone className="w-4 h-4 text-amber-600" />;
-      case 'events':
-        return <Calendar className="w-4 h-4 text-purple-600" />;
-      case 'gallery':
-        return <Image className="w-4 h-4 text-pink-600" />;
-      case 'documents':
-        return <FileText className="w-4 h-4 text-teal-600" />;
-      case 'tourism':
-        return <Compass className="w-4 h-4 text-orange-600" />;
-      case 'umkm':
-        return <ShoppingBag className="w-4 h-4 text-indigo-600" />;
-      case 'apbdes':
-        return <TrendingUp className="w-4 h-4 text-emerald-600" />;
-      case 'complaints':
-        return <MessageSquare className="w-4 h-4 text-rose-600" />;
-      case 'services':
-        return <MailCheck className="w-4 h-4 text-cyan-600" />;
-      case 'statistics':
-        return <BarChart3 className="w-4 h-4 text-amber-600" />;
-      case 'ppid':
-        return <ShieldCheck className="w-4 h-4 text-emerald-700" />;
-      case 'seo':
-        return <Globe className="w-4 h-4 text-blue-500" />;
-      case 'analytics':
-        return <Activity className="w-4 h-4 text-violet-600" />;
-      default:
-        return <Boxes className="w-4 h-4 text-slate-600" />;
-    }
-  };
-
-  const enabledCount = modules.filter((m) => m.isEnabled).length;
-  const disabledCount = modules.length - enabledCount;
-
-  // Filter daftar modul sistem
-  const filteredModules = useMemo(() => {
-    return modules.filter((mod) => {
-      if (statusFilter === 'enabled' && !mod.isEnabled) return false;
-      if (statusFilter === 'disabled' && mod.isEnabled) return false;
-      if (categoryFilter !== 'all' && mod.category !== categoryFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const matchName = mod.name.toLowerCase().includes(q);
-        const matchDesc = mod.description.toLowerCase().includes(q);
-        const matchKey = mod.key.toLowerCase().includes(q);
-        return matchName || matchDesc || matchKey;
+        const matchTitle = mod.label.toLowerCase().includes(q);
+        const matchDesc = mod.desc.toLowerCase().includes(q);
+        const matchCat = mod.category.toLowerCase().includes(q);
+        return matchTitle || matchDesc || matchCat;
       }
       return true;
     });
-  }, [modules, statusFilter, categoryFilter, searchQuery]);
+  }, [sectionsOrder, sectionsVisibility, statusFilter, searchQuery]);
+
+  const activeCount = Object.values(sectionsVisibility).filter(Boolean).length;
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
+      {/* Header Banner Terpadu */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div>
           <div className="flex items-center gap-2.5">
@@ -644,22 +615,22 @@ export default function ModuleManagementPage() {
               <Boxes className="w-5 h-5" />
             </span>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-              Pusat Manajemen &amp; Kustomisasi Modul Desa
+              Manajemen Modul &amp; Kustomisasi Layanan Desa
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1.5" suppressHydrationWarning>
-            Atur urutan modul beranda, saklar on/off, kustomisasi tombol layanan mandiri, serta lisensi fitur untuk{' '}
+            Pusat satu pintu untuk mengatur urutan posisi modul di beranda, saklar aktif/nonaktif, serta kustomisasi tombol dan tautan layanan untuk{' '}
             <strong className="text-emerald-700 font-bold" suppressHydrationWarning>
               Desa {activeTenant?.nama_desa || ''}
             </strong>.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto flex-shrink-0">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto flex-shrink-0">
           <Link
             href={`/?tenant=${currentTenantId}`}
             target="_blank"
-            className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 transition flex items-center gap-1.5 shadow-sm"
+            className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 transition flex items-center gap-1.5 shadow-sm"
           >
             <Eye className="w-3.5 h-3.5 text-emerald-600" />
             <span>Lihat Beranda</span>
@@ -668,15 +639,18 @@ export default function ModuleManagementPage() {
 
           <button
             type="button"
-            onClick={() => {
-              fetchModules();
-              fetchThemeData();
-            }}
-            disabled={loading}
-            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
-            title="Muat ulang seluruh data modul"
+            onClick={handleSaveAll}
+            disabled={saving}
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-600' : ''}`} />
+            {saving ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : saveSuccess ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span>{saving ? 'Menyimpan...' : saveSuccess ? 'Tersimpan!' : 'Simpan Pengaturan'}</span>
           </button>
         </div>
       </div>
@@ -688,747 +662,755 @@ export default function ModuleManagementPage() {
         </div>
       )}
 
-      {/* TABS UTAMA: Modul Beranda vs Fitur Sistem */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
-        <button
-          type="button"
-          onClick={() => setMainTab('homepage_modules')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-            mainTab === 'homepage_modules'
-              ? 'bg-emerald-700 text-white shadow-sm'
-              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
-          }`}
-        >
-          <Layout className="w-4 h-4" />
-          <span>Modul Beranda &amp; Kustomisasi Tautan</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-800/80 text-white">
-            {sectionsOrder.length} Modul
-          </span>
-        </button>
+      {/* Filter Bar Ringkas */}
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari modul atau kata kunci..."
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-8 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setMainTab('system_features')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-            mainTab === 'system_features'
-              ? 'bg-emerald-700 text-white shadow-sm'
-              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
-          }`}
-        >
-          <Boxes className="w-4 h-4" />
-          <span>Lisensi &amp; Fitur Sistem Desa</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">
-            {enabledCount} Aktif
-          </span>
-        </button>
-      </div>
-
-      {/* ============================================================== */}
-      {/* TAB 1: Modul Beranda (Urutan, Visibilitas & Kustomisasi Tautan) */}
-      {/* ============================================================== */}
-      {mainTab === 'homepage_modules' && (
-        <div className="space-y-6 animate-in fade-in-50 duration-150">
-          {/* Card Urutan & Visibilitas Modul Beranda */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-            <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Sliders className="w-5 h-5 text-emerald-600" />
-                  Urutan Posisi &amp; Visibilitas Modul Beranda
-                </h3>
-                <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-                  Gunakan tombol <strong>Naik (▲)</strong> dan <strong>Turun (▼)</strong> untuk menata susunan modul di portal publik, atau hilangkan centang untuk menyembunyikan modul sementara.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleSaveHomepageModules}
-                disabled={savingTheme}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition disabled:opacity-50 cursor-pointer self-start sm:self-auto"
-              >
-                {savingTheme ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : themeSaveSuccess ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                <span>
-                  {savingTheme
-                    ? 'Menyimpan...'
-                    : themeSaveSuccess
-                    ? 'Tersimpan ke Beranda!'
-                    : 'Simpan Urutan Modul'}
-                </span>
-              </button>
-            </div>
-
-            <div className="space-y-2.5">
-              {sectionsOrder.map((key, idx) => {
-                const info = HOMEPAGE_MODULES[key];
-                if (!info) return null;
-                const IconComponent = info.icon;
-                const isVisible = sectionsVisibility[key] !== false;
-
-                return (
-                  <div
-                    key={key}
-                    className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
-                      isVisible
-                        ? 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:border-emerald-300'
-                        : 'bg-slate-100/50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <span className="w-7 h-7 rounded-lg bg-slate-900 text-white text-xs font-extrabold flex items-center justify-center flex-shrink-0">
-                        {idx + 1}
-                      </span>
-                      <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 flex items-center justify-center flex-shrink-0">
-                        <IconComponent className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white">
-                            {info.label}
-                          </h4>
-                          {key === 'quick_links' && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                              Kustomisasi Tombol Tersedia di Bawah ↓
-                            </span>
-                          )}
-                          {info.link && (
-                            <Link
-                              href={info.link}
-                              className="text-[10px] text-slate-500 hover:text-emerald-600 hover:underline flex items-center gap-0.5 font-bold"
-                            >
-                              <span>Buka CMS Modul</span>
-                              <ExternalLink className="w-3 h-3" />
-                            </Link>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5">{info.desc}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {/* Checkbox Tampilkan */}
-                      <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 font-semibold cursor-pointer mr-2">
-                        <input
-                          type="checkbox"
-                          checked={isVisible}
-                          onChange={() => toggleSectionVisibility(key)}
-                          className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500"
-                        />
-                        <span className="text-[11px] font-bold">
-                          {isVisible ? 'Aktif' : 'Sembunyi'}
-                        </span>
-                      </label>
-
-                      {/* Tombol Geser Naik */}
-                      <button
-                        type="button"
-                        onClick={() => moveSection(idx, 'up')}
-                        disabled={idx === 0}
-                        className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                        title="Geser Posisi Naik"
-                      >
-                        <ArrowUp className="w-4 h-4" />
-                      </button>
-
-                      {/* Tombol Geser Turun */}
-                      <button
-                        type="button"
-                        onClick={() => moveSection(idx, 'down')}
-                        disabled={idx === sectionsOrder.length - 1}
-                        className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 flex items-center justify-center transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                        title="Geser Posisi Turun"
-                      >
-                        <ArrowDown className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Card Kustomisasi Konten & Tautan Pusat Layanan Mandiri (Quick Links) */}
-          <div
-            id="quick-links-editor"
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-5"
-          >
-            <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-emerald-600" />
-                  Kustomisasi Konten &amp; Tautan &ldquo;Pusat Pelayanan &amp; Informasi Publik Desa&rdquo;
-                </h3>
-                <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-                  Modul ini adalah gerbang akses cepat warga di halaman utama. Anda dapat mengubah judul utama, lencana, tautan PPID / Pengaduan, serta menambah atau mengedit kartu-kartu tombol layanan di bawah.
-                </p>
-              </div>
-              <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5" />
-                Modul Beranda
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* Teks Badge / Lencana Atas */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Teks Lencana (Badge Atas)
-                </label>
-                <input
-                  type="text"
-                  value={quickLinksConfig.badge}
-                  onChange={(e) => setQuickLinksConfig((prev) => ({ ...prev, badge: e.target.value }))}
-                  placeholder="Layanan Terpadu Mandiri"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Default: <em>Layanan Terpadu Mandiri</em>
-                </p>
-              </div>
-
-              {/* Judul Utama Modul */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Judul Utama Modul
-                </label>
-                <input
-                  type="text"
-                  value={quickLinksConfig.title}
-                  onChange={(e) => setQuickLinksConfig((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="Pusat Pelayanan & Informasi Publik Desa"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Default: <em>Pusat Pelayanan &amp; Informasi Publik Desa</em>
-                </p>
-              </div>
-
-              {/* Deskripsi Modul */}
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Deskripsi / Penjelasan Singkat di Bawah Judul
-                </label>
-                <textarea
-                  rows={2}
-                  value={quickLinksConfig.description}
-                  onChange={(e) =>
-                    setQuickLinksConfig((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                  placeholder="Akses langsung seluruh administrasi surat, permohonan informasi PPID, saluran aduan, dan transparansi anggaran desa."
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-                />
-              </div>
-
-              {/* URL Kustom PPID */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Tautan Khusus PPID Desa (Opsional)
-                </label>
-                <input
-                  type="text"
-                  value={quickLinksConfig.ppidUrl}
-                  onChange={(e) => setQuickLinksConfig((prev) => ({ ...prev, ppidUrl: e.target.value }))}
-                  placeholder="Contoh: https://ppid.namadesa.go.id atau kosongkan"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              {/* URL Kustom Aduan */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                  Tautan Khusus Pengaduan / Aspirasi (Opsional)
-                </label>
-                <input
-                  type="text"
-                  value={quickLinksConfig.pengaduanUrl}
-                  onChange={(e) =>
-                    setQuickLinksConfig((prev) => ({ ...prev, pengaduanUrl: e.target.value }))
-                  }
-                  placeholder="Contoh: https://lapor.go.id atau kosongkan untuk otomatis WhatsApp"
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
-
-            {/* Kelola Kartu-Kartu Layanan & Tombol */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    <Sliders className="w-4 h-4 text-emerald-600" />
-                    Kelola Tombol Layanan &amp; Tautan ({quickLinksConfig.items?.length || 0} Tombol)
-                  </h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Edit judul, keterangan, alamat URL tujuan, ikon, warna, ubah urutan (naik/turun), atau tambah tombol layanan baru.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={resetDefaultQuickLinks}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
-                    title="Kembalikan ke 6 tombol standar sistem"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Reset Default</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={addQuickLinkItem}
-                    className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Tambah Tautan Baru</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Grid Kartu-Kartu Layanan */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                {quickLinksConfig.items?.map((item, idx) => (
-                  <div
-                    key={item.id || idx}
-                    className="bg-slate-50/90 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-4 space-y-3 relative hover:border-emerald-300 transition shadow-xs flex flex-col justify-between"
-                  >
-                    <div>
-                      {/* Header Kartu */}
-                      <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-slate-700 pb-2.5 mb-2.5">
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-md bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black flex items-center justify-center flex-shrink-0">
-                            {idx + 1}
-                          </span>
-                          <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 line-clamp-1">
-                            {item.title || `Kartu #${idx + 1}`}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => moveQuickLinkItem(idx, 'up')}
-                            disabled={idx === 0}
-                            className="w-7 h-7 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
-                            title="Geser Naik"
-                          >
-                            <ArrowUp className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveQuickLinkItem(idx, 'down')}
-                            disabled={idx === (quickLinksConfig.items?.length || 0) - 1}
-                            className="w-7 h-7 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
-                            title="Geser Turun"
-                          >
-                            <ArrowDown className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeQuickLinkItem(idx)}
-                            className="w-7 h-7 rounded-md border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition ml-1 cursor-pointer"
-                            title="Hapus Kartu Ini"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Input fields */}
-                      <div className="space-y-2.5">
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                            Judul Tombol
-                          </label>
-                          <input
-                            type="text"
-                            value={item.title}
-                            onChange={(e) => updateQuickLinkItemField(idx, 'title', e.target.value)}
-                            placeholder="Misal: Administrasi Surat"
-                            className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
-                            Keterangan Singkat
-                          </label>
-                          <input
-                            type="text"
-                            value={item.description}
-                            onChange={(e) =>
-                              updateQuickLinkItemField(idx, 'description', e.target.value)
-                            }
-                            placeholder="Misal: Layanan surat keterangan mandiri"
-                            className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </div>
-
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                              Alamat URL Tujuan
-                            </label>
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              Variabel:{' '}
-                              <code className="bg-emerald-50 dark:bg-emerald-950 px-1 py-0.5 rounded text-emerald-700 dark:text-emerald-300 font-bold">
-                                {'{tenant}'}
-                              </code>
-                            </span>
-                          </div>
-                          <input
-                            type="text"
-                            value={item.url}
-                            onChange={(e) => updateQuickLinkItemField(idx, 'url', e.target.value)}
-                            placeholder="Misal: /layanan?tenant={tenant} atau #apbdes atau https://..."
-                            className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                              Pilih Ikon
-                            </label>
-                            <select
-                              value={item.icon || 'globe'}
-                              onChange={(e) =>
-                                updateQuickLinkItemField(idx, 'icon', e.target.value)
-                              }
-                              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            >
-                              {QUICK_LINK_ICONS.map((opt) => (
-                                <option key={opt.value} value={opt.value}>
-                                  {opt.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                              Aksen Warna
-                            </label>
-                            <select
-                              value={item.color || 'emerald'}
-                              onChange={(e) =>
-                                updateQuickLinkItemField(idx, 'color', e.target.value)
-                              }
-                              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                            >
-                              {QUICK_LINK_COLORS.map((c) => (
-                                <option key={c.value} value={c.value}>
-                                  {c.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                            Buka di Jendela
-                          </label>
-                          <select
-                            value={item.target || '_self'}
-                            onChange={(e) =>
-                              updateQuickLinkItemField(idx, 'target', e.target.value)
-                            }
-                            className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                          >
-                            <option value="_self">Tab yang Sama (Halaman Ini)</option>
-                            <option value="_blank">Tab Baru (Eksternal / WhatsApp / Blank)</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Tombol Simpan Modul Quick Links */}
-            <div className="pt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={handleSaveHomepageModules}
-                disabled={savingTheme}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition disabled:opacity-50 cursor-pointer"
-              >
-                {savingTheme ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : themeSaveSuccess ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                <span>
-                  {savingTheme
-                    ? 'Menyimpan...'
-                    : themeSaveSuccess
-                    ? 'Tersimpan ke Beranda!'
-                    : 'Simpan Seluruh Pengaturan Modul'}
-                </span>
-              </button>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                statusFilter === 'all'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              Semua ({sectionsOrder.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('enabled')}
+              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                statusFilter === 'enabled'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              Aktif ({activeCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter('disabled')}
+              className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
+                statusFilter === 'disabled'
+                  ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              Nonaktif ({sectionsOrder.length - activeCount})
+            </button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* ============================================================== */}
-      {/* TAB 2: Lisensi & Fitur Sistem Desa                             */}
-      {/* ============================================================== */}
-      {mainTab === 'system_features' && (
-        <div className="space-y-6 animate-in fade-in-50 duration-150">
-          {/* Filter & Pencarian Bar */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
-            {/* Kolom Pencarian */}
-            <div className="relative flex-1 max-w-md">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari modul atau kata kunci deskripsi..."
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-8 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Filter Status & Kategori */}
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Status Tabs */}
-              <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('all')}
-                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                    statusFilter === 'all'
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Semua ({modules.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('enabled')}
-                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                    statusFilter === 'enabled'
-                      ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Aktif ({enabledCount})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatusFilter('disabled')}
-                  className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${
-                    statusFilter === 'disabled'
-                      ? 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 shadow-sm'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  Nonaktif ({disabledCount})
-                </button>
-              </div>
-
-              {/* Kategori Select */}
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="all">Semua Kategori</option>
-                <option value="core">Inti Pemerintahan</option>
-                <option value="content">Publikasi & Warta</option>
-                <option value="economy">Ekonomi & UMKM</option>
-                <option value="transparency">Transparansi</option>
-                <option value="service">Layanan Warga</option>
-                <option value="system">Sistem & Teknis</option>
-              </select>
-            </div>
+      {/* DAFTAR SATU PINTU: Seluruh Modul Desa (Urutan, Saklar On/Off, & Accordion Kustomisasi) */}
+      <div className="space-y-3">
+        {loading ? (
+          <div className="p-16 text-center text-slate-400 text-xs font-bold flex flex-col items-center justify-center gap-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <RefreshCw className="w-6 h-6 animate-spin text-emerald-600" />
+            <span>Memuat susunan modul desa...</span>
           </div>
+        ) : visibleModulesList.length === 0 ? (
+          <div className="p-16 text-center text-slate-500 text-xs font-bold space-y-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <Boxes className="w-8 h-8 text-slate-400 mx-auto stroke-1" />
+            <p>Tidak ada modul yang cocok dengan pencarian Anda.</p>
+          </div>
+        ) : (
+          visibleModulesList.map((key) => {
+            const modIndex = sectionsOrder.indexOf(key);
+            const info = MODULE_REGISTRY[key];
+            if (!info) return null;
+            const IconComp = info.icon;
+            const isVisible = sectionsVisibility[key] !== false;
+            const isExpanded = expandedKey === key;
 
-          {/* Tabel List Tampilan Modul (List Only View) */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            {loading ? (
-              <div className="p-16 text-center text-slate-400 text-xs font-bold flex flex-col items-center justify-center gap-3">
-                <RefreshCw className="w-6 h-6 animate-spin text-emerald-600" />
-                <span>Memuat data modul sistem desa...</span>
-              </div>
-            ) : filteredModules.length === 0 ? (
-              <div className="p-16 text-center text-slate-500 text-xs font-bold space-y-2">
-                <Boxes className="w-8 h-8 text-slate-400 mx-auto stroke-1" />
-                <p>Tidak ada modul yang cocok dengan kriteria pencarian & filter Anda.</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setStatusFilter('all');
-                    setCategoryFilter('all');
-                  }}
-                  className="mt-2 text-emerald-600 hover:underline cursor-pointer"
-                >
-                  Reset Filter Pencarian
-                </button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 uppercase tracking-wider text-[11px] font-black">
-                      <th className="py-3.5 px-4 text-center w-12">No</th>
-                      <th className="py-3.5 px-4 min-w-[280px]">Modul & Deskripsi Fitur</th>
-                      <th className="py-3.5 px-4 min-w-[140px]">Kategori</th>
-                      <th className="py-3.5 px-4 text-center min-w-[90px]">Versi</th>
-                      <th className="py-3.5 px-4 min-w-[130px]">Status Lisensi</th>
-                      <th className="py-3.5 px-5 text-right min-w-[150px]">Status & Saklar</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                    {filteredModules.map((mod, idx) => {
-                      const isProcessing = togglingKey === mod.key;
-                      const cat = CATEGORY_LABELS[mod.category] || {
-                        label: mod.category,
-                        color: 'bg-slate-100 text-slate-700 border-slate-200',
-                      };
+            return (
+              <div
+                key={key}
+                className={`rounded-2xl border transition-all shadow-xs overflow-hidden ${
+                  isExpanded
+                    ? 'border-emerald-500 ring-2 ring-emerald-500/10 bg-white dark:bg-slate-900'
+                    : isVisible
+                    ? 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
+                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 opacity-70'
+                }`}
+              >
+                {/* Baris Utama Modul */}
+                <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                  {/* Kiri: Posisi Urutan, Ikon & Nama Modul */}
+                  <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
+                    {/* Urutan & Tombol Reorder */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <span className="w-7 h-7 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black flex items-center justify-center">
+                        {modIndex + 1}
+                      </span>
+                      <div className="flex flex-col gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => moveSection(modIndex, 'up')}
+                          disabled={modIndex === 0}
+                          className="w-5 h-5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition text-[10px] cursor-pointer"
+                          title="Geser Posisi Naik"
+                        >
+                          <ArrowUp className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveSection(modIndex, 'down')}
+                          disabled={modIndex === sectionsOrder.length - 1}
+                          className="w-5 h-5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center disabled:opacity-20 disabled:cursor-not-allowed transition text-[10px] cursor-pointer"
+                          title="Geser Posisi Turun"
+                        >
+                          <ArrowDown className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
 
-                      return (
-                        <tr
-                          key={mod.key}
-                          className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors ${
-                            !mod.isEnabled ? 'opacity-70 bg-slate-50/30 dark:bg-slate-900/30' : ''
+                    {/* Ikon Modul */}
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 border border-emerald-200/60">
+                      <IconComp className="w-5 h-5" />
+                    </div>
+
+                    {/* Judul & Detail */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+                          {info.label}
+                        </h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          {info.category}
+                        </span>
+                        {info.planTier && (
+                          <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-200">
+                            {info.planTier}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                        {info.desc}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Kanan: Saklar On/Off & Tombol Buka Kustomisasi */}
+                  <div className="flex items-center justify-between sm:justify-end gap-3.5 flex-shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-800">
+                    {/* Saklar Toggle Aktif/Nonaktif */}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[11px] font-black uppercase tracking-wider ${
+                          isVisible
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-slate-400 dark:text-slate-500'
+                        }`}
+                      >
+                        {isVisible ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={isVisible}
+                        onClick={() => toggleSectionVisibility(key)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          isVisible ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out flex items-center justify-center ${
+                            isVisible ? 'translate-x-5' : 'translate-x-0'
                           }`}
                         >
-                          {/* Nomor Urut */}
-                          <td className="py-3.5 px-4 text-center font-bold text-slate-400">
-                            {idx + 1}
-                          </td>
+                          {isVisible ? (
+                            <Check className="w-2.5 h-2.5 text-emerald-600 stroke-[3]" />
+                          ) : (
+                            <X className="w-2.5 h-2.5 text-slate-400 stroke-[3]" />
+                          )}
+                        </span>
+                      </button>
+                    </div>
 
-                          {/* Nama Modul & Deskripsi */}
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-start gap-3">
-                              <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 flex-shrink-0 mt-0.5 border border-slate-200/60 dark:border-slate-700/60">
-                                {getModuleIcon(mod.key)}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <h3 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white leading-tight">
-                                    {mod.name}
-                                  </h3>
-                                  <code className="text-[10px] font-mono font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700">
-                                    {mod.key}
-                                  </code>
-                                  {mod.isCore && (
-                                    <span className="text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-                                      Inti
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                                  {mod.description}
-                                </p>
-                              </div>
+                    {/* Tombol Expand/Collapse Kustomisasi */}
+                    <button
+                      type="button"
+                      onClick={() => toggleExpand(key)}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border cursor-pointer ${
+                        isExpanded
+                          ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      <span>{isExpanded ? 'Tutup' : 'Kustomisasi'}</span>
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                          isExpanded ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {/* ========================================================= */}
+                {/* PANEL KUSTOMISASI KHUSUS MODUL (HANYA MUNCUL JIKA DIBUKA) */}
+                {/* ========================================================= */}
+                {isExpanded && (
+                  <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 p-5 sm:p-6 animate-in fade-in-50 duration-200 space-y-5">
+                    {/* 1. KUSTOMISASI: PUSAT PELAYANAN & INFORMASI PUBLIK (QUICK LINKS) */}
+                    {key === 'quick_links' && (
+                      <div className="space-y-5">
+                        <div className="border-b border-slate-200 dark:border-slate-700 pb-3">
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-emerald-600" />
+                            Kustomisasi Teks &amp; Tautan Layanan Mandiri
+                          </h4>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Ubah teks judul, lencana, serta kelola kartu tombol akses cepat yang tampil di beranda website desa.
+                          </p>
+                        </div>
+
+                        {/* Input Teks Utama */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                              Teks Lencana (Badge Atas)
+                            </label>
+                            <input
+                              type="text"
+                              value={quickLinksConfig.badge}
+                              onChange={(e) =>
+                                setQuickLinksConfig((prev) => ({ ...prev, badge: e.target.value }))
+                              }
+                              placeholder="Layanan Terpadu Mandiri"
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                              Judul Utama Modul
+                            </label>
+                            <input
+                              type="text"
+                              value={quickLinksConfig.title}
+                              onChange={(e) =>
+                                setQuickLinksConfig((prev) => ({ ...prev, title: e.target.value }))
+                              }
+                              placeholder="Pusat Pelayanan & Informasi Publik Desa"
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            />
+                          </div>
+
+                          <div className="md:col-span-2">
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                              Deskripsi Singkat di Bawah Judul
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={quickLinksConfig.description}
+                              onChange={(e) =>
+                                setQuickLinksConfig((prev) => ({
+                                  ...prev,
+                                  description: e.target.value,
+                                }))
+                              }
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Editor Kartu-Kartu Tombol Layanan Mandiri */}
+                        <div className="pt-3 border-t border-slate-200 dark:border-slate-700 space-y-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                              <h5 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                <Sliders className="w-3.5 h-3.5 text-emerald-600" />
+                                Kelola Tombol Layanan &amp; Tautan ({quickLinksConfig.items?.length || 0} Kartu)
+                              </h5>
+                              <p className="text-[11px] text-slate-500">
+                                Edit judul tombol, URL tujuan, ikon, warna, atau tambah tautan baru.
+                              </p>
                             </div>
-                          </td>
 
-                          {/* Kategori Modul */}
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-md border ${cat.color}`}>
-                              {cat.label}
-                            </span>
-                          </td>
-
-                          {/* Versi Modul */}
-                          <td className="py-3.5 px-4 text-center font-mono font-bold text-slate-500 text-[11px] whitespace-nowrap">
-                            v{mod.version}
-                          </td>
-
-                          {/* Status Lisensi / Paket */}
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            {mod.isCore ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
-                                <Check className="w-3 h-3 text-emerald-600" />
-                                Standar Inti
-                              </span>
-                            ) : !mod.isAllowedByPlan ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300">
-                                <Lock className="w-3 h-3" />
-                                Butuh {mod.minPlan}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 px-2.5 py-1 rounded-full border border-emerald-300 dark:border-emerald-800">
-                                <Sparkles className="w-3 h-3 text-emerald-600" />
-                                {mod.planName}
-                              </span>
-                            )}
-                          </td>
-
-                          {/* Status Saklar On/Off */}
-                          <td className="py-3.5 px-5 text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-3">
-                              <span
-                                className={`text-[11px] font-black uppercase tracking-wider ${
-                                  mod.isEnabled
-                                    ? 'text-emerald-600 dark:text-emerald-400'
-                                    : 'text-slate-400 dark:text-slate-500'
-                                }`}
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={resetDefaultQuickLinks}
+                                className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs"
                               >
-                                {mod.isEnabled ? 'Aktif' : 'Nonaktif'}
-                              </span>
+                                <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Reset Default</span>
+                              </button>
 
                               <button
                                 type="button"
-                                role="switch"
-                                aria-checked={mod.isEnabled}
-                                onClick={() => handleToggle(mod)}
-                                disabled={isProcessing || !mod.isAllowedByPlan}
-                                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 ${
-                                  mod.isEnabled ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
-                                }`}
+                                onClick={addQuickLinkItem}
+                                className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer"
                               >
-                                <span
-                                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out flex items-center justify-center ${
-                                    mod.isEnabled ? 'translate-x-5' : 'translate-x-0'
-                                  }`}
-                                >
-                                  {isProcessing ? (
-                                    <RefreshCw className="w-2.5 h-2.5 animate-spin text-slate-500" />
-                                  ) : mod.isEnabled ? (
-                                    <Check className="w-2.5 h-2.5 text-emerald-600 stroke-[3]" />
-                                  ) : (
-                                    <X className="w-2.5 h-2.5 text-slate-400 stroke-[3]" />
-                                  )}
-                                </span>
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Tambah Tautan Baru</span>
                               </button>
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                          </div>
+
+                          {/* Grid Kartu Tombol */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                            {quickLinksConfig.items?.map((item, itIdx) => (
+                              <div
+                                key={item.id || itIdx}
+                                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 space-y-2.5 shadow-xs flex flex-col justify-between"
+                              >
+                                <div>
+                                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2 mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="w-5 h-5 rounded-md bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-black flex items-center justify-center">
+                                        {itIdx + 1}
+                                      </span>
+                                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 line-clamp-1">
+                                        {item.title || `Kartu #${itIdx + 1}`}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => moveQuickLinkItem(itIdx, 'up')}
+                                        disabled={itIdx === 0}
+                                        className="w-6 h-6 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 text-slate-600 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                        title="Geser Naik"
+                                      >
+                                        <ArrowUp className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => moveQuickLinkItem(itIdx, 'down')}
+                                        disabled={
+                                          itIdx === (quickLinksConfig.items?.length || 0) - 1
+                                        }
+                                        className="w-6 h-6 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 text-slate-600 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                        title="Geser Turun"
+                                      >
+                                        <ArrowDown className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => removeQuickLinkItem(itIdx)}
+                                        className="w-6 h-6 rounded border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center cursor-pointer ml-0.5"
+                                        title="Hapus"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                                        Judul Tombol
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={item.title}
+                                        onChange={(e) =>
+                                          updateQuickLinkItemField(itIdx, 'title', e.target.value)
+                                        }
+                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
+                                        Keterangan
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={item.description}
+                                        onChange={(e) =>
+                                          updateQuickLinkItemField(
+                                            itIdx,
+                                            'description',
+                                            e.target.value
+                                          )
+                                        }
+                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <div className="flex items-center justify-between mb-0.5">
+                                        <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                                          URL Tujuan
+                                        </label>
+                                        <span className="text-[9px] font-mono text-emerald-700 dark:text-emerald-400">
+                                          {'{tenant}'}
+                                        </span>
+                                      </div>
+                                      <input
+                                        type="text"
+                                        value={item.url}
+                                        onChange={(e) =>
+                                          updateQuickLinkItemField(itIdx, 'url', e.target.value)
+                                        }
+                                        placeholder="/layanan?tenant={tenant}"
+                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                      />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <div>
+                                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                                          Ikon
+                                        </label>
+                                        <select
+                                          value={item.icon || 'globe'}
+                                          onChange={(e) =>
+                                            updateQuickLinkItemField(itIdx, 'icon', e.target.value)
+                                          }
+                                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-1.5 py-1 text-xs text-slate-800 dark:text-slate-200"
+                                        >
+                                          {QUICK_LINK_ICONS.map((opt) => (
+                                            <option key={opt.value} value={opt.value}>
+                                              {opt.label}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+
+                                      <div>
+                                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
+                                          Warna
+                                        </label>
+                                        <select
+                                          value={item.color || 'emerald'}
+                                          onChange={(e) =>
+                                            updateQuickLinkItemField(itIdx, 'color', e.target.value)
+                                          }
+                                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-1.5 py-1 text-xs text-slate-800 dark:text-slate-200"
+                                        >
+                                          {QUICK_LINK_COLORS.map((c) => (
+                                            <option key={c.value} value={c.value}>
+                                              {c.label}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 2. KUSTOMISASI: PAPAN PENGUMUMAN */}
+                    {key === 'pengumuman' && (
+                      <div className="space-y-4">
+                        <div className="border-b border-slate-200 dark:border-slate-700 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Megaphone className="w-4 h-4 text-emerald-600" />
+                            Kustomisasi Tampilan Papan Pengumuman
+                          </h4>
+                          {info.cmsLink && (
+                            <Link
+                              href={info.cmsLink}
+                              className="text-xs text-emerald-600 hover:underline font-bold flex items-center gap-1"
+                            >
+                              <span>Kelola Daftar Pengumuman di CMS</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                              Jumlah Pengumuman Per Slide
+                            </label>
+                            <select
+                              value={announcementPerSlide}
+                              onChange={(e) =>
+                                setAnnouncementPerSlide(parseInt(e.target.value, 10))
+                              }
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white"
+                            >
+                              <option value={1}>1 Pengumuman (Tampilan Besar/Fokus)</option>
+                              <option value={2}>2 Pengumuman (Standar Rekomendasi)</option>
+                              <option value={3}>3 Pengumuman</option>
+                              <option value={4}>4 Pengumuman</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                              Total Kuota Tayang di Beranda
+                            </label>
+                            <select
+                              value={homepageAnnouncementCount}
+                              onChange={(e) =>
+                                setHomepageAnnouncementCount(parseInt(e.target.value, 10))
+                              }
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white"
+                            >
+                              <option value={2}>2 Pengumuman</option>
+                              <option value={3}>3 Pengumuman</option>
+                              <option value={4}>4 Pengumuman (Default)</option>
+                              <option value={6}>6 Pengumuman</option>
+                              <option value={8}>8 Pengumuman</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 3. KUSTOMISASI: WARTA BERITA DESA */}
+                    {key === 'berita' && (
+                      <div className="space-y-4">
+                        <div className="border-b border-slate-200 dark:border-slate-700 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Newspaper className="w-4 h-4 text-emerald-600" />
+                            Kustomisasi Tampilan Berita di Beranda
+                          </h4>
+                          {info.cmsLink && (
+                            <Link
+                              href={info.cmsLink}
+                              className="text-xs text-emerald-600 hover:underline font-bold flex items-center gap-1"
+                            >
+                              <span>Tulis Berita Baru di CMS</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
+                        </div>
+
+                        <div className="max-w-xs">
+                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            Jumlah Artikel Ditampilkan di Beranda
+                          </label>
+                          <select
+                            value={homepageArticleCount}
+                            onChange={(e) =>
+                              setHomepageArticleCount(parseInt(e.target.value, 10))
+                            }
+                            className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white"
+                          >
+                            <option value={3}>3 Artikel (Rekomendasi Utama)</option>
+                            <option value={4}>4 Artikel</option>
+                            <option value={5}>5 Artikel</option>
+                            <option value={6}>6 Artikel</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 4. KUSTOMISASI: GALERI FOTO */}
+                    {key === 'galeri' && (
+                      <div className="space-y-4">
+                        <div className="border-b border-slate-200 dark:border-slate-700 pb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                            <Camera className="w-4 h-4 text-emerald-600" />
+                            Kustomisasi Tampilan Galeri Foto Beranda
+                          </h4>
+                          {info.cmsLink && (
+                            <Link
+                              href={info.cmsLink}
+                              className="text-xs text-emerald-600 hover:underline font-bold flex items-center gap-1"
+                            >
+                              <span>Kelola Album &amp; Foto di CMS</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
+                        </div>
+
+                        <div className="max-w-xs">
+                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            Jumlah Kegiatan Foto di Beranda
+                          </label>
+                          <select
+                            value={homepageGalleryCount}
+                            onChange={(e) =>
+                              setHomepageGalleryCount(parseInt(e.target.value, 10))
+                            }
+                            className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-bold text-slate-900 dark:text-white"
+                          >
+                            <option value={3}>3 Kegiatan</option>
+                            <option value={4}>4 Kegiatan (Default)</option>
+                            <option value={6}>6 Kegiatan</option>
+                            <option value={8}>8 Kegiatan</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 5. KUSTOMISASI: STATISTIK KILAT */}
+                    {key === 'stats' && (
+                      <div className="space-y-4">
+                        <div className="border-b border-slate-200 dark:border-slate-700 pb-2">
+                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                            <BarChart3 className="w-4 h-4 text-emerald-600" />
+                            Kustomisasi Infografis Statistik Kilat Desa
+                          </h4>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Angka indikator ini ditampilkan di kartu statistik cepat beranda desa.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                              Status IDM
+                            </label>
+                            <input
+                              type="text"
+                              value={statsData.statusIdm}
+                              onChange={(e) =>
+                                setStatsData((prev) => ({ ...prev, statusIdm: e.target.value }))
+                              }
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-900 dark:text-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                              Total Penduduk (Manual/Fallback)
+                            </label>
+                            <input
+                              type="number"
+                              value={statsData.totalPenduduk}
+                              onChange={(e) =>
+                                setStatsData((prev) => ({
+                                  ...prev,
+                                  totalPenduduk: parseInt(e.target.value, 10) || 0,
+                                }))
+                              }
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-900 dark:text-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                              Total Kepala Keluarga (KK)
+                            </label>
+                            <input
+                              type="number"
+                              value={statsData.totalKK}
+                              onChange={(e) =>
+                                setStatsData((prev) => ({
+                                  ...prev,
+                                  totalKK: parseInt(e.target.value, 10) || 0,
+                                }))
+                              }
+                              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-900 dark:text-white"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 6. MODUL LAINNYA (PROFILE, PAMONG, APBDES, PEMBANGUNAN, LAPAK, JAM LAYANAN) */}
+                    {key !== 'quick_links' &&
+                      key !== 'pengumuman' &&
+                      key !== 'berita' &&
+                      key !== 'galeri' &&
+                      key !== 'stats' && (
+                        <div className="space-y-3">
+                          <div className="border-b border-slate-200 dark:border-slate-700 pb-2">
+                            <h4 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                              <IconComp className="w-4 h-4 text-emerald-600" />
+                              Pengaturan &amp; Data Modul {info.label}
+                            </h4>
+                            <p className="text-xs text-slate-500 mt-0.5">{info.desc}</p>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <div>
+                              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 block">
+                                Kelola Konten &amp; Data Master Modul Ini
+                              </span>
+                              <span className="text-[11px] text-slate-500">
+                                Data modul ini disinkronisasikan otomatis langsung dari modul backoffice terkait.
+                              </span>
+                            </div>
+
+                            {info.cmsLink && (
+                              <Link
+                                href={info.cmsLink}
+                                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition flex items-center gap-1.5 self-start sm:self-auto shadow-xs whitespace-nowrap"
+                              >
+                                <span>Buka Manajemen {info.label}</span>
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </Link>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                    {/* Tombol Simpan Cepat di Dalam Setiap Panel Kustomisasi */}
+                    <div className="pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleSaveAll}
+                        disabled={saving}
+                        className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {saving ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : saveSuccess ? (
+                          <Check className="w-3.5 h-3.5" />
+                        ) : (
+                          <Save className="w-3.5 h-3.5" />
+                        )}
+                        <span>{saving ? 'Menyimpan...' : 'Simpan Pengaturan Modul'}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-      )}
+            );
+          })
+        )}
+      </div>
+
+      {/* Tombol Simpan Sticky di Bawah */}
+      <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <span className="text-xs text-slate-500">
+          Seluruh susunan urutan modul, saklar aktif/nonaktif, dan kustomisasi tombol akan langsung diterapkan ke portal beranda.
+        </span>
+
+        <button
+          type="button"
+          onClick={handleSaveAll}
+          disabled={saving}
+          className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+        >
+          {saving ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : saveSuccess ? (
+            <Check className="w-4 h-4" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          <span>{saving ? 'Menyimpan...' : saveSuccess ? 'Tersimpan ke Beranda!' : 'Simpan Seluruh Pengaturan Modul'}</span>
+        </button>
+      </div>
     </div>
   );
 }
