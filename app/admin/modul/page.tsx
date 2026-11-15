@@ -971,149 +971,165 @@ export default function UnifiedModuleManagementPage() {
                             </div>
                           </div>
 
-                          {/* Grid Kartu Tombol */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                          {/* Daftar List Kartu Tombol */}
+                          <div className="space-y-2.5">
                             {quickLinksConfig.items?.map((item, itIdx) => (
                               <div
                                 key={item.id || itIdx}
-                                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5 space-y-2.5 shadow-xs flex flex-col justify-between"
+                                className="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3 shadow-2xs hover:border-slate-300 dark:hover:border-slate-600 transition flex flex-col lg:flex-row lg:items-center gap-3"
                               >
-                                <div>
-                                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-2 mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="w-5 h-5 rounded-md bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[11px] font-black flex items-center justify-center">
-                                        {itIdx + 1}
-                                      </span>
-                                      <span className="text-xs font-extrabold text-slate-800 dark:text-slate-100 line-clamp-1">
-                                        {item.title || `Kartu #${itIdx + 1}`}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        type="button"
-                                        onClick={() => moveQuickLinkItem(itIdx, 'up')}
-                                        disabled={itIdx === 0}
-                                        className="w-6 h-6 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 text-slate-600 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                                        title="Geser Naik"
-                                      >
-                                        <ArrowUp className="w-3 h-3" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => moveQuickLinkItem(itIdx, 'down')}
-                                        disabled={
-                                          itIdx === (quickLinksConfig.items?.length || 0) - 1
-                                        }
-                                        className="w-6 h-6 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 text-slate-600 flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                                        title="Geser Turun"
-                                      >
-                                        <ArrowDown className="w-3 h-3" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => removeQuickLinkItem(itIdx)}
-                                        className="w-6 h-6 rounded border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center cursor-pointer ml-0.5"
-                                        title="Hapus"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
-                                    </div>
+                                {/* Nomor & Tombol Urutan */}
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="w-6 h-6 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-black flex items-center justify-center shadow-xs">
+                                    {itIdx + 1}
+                                  </span>
+                                  <div className="flex lg:flex-col gap-0.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => moveQuickLinkItem(itIdx, 'up')}
+                                      disabled={itIdx === 0}
+                                      className="w-5 h-5 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer transition"
+                                      title="Geser Naik"
+                                    >
+                                      <ArrowUp className="w-2.5 h-2.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => moveQuickLinkItem(itIdx, 'down')}
+                                      disabled={
+                                        itIdx === (quickLinksConfig.items?.length || 0) - 1
+                                      }
+                                      className="w-5 h-5 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center disabled:opacity-25 disabled:cursor-not-allowed cursor-pointer transition"
+                                      title="Geser Turun"
+                                    >
+                                      <ArrowDown className="w-2.5 h-2.5" />
+                                    </button>
                                   </div>
+                                </div>
 
-                                  <div className="space-y-2">
-                                    <div>
-                                      <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
-                                        Judul Tombol
-                                      </label>
-                                      <input
-                                        type="text"
-                                        value={item.title}
-                                        onChange={(e) =>
-                                          updateQuickLinkItemField(itIdx, 'title', e.target.value)
-                                        }
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                                      />
-                                    </div>
-
-                                    <div>
-                                      <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300 mb-0.5">
-                                        Keterangan
-                                      </label>
-                                      <input
-                                        type="text"
-                                        value={item.description}
-                                        onChange={(e) =>
-                                          updateQuickLinkItemField(
-                                            itIdx,
-                                            'description',
-                                            e.target.value
-                                          )
-                                        }
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                                      />
-                                    </div>
-
-                                    <div>
-                                      <div className="flex items-center justify-between mb-0.5">
-                                        <label className="block text-[10px] font-bold text-slate-700 dark:text-slate-300">
-                                          URL Tujuan
-                                        </label>
-                                        <span className="text-[9px] font-mono text-emerald-700 dark:text-emerald-400">
-                                          {'{tenant}'}
-                                        </span>
-                                      </div>
-                                      <input
-                                        type="text"
-                                        value={item.url}
-                                        onChange={(e) =>
-                                          updateQuickLinkItemField(itIdx, 'url', e.target.value)
-                                        }
-                                        placeholder="/layanan?tenant={tenant}"
-                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                                      />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-2">
-                                      <div>
-                                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
-                                          Ikon
-                                        </label>
-                                        <select
-                                          value={item.icon || 'globe'}
-                                          onChange={(e) =>
-                                            updateQuickLinkItemField(itIdx, 'icon', e.target.value)
-                                          }
-                                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-1.5 py-1 text-xs text-slate-800 dark:text-slate-200"
-                                        >
-                                          {QUICK_LINK_ICONS.map((opt) => (
-                                            <option key={opt.value} value={opt.value}>
-                                              {opt.label}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </div>
-
-                                      <div>
-                                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-400 mb-0.5">
-                                          Warna
-                                        </label>
-                                        <select
-                                          value={item.color || 'emerald'}
-                                          onChange={(e) =>
-                                            updateQuickLinkItemField(itIdx, 'color', e.target.value)
-                                          }
-                                          className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-1.5 py-1 text-xs text-slate-800 dark:text-slate-200"
-                                        >
-                                          {QUICK_LINK_COLORS.map((c) => (
-                                            <option key={c.value} value={c.value}>
-                                              {c.label}
-                                            </option>
-                                          ))}
-                                        </select>
-                                      </div>
-                                    </div>
+                                {/* Pilihan Ikon & Warna */}
+                                <div className="grid grid-cols-2 lg:flex lg:items-center gap-1.5 shrink-0">
+                                  <div>
+                                    <label className="block lg:hidden text-[9px] font-bold text-slate-500 uppercase mb-0.5">
+                                      Ikon
+                                    </label>
+                                    <select
+                                      value={item.icon || 'globe'}
+                                      onChange={(e) =>
+                                        updateQuickLinkItemField(itIdx, 'icon', e.target.value)
+                                      }
+                                      className="w-full lg:w-32 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 font-semibold focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                                    >
+                                      {QUICK_LINK_ICONS.map((opt) => (
+                                        <option key={opt.value} value={opt.value}>
+                                          {opt.label}
+                                        </option>
+                                      ))}
+                                    </select>
                                   </div>
+                                  <div>
+                                    <label className="block lg:hidden text-[9px] font-bold text-slate-500 uppercase mb-0.5">
+                                      Warna
+                                    </label>
+                                    <select
+                                      value={item.color || 'emerald'}
+                                      onChange={(e) =>
+                                        updateQuickLinkItemField(itIdx, 'color', e.target.value)
+                                      }
+                                      className="w-full lg:w-28 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                                    >
+                                      {QUICK_LINK_COLORS.map((c) => (
+                                        <option key={c.value} value={c.value}>
+                                          {c.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+
+                                {/* Kolom Input Teks: Judul & Keterangan */}
+                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 min-w-0">
+                                  <div>
+                                    <label className="block lg:hidden text-[9px] font-bold text-slate-500 uppercase mb-0.5">
+                                      Judul Tombol
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={item.title}
+                                      onChange={(e) =>
+                                        updateQuickLinkItemField(itIdx, 'title', e.target.value)
+                                      }
+                                      placeholder="Judul Tombol (misal: Administrasi Surat)"
+                                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block lg:hidden text-[9px] font-bold text-slate-500 uppercase mb-0.5">
+                                      Keterangan Singkat
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={item.description}
+                                      onChange={(e) =>
+                                        updateQuickLinkItemField(
+                                          itIdx,
+                                          'description',
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="Keterangan singkat tombol..."
+                                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Kolom URL Tujuan */}
+                                <div className="w-full lg:w-64 xl:w-72 shrink-0">
+                                  <label className="block lg:hidden text-[9px] font-bold text-slate-500 uppercase mb-0.5">
+                                    URL Tujuan
+                                  </label>
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      value={item.url}
+                                      onChange={(e) =>
+                                        updateQuickLinkItemField(itIdx, 'url', e.target.value)
+                                      }
+                                      placeholder="/layanan?tenant={tenant}"
+                                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg pl-2.5 pr-14 py-1.5 text-xs font-mono text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                    />
+                                    <span className="absolute right-2 top-2 text-[9px] font-mono text-emerald-600 dark:text-emerald-400 pointer-events-none">
+                                      {'{tenant}'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Target Jendela Baru & Tombol Hapus */}
+                                <div className="flex items-center justify-between lg:justify-end gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-700">
+                                  <label className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+                                    <input
+                                      type="checkbox"
+                                      checked={item.target === '_blank'}
+                                      onChange={(e) =>
+                                        updateQuickLinkItemField(
+                                          itIdx,
+                                          'target',
+                                          e.target.checked ? '_blank' : '_self'
+                                        )
+                                      }
+                                      className="rounded border-slate-300 dark:border-slate-600 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                    />
+                                    <span className="text-[11px] whitespace-nowrap">Tab Baru</span>
+                                  </label>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => removeQuickLinkItem(itIdx)}
+                                    className="p-1.5 rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 text-rose-600 dark:text-rose-400 transition cursor-pointer"
+                                    title="Hapus Tombol Tautan Ini"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
                               </div>
                             ))}

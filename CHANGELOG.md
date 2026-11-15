@@ -20,12 +20,23 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Membatasi webhook Telegram maksimal 120 update per menit untuk memproteksi bot dari serangan flood.
 
 ### Fixed
+- **Retensi Posisi Scroll & Auto-Scroll Menu Aktif pada Sidebar Navigasi Admin (`components/Sidebar.tsx`)**:
+  - Memperbaiki kendala posisi scroll sidebar admin yang selalu ter-reset ke paling atas (scrollTop = 0) setiap kali admin berpindah rute/mengklik menu di bagian bawah (seperti Modul, Tampilan, Identitas, Telegram, Audit Log), yang sebelumnya memaksa admin menggulir ulang ke bawah setiap saat.
+  - Memasang `sticky top-16 h-[calc(100vh-4rem)]` pada elemen `<aside>` desktop sehingga sidebar tetap melekat di viewport kiri dan tidak ikut tergulir hilang saat konten halaman digeser ke bawah.
+  - Mengimplementasikan penyimpanan posisi scroll di `sessionStorage` (`desdig_sidebar_scroll_top`) dan auto-scroll mulus ke menu aktif via `activeItemRef.scrollIntoView({ block: 'nearest' })` saat navigasi halaman.
+  - Menyimpan status buka-tutup grup menu di `localStorage` (`desdig_sidebar_collapsed_groups`) agar preferensi grup yang diciutkan admin tetap tersimpan.
 - **Sinkronisasi Reorder Posisi Modul Beranda & Cache Revalidation (`app/api/theme/route.ts`, `components/themes/ModernGovernmentTheme.tsx`, `components/themes/modern-government/*`, `app/admin/tampilan/page.tsx`)**:
   - Memperbaiki kendala pengurutan modul beranda yang tidak berubah di portal publik akibat absennya `revalidateTenantCache(tenant.id)` pada endpoint `POST /api/theme`, sehingga peramban menyajikan cache lama selama 1 jam.
   - Mengubah arsitektur penyusunan section di tema utama (`ModernGovernmentTheme.tsx`) agar seluruh modul beranda (`stats`, `quick_links`, `pamong`, `berita`, `apbdes`, `pembangunan`, `galeri`) dirender secara dinamis mengikuti urutan asli array `sectionsOrder` dari database, menghapus ketergantungan rapuh pada CSS flexbox `order`.
   - Menghapus hardcoded `style={{ order: -1 }}` pada `ProfileSection.tsx`, menyesuaikan spacing mengambang dinamis `isFirst` pada `StatsSection.tsx`, dan menambahkan tombol simpan langsung di bawah tabel urutan modul di `app/admin/tampilan/page.tsx`.
 - **Hydration Mismatch pada Tautan Beranda Papan Pengumuman Admin (`app/admin/pengumuman/page.tsx`)**:
   - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
+
+### Changed
+- **Pembaruan Tampilan Editor Kelola Tombol Layanan & Tautan Menjadi Format List Ramping (`app/admin/modul/page.tsx`, `app/admin/tampilan/page.tsx`)**:
+  - Mengubah tampilan editor tombol layanan mandiri dari format grid 3-kolom yang memakan banyak ruang vertikal menjadi format **List Horizontal Terpadu** baris-demi-baris.
+  - Setiap kartu disajikan dalam satu baris fleksibel: nomor urutan sequential, tombol geser naik/turun (`▲` / `▼`), pemilih ikon Lucide & aksen warna, input judul dan keterangan berdampingan, kolom URL tujuan dengan pendeteksi otomatis `{tenant}`, checkbox buka di tab baru, serta tombol hapus cepat.
+  - Pengurutan tombol naik/turun kini jauh lebih intuitif dan alami secara visual karena bergerak langsung ke atas dan ke bawah dalam daftar list.
 
 ### Added
 - **Penyederhanaan Total Manajemen Modul: Antarmuka Terpadu 1 Halaman dengan Akordeon Kustomisasi per Modul (`app/admin/modul/page.tsx`, `app/admin/tampilan/page.tsx`)**:

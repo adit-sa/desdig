@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -27,8 +27,22 @@ export default function Sidebar() {
   const [isDesktopHidden, setIsDesktopHidden] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
+  // Ref untuk kontainer navigasi dan elemen menu aktif (untuk auto-scroll & memulihkan posisi)
+  const navRef = useRef<HTMLElement | null>(null);
+  const activeItemRef = useRef<HTMLAnchorElement | null>(null);
+
   useEffect(() => {
     setIsMounted(true);
+
+    // Pulihkan status grup yang diciutkan dari localStorage
+    try {
+      const savedCollapsed = localStorage.getItem('desdig_sidebar_collapsed_groups');
+      if (savedCollapsed) {
+        setCollapsedGroups(JSON.parse(savedCollapsed));
+      }
+    } catch (e) {
+      // ignore
+    }
   }, []);
 
   const isSuperAdmin = currentUser?.globalRole === 'SUPER_ADMIN';
@@ -58,6 +72,41 @@ export default function Sidebar() {
     } catch (e) {
       // ignore
     }
+  }, [pathname]);
+
+  // Simpan posisi scroll sidebar saat digulir oleh pengguna
+  const handleNavScroll = (e: React.UIEvent<HTMLElement>) => {
+    try {
+      sessionStorage.setItem('desdig_sidebar_scroll_top', String(e.currentTarget.scrollTop));
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  // Pulihkan posisi scroll sidebar dan pastikan menu aktif terlihat otomatis di viewport
+  useEffect(() => {
+    // 1. Pulihkan posisi scroll sebelumnya dari sessionStorage
+    try {
+      const savedScroll = sessionStorage.getItem('desdig_sidebar_scroll_top');
+      if (savedScroll && navRef.current) {
+        navRef.current.scrollTop = parseInt(savedScroll, 10);
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    // 2. Pastikan link menu aktif terlihat dalam pandangan (tidak tersembunyi di bawah)
+    const timer = setTimeout(() => {
+      if (activeItemRef.current) {
+        activeItemRef.current.scrollIntoView({
+          block: 'nearest',
+          inline: 'nearest',
+          behavior: 'smooth',
+        });
+      }
+    }, 120);
+
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   // Listener untuk toggle sidebar (baik Mobile Drawer maupun Desktop Collapse/Hide)
@@ -105,16 +154,29 @@ export default function Sidebar() {
           (item.href !== '/admin' && item.href !== '/' && pathname.startsWith(item.href))
       );
       if (hasActive) {
-        setCollapsedGroups((prev) => ({ ...prev, [group.id]: false }));
+        setCollapsedGroups((prev) => {
+          if (prev[group.id] === false) return prev;
+          const updated = { ...prev, [group.id]: false };
+          try {
+            localStorage.setItem('desdig_sidebar_collapsed_groups', JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
       }
     });
   }, [pathname, currentMenuGroups]);
 
   const toggleGroup = (groupId: string) => {
-    setCollapsedGroups((prev) => ({
-      ...prev,
-      [groupId]: !prev[groupId],
-    }));
+    setCollapsedGroups((prev) => {
+      const updated = {
+        ...prev,
+        [groupId]: !prev[groupId],
+      };
+      try {
+        localStorage.setItem('desdig_sidebar_collapsed_groups', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
   };
 
   // Filter pencarian dan hak akses menu berdasarkan role akun yang login
@@ -225,7 +287,11 @@ export default function Sidebar() {
       </div>
 
       {/* Nav List Padat & Rapi */}
-      <nav className="flex-1 space-y-2.5 overflow-y-auto px-2.5 py-1.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800">
+      <nav
+        ref={navRef}
+        onScroll={handleNavScroll}
+        className="flex-1 space-y-2.5 overflow-y-auto px-2.5 py-1.5 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-800"
+      >
         {filteredGroups.length === 0 ? (
           <div className="py-6 text-center text-xs text-slate-400">
             <p>Menu &quot;{searchQuery}&quot; tidak ada</p>
@@ -290,6 +356,7 @@ export default function Sidebar() {
                         <Link
                           key={`${item.href}-${item.label}`}
                           href={resolvedHref}
+                          ref={isActive ? activeItemRef : undefined}
                           suppressHydrationWarning
                           className={`group flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
                             isActive
@@ -352,7 +419,7 @@ export default function Sidebar() {
     <>
       {/* 1. Desktop Sidebar */}
       {!isDesktopHidden && (
-        <aside className="hidden lg:flex w-56 shrink-0 flex-col border-r border-slate-200 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-900/60 min-h-[calc(100vh-4rem)] transition-all print:hidden">
+        <aside className="hidden lg:flex w-56 shrink-0 flex-col border-r border-slate-200 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-900/60 sticky top-16 h-[calc(100vh-4rem)] transition-all print:hidden">
           {renderNavContent()}
         </aside>
       )}
