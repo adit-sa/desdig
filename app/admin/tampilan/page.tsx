@@ -181,7 +181,7 @@ export default function ThemeCustomizerPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'modules' | 'colors' | 'stats' | 'hero' | 'kades' | 'themes'>('modules');
+  const [activeTab, setActiveTab] = useState<'modules' | 'quick_links' | 'colors' | 'stats' | 'hero' | 'kades' | 'themes'>('modules');
 
   // Pengaturan Mode Lebar Tampilan (Fixed vs Fluid)
   const [layoutMode, setLayoutMode] = useState<'fixed' | 'fluid'>('fixed');
@@ -915,6 +915,18 @@ export default function ThemeCustomizerPage() {
         </button>
 
         <button
+          onClick={() => setActiveTab('quick_links')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition ${
+            activeTab === 'quick_links'
+              ? 'bg-emerald-700 text-white shadow-sm'
+              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Globe className="w-4 h-4" />
+          <span>Pusat Layanan Mandiri (Quick Links)</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('colors')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition ${
             activeTab === 'colors'
@@ -1254,6 +1266,17 @@ export default function ThemeCustomizerPage() {
                               Bilah Samping Berita
                             </span>
                           )}
+                          {key === 'quick_links' && (
+                            <button
+                              type="button"
+                              onClick={() => setActiveTab('quick_links')}
+                              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300 font-extrabold text-[10px] transition cursor-pointer"
+                              title="Buka editor tombol dan tautan layanan mandiri"
+                            >
+                              <Globe className="w-3 h-3 text-emerald-700" />
+                              <span>Kelola Tombol &amp; Tautan &rarr;</span>
+                            </button>
+                          )}
                         </div>
                         <p className="text-[11px] text-slate-500 mt-0.5">{info.desc}</p>
                       </div>
@@ -1319,6 +1342,36 @@ export default function ThemeCustomizerPage() {
             </div>
           </div>
 
+          {/* Banner Shortcut ke Tab Layanan Mandiri (Quick Links) */}
+          <div className="bg-emerald-50/80 border border-emerald-200 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <Globe className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="text-sm font-extrabold text-emerald-950">
+                  Kustomisasi Tombol Layanan Mandiri &amp; Akses Cepat (Quick Links)
+                </h4>
+                <p className="text-xs text-emerald-700 mt-0.5 max-w-xl leading-relaxed">
+                  Ingin mengedit nama tombol (Surat Mandiri, PPID, Aduan WA, APBDes), mengganti alamat URL/link, mengubah ikon &amp; warna, atau menambah tombol layanan baru? Buka tab khusus editor tombol layanan mandiri.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('quick_links')}
+              className="px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition flex items-center gap-2 self-start sm:self-auto shadow-sm whitespace-nowrap cursor-pointer"
+            >
+              <span>Buka Editor Tombol &amp; Tautan</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* TAB KHUSUS: Kustomisasi Pusat Layanan Mandiri & Tombol Akses Cepat */}
+      {activeTab === 'quick_links' && (
+        <div className="space-y-6 animate-in fade-in-50 duration-150">
           {/* Card Kustomisasi Teks & Tautan Pusat Pelayanan & Informasi Publik Desa */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-5">
             <div className="border-b border-slate-100 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

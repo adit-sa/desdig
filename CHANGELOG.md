@@ -28,6 +28,11 @@ Format dokumen ini mengacu pada [Keep a Changelog](https://keepachangelog.com/id
   - Memperbaiki peringatan/error hidrasi React pada elemen `<a>` shortcut *"Lihat Hasil di Beranda"* dengan menambahkan flag `suppressHydrationWarning`, guard `mounted`, serta fallback rute `#berita` saat slug tenant disinkronisasikan dari client-side store ke peramban.
 
 ### Added
+- **Penyatuan Manajemen Modul Beranda & Kustomisasi Satu Pintu ke Menu `Admin > Modul` (`app/admin/modul/page.tsx`, `app/admin/tampilan/page.tsx`)**:
+  - Mengintegrasikan seluruh manajemen modul desa ke dalam satu pintu terpusat di menu [Admin > Modul](file:///c:/app/opensid/app/admin/modul/page.tsx) dengan sistem Dual-Tab:
+    1. **Tab 1: Modul Beranda & Kustomisasi Tautan**: Menampilkan urutan 11 modul beranda, saklar on/off visibilitas, tombol geser urutan (`▲` / `▼`), dan editor kustomisasi tombol layanan mandiri langsung di tempat tanpa perlu berpindah menu.
+    2. **Tab 2: Lisensi & Fitur Sistem Desa**: Manajemen saklar aktivasi modul inti pemerintahan dan paket lisensi langganan SaaS.
+  - Menambahkan tab navigasi langsung **"Pusat Layanan Mandiri (Quick Links)"** di menu [Admin > Tampilan](file:///c:/app/opensid/app/admin/tampilan/page.tsx) dan tombol pintas pada baris modul, sehingga admin desa dapat langsung mengedit tombol dan tautan layanan dengan 1 klik tanpa harus menggulir halaman panjang ke bawah.
 - **Kustomisasi Penuh Tombol & Tautan Modul Pusat Pelayanan & Informasi Publik Desa (`components/themes/modern-government/QuickLinksSection.tsx`, `components/themes/ModernGovernmentTheme.tsx`, `app/admin/tampilan/page.tsx`)**:
   - Memberikan kebebasan penuh bagi admin desa untuk mengedit setiap tombol/kartu layanan mandiri yang ada di halaman utama (mengubah judul, deskripsi, tautan URL tujuan, ikon, aksen warna, dan target jendela peramban).
   - Menambahkan fitur penambahan tautan baru (`+ Tambah Tautan Baru`), pengaturan urutan naik/turun (`▲` / `▼`), penghapusan kartu, serta opsi pemulihan (`Reset Default`) ke 6 tombol standar sistem di menu [Admin > Tampilan](file:///c:/app/opensid/app/admin/tampilan/page.tsx).
